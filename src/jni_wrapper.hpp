@@ -40,13 +40,14 @@ public:
 template<class T>
 class jobject_wrapper : public shared_releaser {
 public:
-    jobject_wrapper(T object, jvm_env env) : obj(object), shared_releaser([object, env]{
+    jobject_wrapper(T object, jvm_env env) : obj(object), shared_releaser([object, env] {
         if (object != nullptr) {
             env->DeleteLocalRef(object);
         }
     }) {}
 
-    template<class = int> requires std::negation_v<std::is_same<T, jobject>>
+    template<class = int>
+    requires std::negation_v<std::is_same<T, jobject>>
     jobject_wrapper(jobject object, jvm_env env) : shared_releaser([object, env] {
         if (object != nullptr) {
             env->DeleteLocalRef(object);
@@ -73,11 +74,13 @@ public:
     T obj;
 };
 
-class java_function {
-
-};
-
 class java_constructor;
+
+class java_field;
+
+class java_function;
+
+class java_class;
 
 class jni_wrapper {
 public:
@@ -89,7 +92,17 @@ public:
 
     [[nodiscard]] std::vector<java_constructor> getClassConstructors(const std::string &className) const;
 
-    [[nodiscard]] java_exception getLastException() const;
+    [[nodiscard]] jclass getJavaLangClass() const;
+
+    [[nodiscard]] jobject_wrapper<jobject> getClassByName(const std::string &className) const;
+
+    [[nodiscard]] std::vector<java_field> getClassFields(const std::string &className, bool onlyStatic) const;
+
+    [[nodiscard]] std::vector<java_function> getClassFunctions(const std::string &className, bool onlyStatic) const;
+
+    [[nodiscard]] java_class getClass(const std::string &className) const;
+
+    [[nodiscard]] java_exception getLastException(int line = -1) const;
 
     std::string get_object_class_name(jobject obj) const;
 
@@ -100,6 +113,26 @@ public:
     jvm_env env;
 private:
     shared_library library;
+};
+
+class java_field {
+public:
+    java_field(std::string signature, std::string name, jfieldID id);
+
+    const std::string signature;
+    const std::string name;
+    jfieldID id;
+};
+
+class java_function {
+public:
+    java_function(std::vector<std::string> parameterTypes, std::string returnType, std::string functionName,
+                  jmethodID method);
+
+    const std::vector<std::string> parameterTypes;
+    const std::string returnType;
+    const std::string functionName;
+    jmethodID method;
 };
 
 class java_constructor : public jobject_wrapper<jobject> {
@@ -116,6 +149,17 @@ public:
 
 private:
     jni_wrapper jni;
+};
+
+class java_class {
+public:
+    java_class(std::vector<java_field> static_fields, std::vector<java_field> fields,
+               std::vector<java_function> static_functions, std::vector<java_function> functions,
+               std::vector<java_constructor> constructors);
+
+    const std::vector<java_field> static_fields, fields;
+    const std::vector<java_function> static_functions, functions;
+    const std::vector<java_constructor> constructors;
 };
 
 #endif //NODE_JAVA_BRIDGE_JNI_WRAPPER_HPP

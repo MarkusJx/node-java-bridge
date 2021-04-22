@@ -12,7 +12,7 @@ int main() {
         JavaVMInitArgs vm_args;
         auto* options = new JavaVMOption[0];
         //options[0].optionString = "-Djava.class.path=/usr/lib/java";
-        vm_args.version = JNI_VERSION_1_6;
+        vm_args.version = JNI_VERSION_10;
         vm_args.nOptions = 0;
         vm_args.options = options;
         vm_args.ignoreUnrecognized = false;
@@ -21,7 +21,9 @@ int main() {
         jobject_wrapper str = jvm.string_to_jstring("abc");
         std::cout << jvm.jstring_to_string(str) << ", classname: " << jvm.get_object_class_name(str) << std::endl;
 
-        jvm->FindClass("java/lang/String");
+        std::cout << jvm.get_object_class_name(jvm->NewByteArray(0)) << std::endl;
+
+        /*jvm->FindClass("java/lang/String");
         if (jvm->ExceptionCheck()) {
             std::cerr << jvm.getLastException().what() << std::endl;
         }
@@ -31,6 +33,18 @@ int main() {
             std::cout << ctor.to_string() << ", num args: " << ctor.numArguments() << ", types:" << std::endl;
             for (const auto &param : ctor.getParameterTypes()) {
                 std::cout << '\t' << param << std::endl;
+            }
+        }*/
+
+        auto clazz = jvm.getClass("java.lang.String");
+        for (const auto &f : clazz.fields) {
+            std::cout << "Signature: " << f.signature << ", name: " << f.name << std::endl;
+        }
+
+        for (const auto &m : clazz.functions) {
+            std::cout << "Function name: " << m.functionName << ", return type: " << m.returnType << std::endl;
+            for (const auto &p : m.parameterTypes) {
+                std::cout << '\t' << p << std::endl;
             }
         }
     } catch (const std::exception &e) {
