@@ -1,23 +1,17 @@
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
-#   define SHARED_LIBRARY_WINDOWS
-#elif defined(__LINUX__) || defined(__APPLE__) || defined (__CYGWIN__) || defined(__linux__) || defined(__FreeBSD__) || \
-        defined(unix) || defined(__unix) || defined(__unix__)
-#   undef SHARED_LIBRARY_WINDOWS
-#endif
-
-#include "shared_library.hpp"
+#include "jvm_lib/shared_library.hpp"
+#include "definitions.hpp"
 
 #include <stdexcept>
 
-#ifdef SHARED_LIBRARY_WINDOWS
+#ifdef JAVA_WINDOWS
 
-#   include <windows.h>
+#   include <Windows.h>
 
 #else
 #   include <dlfcn.h>
-#endif //SHARED_LIBRARY_WINDOWS
+#endif //JAVA_WINDOWS
 
-#ifdef SHARED_LIBRARY_WINDOWS
+#ifdef JAVA_WINDOWS
 
 // Source: https://stackoverflow.com/a/17387176
 std::string GetLastErrorAsString() {
@@ -50,12 +44,12 @@ std::string GetLastErrorAsString() {
     return message;
 }
 
-#endif //SHARED_LIBRARY_WINDOWS
+#endif //JAVA_WINDOWS
 
 
 class shared_library::loaded_dll {
 public:
-#ifdef SHARED_LIBRARY_WINDOWS
+#ifdef JAVA_WINDOWS
     HMODULE module;
 
     explicit loaded_dll(HMODULE module) : module(module) {}
@@ -64,15 +58,15 @@ public:
     void *module;
 
     explicit loaded_dll(void *module) : module(module) {}
-#endif //SHARED_LIBRARY_WINDOWS
+#endif //JAVA_WINDOWS
 
     ~loaded_dll() {
         if (module != nullptr) {
-#ifdef SHARED_LIBRARY_WINDOWS
+#ifdef JAVA_WINDOWS
             FreeLibrary(module);
 #else
             dlclose(module);
-#endif //SHARED_LIBRARY_WINDOWS
+#endif //JAVA_WINDOWS
         }
     }
 };
@@ -80,7 +74,7 @@ public:
 shared_library::shared_library() noexcept: instance(nullptr) {}
 
 shared_library::shared_library(const std::string &library_name) {
-#ifdef SHARED_LIBRARY_WINDOWS
+#ifdef JAVA_WINDOWS
     SetLastError(0);
     HMODULE loaded = LoadLibraryA(library_name.c_str());
     if (loaded == nullptr) {
@@ -91,13 +85,13 @@ shared_library::shared_library(const std::string &library_name) {
     if (loaded == nullptr) {
         throw std::runtime_error("Could not load the library. Reason: " + std::string(dlerror()));
     }
-#endif //SHARED_LIBRARY_WINDOWS
+#endif //JAVA_WINDOWS
 
     this->instance = std::make_shared<shared_library::loaded_dll>(loaded);
 }
 
 void *shared_library::getFunctionAddress(const std::string &name) {
-#ifdef SHARED_LIBRARY_WINDOWS
+#ifdef JAVA_WINDOWS
     void *symbol = reinterpret_cast<void *>(GetProcAddress(this->instance->module, name.c_str()));
     if (symbol == nullptr) {
         throw std::runtime_error("Could not resolve the function. Reason: " + GetLastErrorAsString());
@@ -111,5 +105,5 @@ void *shared_library::getFunctionAddress(const std::string &name) {
     } else {
         return symbol;
     }
-#endif //SHARED_LIBRARY_WINDOWS
+#endif //JAVA_WINDOWS
 }

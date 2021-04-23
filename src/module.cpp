@@ -1,62 +1,30 @@
-//#include <napi.h>
+#include <napi.h>
 #include <iostream>
 #include <jni.h>
+#include <napi_tools.hpp>
+#include <windows.h>
 
-#include "shared_library.hpp"
-#include "jni_wrapper.hpp"
+#include "jvm_lib/shared_library.hpp"
+#include "jvm_lib/jni_wrapper.hpp"
+#include "node_classes/java.hpp"
+#include "node_classes/java_class_proxy.hpp"
+#include "util.hpp"
 
-#define JVM_DLL_PATH R"(C:\Program Files\AdoptOpenJDK\jdk-11.0.10.9-hotspot\bin\client\jvm.dll)"
+void addToClasspath(const Napi::CallbackInfo &info) {
+    CHECK_ARGS(napi_tools::string);
 
-int main() {
-    try {
-        JavaVMInitArgs vm_args;
-        auto* options = new JavaVMOption[0];
-        //options[0].optionString = "-Djava.class.path=/usr/lib/java";
-        vm_args.version = JNI_VERSION_10;
-        vm_args.nOptions = 0;
-        vm_args.options = options;
-        vm_args.ignoreUnrecognized = false;
-        jni_wrapper jvm(JVM_DLL_PATH, vm_args);
-
-        jobject_wrapper str = jvm.string_to_jstring("abc");
-        std::cout << jvm.jstring_to_string(str) << ", classname: " << jvm.get_object_class_name(str) << std::endl;
-
-        std::cout << jvm.get_object_class_name(jvm->NewByteArray(0)) << std::endl;
-
-        /*jvm->FindClass("java/lang/String");
-        if (jvm->ExceptionCheck()) {
-            std::cerr << jvm.getLastException().what() << std::endl;
-        }
-
-        auto constructors = jvm.getClassConstructors("java.lang.String");
-        for (const auto &ctor : constructors) {
-            std::cout << ctor.to_string() << ", num args: " << ctor.numArguments() << ", types:" << std::endl;
-            for (const auto &param : ctor.getParameterTypes()) {
-                std::cout << '\t' << param << std::endl;
-            }
-        }*/
-
-        auto clazz = jvm.getClass("java.lang.String");
-        for (const auto &f : clazz.fields) {
-            std::cout << "Signature: " << f.signature << ", name: " << f.name << std::endl;
-        }
-
-        for (const auto &m : clazz.functions) {
-            std::cout << "Function name: " << m.functionName << ", return type: " << m.returnType << std::endl;
-            for (const auto &p : m.parameterTypes) {
-                std::cout << '\t' << p << std::endl;
-            }
-        }
-    } catch (const std::exception &e) {
-        std::cerr << "Exception thrown: " << e.what() << std::endl;
-    }
-
-    return 0;
+    TRY
+        const std::string path = info[0].ToString();
+        node_classes::java::classpathElements.push_back(path);
+    CATCH_EXCEPTIONS
 }
 
-/*Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
+Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
+    EXPORT_FUNCTION(exports, env, addToClasspath);
+    node_classes::java::init(env, exports);
+    node_classes::java_class_proxy::init(env, exports);
 
     return exports;
 }
 
-NODE_API_MODULE(node_java_bridge, InitAll)*/
+NODE_API_MODULE(node_java_bridge, InitAll)

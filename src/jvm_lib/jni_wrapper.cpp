@@ -1,12 +1,15 @@
 #include <stdexcept>
 #include <sstream>
 #include <iostream>
+#include <utility>
 
-#include "jni_wrapper.hpp"
+#include "jvm_lib/jni_wrapper.hpp"
+#include "util.hpp"
 
-#define CHECK_EXCEPTION() if (env->ExceptionCheck()) throw getLastException(__LINE__)
-#define JVM_CHECK_EXCEPTION(jvm) if (jvm->ExceptionCheck()) throw jvm.getLastException(__LINE__)
+#define CHECK_EXCEPTION() if (env->ExceptionCheck()) throwLastException(__LINE__)
+#define JVM_CHECK_EXCEPTION(jvm) if (jvm->ExceptionCheck()) jvm.throwLastException(__LINE__)
 
+using namespace jni;
 using namespace jni_types;
 
 /*
@@ -25,86 +28,8 @@ using namespace jni_types;
  * +-------------+
  */
 
-std::string string_replace(std::string val, char to_replace, char replacement) {
-    for (char &c : val) {
-        if (c == to_replace) {
-            c = replacement;
-        }
-    }
-
-    return val;
-}
-
-std::string java_type_to_jni_type(const std::string &to_convert) {
-    if (to_convert == "boolean") {
-        return "Z";
-    } else if (to_convert == "byte") {
-        return "B";
-    } else if (to_convert == "char") {
-        return "C";
-    } else if (to_convert == "short") {
-        return "S";
-    } else if (to_convert == "int") {
-        return "I";
-    } else if (to_convert == "long") {
-        return "J";
-    } else if (to_convert == "float") {
-        return "F";
-    } else if (to_convert == "double") {
-        return "D";
-    } else if (to_convert == "void") {
-        return "V";
-    } else {
-        if (!to_convert.empty() && to_convert[0] != '[' && to_convert[0] != 'L') {
-            return 'L' + string_replace(to_convert, '.', '/') + ';';
-        } else {
-            return string_replace(to_convert, '.', '/');
-        }
-    }
-}
-
-std::string jni_error_to_string(jint code) {
-    switch (code) {
-        case JNI_EDETACHED:
-            return "Thread detached from the vm";
-        case JNI_EVERSION:
-            return "JNI version error";
-        case JNI_ENOMEM:
-            return "Not enough memory";
-        case JNI_EEXIST:
-            return "VM already created";
-        case JNI_EINVAL:
-            return "Invalid arguments";
-        default:
-            return "Unknown error";
-    }
-}
-
-java_exception::java_exception(std::vector<std::string> causes, std::vector<std::string> frames) : causes(
-        std::move(causes)), frames(std::move(frames)), std::exception(), message() {
-    std::stringstream ss;
-    for (size_t i = 0; i < this->causes.size(); i++) {
-        if (i == 0) {
-            ss << this->causes[i];
-
-            if (!this->frames.empty()) {
-                ss << std::endl;
-            }
-
-            for (const std::string &frame : this->frames) {
-                ss << '\t' << "at " << frame << std::endl;
-            }
-        } else {
-            ss << "Caused by: " << this->causes[i];
-        }
-
-        if ((i + 1) < causes.size()) {
-            ss << std::endl;
-        }
-    }
-
-    message = ss.str();
-}
+java_exception::java_exception(const std::vector<std::string> &causes, const std::vector<std::string> &frames)
+        : std::exception(), message(generateErrorMessage(causes, frames)) {}
 
 java_exception::java_exception(const java_exception &other) = default;
 
@@ -112,7 +37,42 @@ const char *java_exception::what() const {
     return message.c_str();
 }
 
-java_constructor::java_constructor(jobject object, const jni_wrapper &jni) : jobject_wrapper<jobject>(object, jni.env),
+std::string java_exception::generateErrorMessage(const std::vector<std::string> &causes,
+                                                 const std::vector<std::string> &frames) {
+    // NOTE: Can't use string streams, the module will crash
+    try {
+        std::string res;
+        for (size_t i = 0; i < causes.size(); i++) {
+            if (i == 0) {
+                res += causes[i];
+
+                if (!frames.empty()) {
+                    res += '\n';
+                }
+
+                for (const std::string &frame : frames) {
+                    res += '\t';
+                    res += "at ";
+                    res += frame;
+                    res += '\n';
+                }
+            } else {
+                res += "Caused by: ";
+                res += causes[i];
+            }
+
+            if ((i + 1) < causes.size()) {
+                res += '\n';
+            }
+        }
+
+        return res;
+    } catch (...) {
+        return "Could not get the error message";
+    }
+}
+
+java_constructor::java_constructor(jobject object, const jni_wrapper &jni) : jobject_wrapper<jobject>(object, jni),
                                                                              jni(jni) {}
 
 jint java_constructor::numArguments() const {
@@ -147,7 +107,7 @@ std::vector<std::string> java_constructor::getParameterTypes() const {
     jmethodID getName = jni->GetMethodID(Class, "getName", "()Ljava/lang/String;");
     JVM_CHECK_EXCEPTION(jni);
 
-    jobject_wrapper<jobjectArray> parameters(jni->CallObjectMethod(obj, getParameters), jni.env);
+    jobject_wrapper<jobjectArray> parameters(jni->CallObjectMethod(obj, getParameters), jni);
     JVM_CHECK_EXCEPTION(jni);
 
     jint numParams = jni->GetArrayLength(parameters);
@@ -158,10 +118,10 @@ std::vector<std::string> java_constructor::getParameterTypes() const {
         jobject elem = jni->GetObjectArrayElement(parameters, i);
         JVM_CHECK_EXCEPTION(jni);
 
-        jobject_wrapper<jobject> type(jni->CallObjectMethod(elem, getType), jni.env);
+        jobject_wrapper<jobject> type(jni->CallObjectMethod(elem, getType), jni);
         JVM_CHECK_EXCEPTION(jni);
 
-        jobject_wrapper<jstring> name(jni->CallObjectMethod(type, getName), jni.env);
+        jobject_wrapper<jstring> name(jni->CallObjectMethod(type, getName), jni);
         JVM_CHECK_EXCEPTION(jni);
 
         res.push_back(jni.jstring_to_string(name));
@@ -180,7 +140,7 @@ jobject_wrapper<jobject> java_constructor::newInstance(const std::vector<jobject
     jclass Object = jni->FindClass("java/lang/Object");
     JVM_CHECK_EXCEPTION(jni);
     jobject_wrapper<jobjectArray> argArr(jni->NewObjectArray(static_cast<jsize>(args.size()), Object, nullptr),
-                                         jni.env);
+                                         jni);
     JVM_CHECK_EXCEPTION(jni);
 
     for (size_t i = 0; i < args.size(); i++) {
@@ -190,7 +150,7 @@ jobject_wrapper<jobject> java_constructor::newInstance(const std::vector<jobject
 
     jobject instance = jni->CallObjectMethod(obj, newInstance_m, argArr.obj);
     JVM_CHECK_EXCEPTION(jni);
-    return jobject_wrapper(instance, jni.env);
+    return jobject_wrapper(instance, jni);
 }
 
 std::string java_constructor::to_string() const {
@@ -200,31 +160,85 @@ std::string java_constructor::to_string() const {
     jmethodID toString = jni->GetMethodID(constructor, "toString", "()Ljava/lang/String;");
     JVM_CHECK_EXCEPTION(jni);
 
-    jobject_wrapper<jstring> string(jni->CallObjectMethod(obj, toString), jni.env);
+    jobject_wrapper<jstring> string(jni->CallObjectMethod(obj, toString), jni);
     JVM_CHECK_EXCEPTION(jni);
 
     return jni.jstring_to_string(string);
 }
 
-jni_wrapper::jni_wrapper(const std::string &jvmPath, JavaVMInitArgs &jvm_args) : env() {
+jni_wrapper::jni_wrapper() noexcept: env(), initialized(false) {}
+
+jni_wrapper::jni_wrapper(jvm_env env) : env(std::move(env)), initialized(true) {}
+
+jvm_wrapper::jvm_wrapper() noexcept: jni_wrapper(), library(), version(0) {}
+
+jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version, std::string classPath)
+        : jni_wrapper(), version(version), classpath(std::move(classPath)) {
+    initialized = true;
     library = shared_library(jvmPath);
     JNI_CreateJavaVM = library.getFunction<JNI_CreateJavaVM_t>("JNI_CreateJavaVM");
 
     JavaVM *jvm = nullptr;
     JNIEnv *environment = nullptr;
 
-    jint create_code = JNI_CreateJavaVM(&jvm, (void **) &environment, &jvm_args);
+    JavaVMInitArgs vm_args;
+    std::vector<JavaVMOption> options;
+    if (!classpath.empty()) {
+        options.push_back(JavaVMOption{
+            const_cast<char *>(classpath.c_str()),
+            nullptr
+        });
+    }
+
+    vm_args.version = version;
+    vm_args.nOptions = static_cast<jint>(options.size());
+    vm_args.options = options.data();
+    vm_args.ignoreUnrecognized = false;
+
+    jint create_code = JNI_CreateJavaVM(&jvm, (void **) &environment, &vm_args);
     if (create_code != JNI_OK) {
-        throw std::runtime_error("JNI_CreateJavaVM failed: " + jni_error_to_string(create_code));
+        throw std::runtime_error("JNI_CreateJavaVM failed: " + util::jni_error_to_string(create_code));
     } else {
         env = jvm_env(jvm, environment);
+    }
+}
+
+jni_wrapper jvm_wrapper::attachEnv() const {
+    JNIEnv *environment = nullptr;
+    jint create_result = env.jvm->GetEnv(reinterpret_cast<void **>(&environment), version);
+
+    if (create_result == JNI_EDETACHED) {
+        JavaVMInitArgs vm_args;
+        std::vector<JavaVMOption> options;
+        if (!classpath.empty()) {
+            options.push_back(JavaVMOption{
+                    const_cast<char *>(classpath.c_str()),
+                    nullptr
+            });
+        }
+
+        vm_args.version = version;
+        vm_args.nOptions = static_cast<jint>(options.size());
+        vm_args.options = options.data();
+        vm_args.ignoreUnrecognized = false;
+
+        create_result = env.jvm->AttachCurrentThread(reinterpret_cast<void **>(&environment), &vm_args);
+        if (create_result == JNI_OK) {
+            return jni_wrapper(jvm_env(env.jvm, environment, true));
+        } else {
+            throw std::runtime_error("AttachCurrentThread failed: " + util::jni_error_to_string(create_result));
+        }
+    } else if (create_result == JNI_OK) {
+        return jni_wrapper(env);
+    } else {
+        throw std::runtime_error("GetEnv failed: " + util::jni_error_to_string(create_result));
     }
 }
 
 jobject_wrapper<jstring> jni_wrapper::string_to_jstring(const std::string &str) const {
     auto res = jobject_wrapper<jstring>(env->NewStringUTF(str.c_str()), env);
     if (env->ExceptionCheck()) {
-        throw getLastException();
+        throwLastException(__LINE__);
     } else if (res == nullptr) {
         throw std::runtime_error("Could not get the string");
     }
@@ -232,12 +246,14 @@ jobject_wrapper<jstring> jni_wrapper::string_to_jstring(const std::string &str) 
     return res;
 }
 
-std::string jni_wrapper::jstring_to_string(jstring str) const {
+std::string jni_wrapper::jstring_to_string(jstring str, bool convertErrors) const {
     const char *chars = env->GetStringUTFChars(str, nullptr);
     if (env->ExceptionCheck()) {
-        throw getLastException();
-    } else if (chars == nullptr) {
-        throw std::runtime_error("Could not get the characters");
+        if (convertErrors) {
+            throwLastException(__LINE__);
+        } else {
+            throw std::runtime_error("Could not get the string characters");
+        }
     }
 
     std::string res(chars);
@@ -330,7 +346,7 @@ std::vector<java_field> jni_wrapper::getClassFields(const std::string &className
         jobject_wrapper<jstring> name(env->CallObjectMethod(type, class_getName), env);
         CHECK_EXCEPTION();
 
-        return java_type_to_jni_type(jstring_to_string(name));
+        return util::java_type_to_jni_type(jstring_to_string(name));
     };
 
     const auto getFieldName = [&](const jobject_wrapper<jobject> &field) -> std::string {
@@ -342,7 +358,7 @@ std::vector<java_field> jni_wrapper::getClassFields(const std::string &className
 
     const auto getFieldId = [&](const jobject_wrapper<jobject> &field, const std::string &fieldName,
                                 const std::string &signature) -> jfieldID {
-        jclass javaClass = env->FindClass(string_replace(className, '.', '/').c_str());
+        jclass javaClass = env->FindClass(util::string_replace(className, '.', '/').c_str());
         CHECK_EXCEPTION();
 
         jfieldID id;
@@ -374,7 +390,7 @@ std::vector<java_field> jni_wrapper::getClassFields(const std::string &className
             const std::string signature = getFieldSignature(field);
             const std::string name = getFieldName(field);
             jfieldID id = getFieldId(field, name, signature);
-            res.emplace_back(signature, name, id);
+            res.emplace_back(signature, name, id, is_static, *this);
         }
     }
 
@@ -435,7 +451,7 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
         jobject_wrapper<jstring> str(env->CallObjectMethod(type, class_getName), env);
         CHECK_EXCEPTION();
 
-        return java_type_to_jni_type(jstring_to_string(str));
+        return util::java_type_to_jni_type(jstring_to_string(str));
     };
 
     const auto get_parameter_types = [&](const jobject_wrapper<jobject> &method) -> std::vector<std::string> {
@@ -455,7 +471,7 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
             jobject_wrapper<jstring> name(env->CallObjectMethod(type, class_getName), env);
             CHECK_EXCEPTION();
 
-            res.push_back(java_type_to_jni_type(jstring_to_string(name)));
+            res.push_back(util::java_type_to_jni_type(jstring_to_string(name)));
         }
 
         return res;
@@ -463,22 +479,22 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
 
     const auto get_id = [&](const std::string &name, const std::string &returnType,
                             const std::vector<std::string> &parameterTypes) -> jmethodID {
-        jclass javaClass = env->FindClass(string_replace(className, '.', '/').c_str());
+        jclass javaClass = env->FindClass(util::string_replace(className, '.', '/').c_str());
         CHECK_EXCEPTION();
 
-        std::stringstream signature;
-        signature << '(';
+        std::string signature;
+        signature += '(';
         for (const std::string &param : parameterTypes) {
-            signature << param;
+            signature += param;
         }
-        signature << ')' << returnType;
+        signature += ')';
+        signature += returnType;
 
-        const std::string sig = signature.str();
         jmethodID id;
         if (onlyStatic) {
-            id = env->GetStaticMethodID(javaClass, name.c_str(), sig.c_str());
+            id = env->GetStaticMethodID(javaClass, name.c_str(), signature.c_str());
         } else {
-            id = env->GetMethodID(javaClass, name.c_str(), sig.c_str());
+            id = env->GetMethodID(javaClass, name.c_str(), signature.c_str());
         }
         CHECK_EXCEPTION();
 
@@ -507,7 +523,7 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
             const std::vector<std::string> parameterTypes = get_parameter_types(method);
             jmethodID id = get_id(name, returnType, parameterTypes);
 
-            res.emplace_back(parameterTypes, returnType, name, id);
+            res.emplace_back(parameterTypes, returnType, name, id, is_static, *this);
         }
     }
 
@@ -520,11 +536,12 @@ java_class jni_wrapper::getClass(const std::string &className) const {
     const std::vector<java_function> functions = getClassFunctions(className, false);
     const std::vector<java_function> staticFunctions = getClassFunctions(className, true);
     const std::vector<java_constructor> constructors = getClassConstructors(className);
+    jclass clazz = env->FindClass(util::string_replace(className, '.', '/').c_str());
 
-    return java_class(staticFields, fields, staticFunctions, functions, constructors);
+    return java_class(staticFields, fields, staticFunctions, functions, constructors, clazz);
 }
 
-java_exception jni_wrapper::getLastException(int line) const {
+void jni_wrapper::throwLastException(int line) const {
     if (!env->ExceptionCheck()) {
         throw std::runtime_error("No exception occurred");
     }
@@ -533,18 +550,27 @@ java_exception jni_wrapper::getLastException(int line) const {
     env->ExceptionClear();
 
     jclass throwable_class = env->FindClass("java/lang/Throwable");
+    if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.Throwable");
+
     jmethodID throwable_getCause = env->GetMethodID(throwable_class, "getCause", "()Ljava/lang/Throwable;");
+    if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.Throwable#getCause");
 
     jmethodID throwable_getStackTrace = env->GetMethodID(throwable_class, "getStackTrace",
                                                          "()[Ljava/lang/StackTraceElement;");
+    if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.Throwable#getStackTrace");
 
     jmethodID throwable_toString = env->GetMethodID(throwable_class, "toString", "()Ljava/lang/String;");
+    if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.Throwable#toString");
 
     jclass stacktrace_element_class = env->FindClass("java/lang/StackTraceElement");
+    if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.StackTraceElement");
     jmethodID stacktrace_toString = env->GetMethodID(stacktrace_element_class, "toString", "()Ljava/lang/String;");
+    if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.StackTraceElement#toString");
 
     auto frames = jobject_wrapper<jobjectArray>(env->CallObjectMethod(throwable, throwable_getStackTrace), env);
+    if (env->ExceptionCheck()) throw std::runtime_error("Could not get the stack trace");
     jsize numFrames = env->GetArrayLength(frames);
+    if (env->ExceptionCheck()) throw std::runtime_error("Could not get the stack trace length");
 
     std::vector<std::string> causes;
     std::vector<std::string> stackFrames;
@@ -553,27 +579,33 @@ java_exception jni_wrapper::getLastException(int line) const {
     }
 
     while (frames != nullptr && throwable.ok()) {
-        auto throwable_string = jobject_wrapper<jstring>(env->CallObjectMethod(throwable, throwable_toString), env);
-        causes.push_back(jstring_to_string(throwable_string));
+        jobject_wrapper<jstring> throwable_string(env->CallObjectMethod(throwable, throwable_toString), env);
+        if (env->ExceptionCheck()) throw std::runtime_error("Could not get the stack trace length");
+        causes.push_back(jstring_to_string(throwable_string, false));
 
         if (numFrames > 0) {
             for (jsize i = 0; i < numFrames; i++) {
-                auto frame = jobject_wrapper(env->GetObjectArrayElement(frames, i), env);
-                auto frame_string = jobject_wrapper<jstring>(env->CallObjectMethod(frame, stacktrace_toString), env);
+                jobject_wrapper frame(env->GetObjectArrayElement(frames, i), env);
+                if (env->ExceptionCheck()) throw std::runtime_error("Could not get a stack trace element");
+                jobject_wrapper<jstring> frame_string(env->CallObjectMethod(frame, stacktrace_toString), env);
+                if (env->ExceptionCheck())
+                    throw std::runtime_error("Could not convert a  stack trace element to string");
 
-                stackFrames.push_back(jstring_to_string(frame_string));
+                stackFrames.push_back(jstring_to_string(frame_string, false));
             }
         }
 
         throwable = env->CallObjectMethod(throwable, throwable_getCause);
+        if (env->ExceptionCheck()) throw std::runtime_error("Could not get the throwable cause");
 
         if (throwable != nullptr) {
             frames = env->CallObjectMethod(throwable, throwable_getStackTrace);
+            if (env->ExceptionCheck()) throw std::runtime_error("Could not get the frames");
             numFrames = env->GetArrayLength(frames);
+            if (env->ExceptionCheck()) throw std::runtime_error("Could not get the number of frames");
         }
     }
-
-    return java_exception(causes, stackFrames);
+    throw java_exception(causes, stackFrames);
 }
 
 std::string jni_wrapper::get_object_class_name(jobject obj) const {
@@ -598,31 +630,141 @@ std::string jni_wrapper::get_object_class_name(jobject obj) const {
     return jstring_to_string(name);
 }
 
-java_field::java_field(std::string signature, std::string name, jfieldID id) : signature(std::move(signature)),
-                                                                               name(std::move(name)), id(id) {}
+#define JOBJECT_TO_TEMPLATE(className, valueFunc, signature, method) \
+jclass cls = env->GetObjectClass(obj);\
+CHECK_EXCEPTION();\
+\
+if(env->IsInstanceOf(obj, env->FindClass(className)) ) {\
+    CHECK_EXCEPTION();\
+    \
+    jmethodID vFunction = env->GetMethodID(cls, valueFunc, signature);\
+    CHECK_EXCEPTION();\
+    auto result = env->method(obj, vFunction);\
+    CHECK_EXCEPTION();\
+    \
+    return result;\
+} else \
+    throw std::runtime_error("Mismatched types: The passed value is not of type " className)
 
-java_function::java_function(std::vector<std::string> parameterTypes, std::string returnType, std::string functionName,
-                             jmethodID method) : parameterTypes(std::move(parameterTypes)),
-                                                 returnType(std::move(returnType)),
-                                                 functionName(std::move(functionName)), method(method) {}
+jint jni_wrapper::jobject_to_jint(jobject obj) const {
+    JOBJECT_TO_TEMPLATE("java/lang/Integer", "intValue", "()I", CallIntMethod);
+}
 
-java_class::java_class(std::vector<java_field> static_fields, std::vector<java_field> fields,
-                       std::vector<java_function> static_functions, std::vector<java_function> functions,
-                       std::vector<java_constructor> constructors) : static_fields(std::move(static_fields)),
-                                                                     fields(std::move(fields)),
-                                                                     static_functions(std::move(static_functions)),
-                                                                     functions(std::move(functions)),
-                                                                     constructors(std::move(constructors)) {}
+jboolean jni_wrapper::jobject_to_jboolean(jobject obj) const {
+    JOBJECT_TO_TEMPLATE("java/lang/Boolean", "booleanValue", "()Z", CallBooleanMethod);
+}
+
+jbyte jni_wrapper::jobject_to_jbyte(jobject obj) const {
+    JOBJECT_TO_TEMPLATE("java/lang/Byte", "byteValue", "()B", CallByteMethod);
+}
+
+jchar jni_wrapper::jobject_to_jchar(jobject obj) const {
+    JOBJECT_TO_TEMPLATE("java/lang/Character", "charValue", "()C", CallCharMethod);
+}
+
+jshort jni_wrapper::jobject_to_jshort(jobject obj) const {
+    JOBJECT_TO_TEMPLATE("java/lang/Short", "shortValue", "()S", CallShortMethod);
+}
+
+jlong jni_wrapper::jobject_to_jlong(jobject obj) const {
+    JOBJECT_TO_TEMPLATE("java/lang/Long", "longValue", "()J", CallLongMethod);
+}
+
+jfloat jni_wrapper::jobject_to_jfloat(jobject obj) const {
+    JOBJECT_TO_TEMPLATE("java/lang/Float", "floatValue", "()F", CallFloatMethod);
+}
+
+jdouble jni_wrapper::jobject_to_jdouble(jobject obj) const {
+    JOBJECT_TO_TEMPLATE("java/lang/Double", "doubleValue", "()D", CallDoubleMethod);
+}
+
+#undef JOBJECT_TO_TEMPLATE
 
 JNIEnv *jni_wrapper::operator->() const {
     return env.env;
 }
 
-jvm_env::jvm_env() : env(nullptr), jvm(nullptr), shared_releaser(nullptr) {}
+jni_wrapper::operator jvm_env() const {
+    return env;
+}
 
-jvm_env::jvm_env(JavaVM *vm, JNIEnv *environment) : env(environment), jvm(vm), shared_releaser([vm] {
-    vm->DestroyJavaVM();
-}) {}
+jni_wrapper::operator bool() const {
+    return initialized;
+}
+
+java_field::java_field(std::string signature, std::string name, jfieldID id, bool isStatic, jni_wrapper env)
+        : signature(std::move(signature)), name(std::move(name)), id(id), isStatic(isStatic), env(std::move(env)) {}
+
+jobject_wrapper<jobject> java_field::get(jobject classInstance) const {
+    if (isStatic) {
+        throw std::runtime_error("Tried to access a static field through a class instance");
+    }
+
+    jobject_wrapper<jobject> data(env->GetObjectField(classInstance, id), env);
+    JVM_CHECK_EXCEPTION(env);
+
+    return data;
+}
+
+jobject_wrapper<jobject> java_field::getStatic(jclass clazz) const {
+    if (!isStatic) {
+        throw std::runtime_error("Tried to access a non-static field through a static accessor");
+    }
+
+    jobject_wrapper<jobject> data(env->GetStaticObjectField(clazz, id), env);
+    JVM_CHECK_EXCEPTION(env);
+
+    return data;
+}
+
+void java_field::set(jobject classInstance, jobject data) const {
+    if (isStatic) {
+        throw std::runtime_error("Tried to access a static field through a class instance");
+    }
+
+    env->SetObjectField(classInstance, id, data);
+    JVM_CHECK_EXCEPTION(env);
+}
+
+void java_field::setStatic(jclass clazz, jobject data) const {
+    if (!isStatic) {
+        throw std::runtime_error("Tried to access a non-static field through a static accessor");
+    }
+
+    env->SetStaticObjectField(clazz, id, data);
+    JVM_CHECK_EXCEPTION(env);
+}
+
+java_function::java_function(std::vector<std::string> parameterTypes, std::string returnType, std::string functionName,
+                             jmethodID method, bool isStatic, jni_wrapper env) : parameterTypes(
+        std::move(parameterTypes)),
+                                                                                 returnType(std::move(returnType)),
+                                                                                 name(std::move(functionName)),
+                                                                                 method(method),
+                                                                                 isStatic(isStatic),
+                                                                                 env(std::move(env)) {}
+
+java_class::java_class(const std::vector<java_field> &static_fields, const std::vector<java_field> &fields,
+                       const std::vector<java_function> &static_functions, const std::vector<java_function> &functions,
+                       std::vector<java_constructor> constructors, jclass clazz) : static_fields(
+        util::map_vector_values_to_map(static_fields)), fields(util::map_vector_values_to_map(fields)),
+                                                                                   static_functions(
+                                                                                           util::map_vector_to_map(
+                                                                                                   static_functions)),
+                                                                                   functions(util::map_vector_to_map(
+                                                                                           functions)), constructors(
+                std::move(constructors)), clazz(clazz) {}
+
+jvm_env::jvm_env() noexcept: env(nullptr), jvm(nullptr), shared_releaser(nullptr) {}
+
+jvm_env::jvm_env(JavaVM *vm, JNIEnv *environment, bool detachThread) : env(environment), jvm(vm),
+                                                                       shared_releaser([vm, detachThread] {
+                                                                           if (detachThread) {
+                                                                               vm->DetachCurrentThread();
+                                                                           } else {
+                                                                               vm->DestroyJavaVM();
+                                                                           }
+                                                                       }) {}
 
 JNIEnv *jvm_env::operator->() const {
     return env;
