@@ -1,15 +1,14 @@
 #ifndef NODE_JAVA_BRIDGE_JAVA_CLASS_PROXY_HPP
 #define NODE_JAVA_BRIDGE_JAVA_CLASS_PROXY_HPP
 
+#include <mutex>
 #include <napi.h>
 #include "jvm_lib/jni_wrapper.hpp"
 
 namespace node_classes {
     class java_class_proxy : public Napi::ObjectWrap<java_class_proxy> {
     public:
-        static Napi::Object init(Napi::Env env, Napi::Object exports);
-
-        static Napi::Object createInstance(Napi::Env env, const Napi::Object &parent, const Napi::String &classname);
+        static void init(Napi::Env env, Napi::Object &exports);
 
         /**
          * Create a java class proxy.
@@ -20,9 +19,15 @@ namespace node_classes {
          */
         explicit java_class_proxy(const Napi::CallbackInfo &info);
 
+        [[nodiscard]] Napi::Value getClassConstructor(const Napi::CallbackInfo &info);
+
         std::shared_ptr<jni::java_class> clazz;
 
-        jni::jni_wrapper env;
+        std::mutex mtx;
+
+        jni::jvm_wrapper jvm;
+
+        std::string classname;
     };
 }
 

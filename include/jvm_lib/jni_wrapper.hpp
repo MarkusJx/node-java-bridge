@@ -17,7 +17,7 @@ namespace jni {
 
     class java_exception : public std::exception {
     public:
-        java_exception(const std::vector<std::string>& causes, const std::vector<std::string>& frames);
+        java_exception(const std::vector<std::string> &causes, const std::vector<std::string> &frames);
 
         java_exception(const java_exception &other);
 
@@ -45,6 +45,8 @@ namespace jni {
     template<class T>
     class jobject_wrapper : public shared_releaser {
     public:
+        jobject_wrapper() : obj(nullptr), shared_releaser(nullptr) {}
+
         jobject_wrapper(T object, jvm_env env) : obj(object), shared_releaser([object, env] {
             if (object != nullptr) {
                 env->DeleteLocalRef(object);
@@ -156,7 +158,7 @@ namespace jni {
 
     class java_field {
     public:
-        java_field(std::string signature, std::string name, jfieldID id, bool isStatic, jni_wrapper env);
+        java_field(std::string signature, std::string name, jfieldID id, bool isStatic, bool isFinal, jni_wrapper env);
 
         jobject_wrapper<jobject> get(jobject classInstance) const;
 
@@ -169,6 +171,7 @@ namespace jni {
         std::string signature;
         std::string name;
         bool isStatic;
+        bool isFinal;
         jfieldID id;
 
     private:

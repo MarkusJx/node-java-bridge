@@ -7,11 +7,9 @@
 namespace node_classes {
     class java : public Napi::ObjectWrap<java> {
     public:
-        static Napi::Object init(Napi::Env env, Napi::Object exports);
+        static void init(Napi::Env env, Napi::Object &exports);
 
         explicit java(const Napi::CallbackInfo &info);
-
-        Napi::Value getClass(const Napi::CallbackInfo &info);
 
         ~java() override;
 

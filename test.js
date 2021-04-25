@@ -7,9 +7,13 @@ setTimeout(() => {
     java.createJVM();
 
     const cls = java.load("java.lang.String");
-    console.log(Object.getOwnPropertyNames(cls));
-    console.log(cls.CASE_INSENSITIVE_ORDER);
-    cls.abc = "hello";
+    console.log(cls);
+    console.log(cls['CASE_INSENSITIVE_ORDER']);
+
+    const instance = new cls();
+    console.log(instance);
+    //cls.abc = "hello";
+    //cls.CASE_INSENSITIVE_ORDER = "abc";
 
     console.log(java.javaInstance);
 }, 1000);

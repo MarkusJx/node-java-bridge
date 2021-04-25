@@ -185,8 +185,8 @@ jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version, std::string c
     std::vector<JavaVMOption> options;
     if (!classpath.empty()) {
         options.push_back(JavaVMOption{
-            const_cast<char *>(classpath.c_str()),
-            nullptr
+                const_cast<char *>(classpath.c_str()),
+                nullptr
         });
     }
 
@@ -333,6 +333,9 @@ std::vector<java_field> jni_wrapper::getClassFields(const std::string &className
     jmethodID isPublic = env->GetStaticMethodID(Modifier, "isPublic", "(I)Z");
     CHECK_EXCEPTION();
 
+    jmethodID isFinal = env->GetStaticMethodID(Modifier, "isFinal", "(I)Z");
+    CHECK_EXCEPTION();
+
     jobject_wrapper<jobjectArray> fields(env->CallObjectMethod(clazz, getDeclaredFields), env);
     CHECK_EXCEPTION();
 
@@ -386,11 +389,14 @@ std::vector<java_field> jni_wrapper::getClassFields(const std::string &className
         jboolean is_public = env->CallStaticBooleanMethod(Modifier, isPublic, modifiers);
         CHECK_EXCEPTION();
 
+        jboolean is_final = env->CallStaticBooleanMethod(Modifier, isFinal, modifiers);
+        CHECK_EXCEPTION();
+
         if (((onlyStatic && is_static) || (!onlyStatic && !is_static)) && is_public) {
             const std::string signature = getFieldSignature(field);
             const std::string name = getFieldName(field);
             jfieldID id = getFieldId(field, name, signature);
-            res.emplace_back(signature, name, id, is_static, *this);
+            res.emplace_back(signature, name, id, is_static, is_final, *this);
         }
     }
 
@@ -692,8 +698,9 @@ jni_wrapper::operator bool() const {
     return initialized;
 }
 
-java_field::java_field(std::string signature, std::string name, jfieldID id, bool isStatic, jni_wrapper env)
-        : signature(std::move(signature)), name(std::move(name)), id(id), isStatic(isStatic), env(std::move(env)) {}
+java_field::java_field(std::string signature, std::string name, jfieldID id, bool isStatic, bool isFinal,
+                       jni_wrapper env) : signature(std::move(signature)), name(std::move(name)), id(id),
+                                          isStatic(isStatic), isFinal(isFinal), env(std::move(env)) {}
 
 jobject_wrapper<jobject> java_field::get(jobject classInstance) const {
     if (isStatic) {

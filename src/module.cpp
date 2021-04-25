@@ -8,6 +8,7 @@
 #include "jvm_lib/jni_wrapper.hpp"
 #include "node_classes/java.hpp"
 #include "node_classes/java_class_proxy.hpp"
+#include "node_classes/java_instance_proxy.hpp"
 #include "util.hpp"
 
 void addToClasspath(const Napi::CallbackInfo &info) {

@@ -22,7 +22,9 @@ module.exports = {
         this.javaInstance = java;
     },
     load: function (classname) {
-        return java.getClass(classname);
+        const cls = new native.java_class_proxy(java, classname);
+        console.log("class proxy:", cls);
+        return cls.getClassConstructor();
     },
     javaInstance: java
 };

@@ -15,7 +15,7 @@ include_directories("C:\\Program Files\\AdoptOpenJDK\\jdk-11.0.10.9-hotspot\\inc
 include_directories(include)
 
 set(SRC src/module.cpp src/jvm_lib/shared_library.cpp src/jvm_lib/jni_wrapper.cpp src/util.cpp include/util.hpp
-        src/node_classes/java.cpp src/node_classes/java_class_proxy.cpp src/node_classes/conversion_helper.cpp)
+        src/node_classes/java.cpp src/node_classes/java_class_proxy.cpp src/node_classes/conversion_helper.cpp src/node_classes/java_instance_proxy.cpp)
 #add_executable(node_java_bridge_exe ${SRC})
 add_library(${PROJECT_NAME} SHARED ${SRC} ${CMAKE_JS_SRC})
 

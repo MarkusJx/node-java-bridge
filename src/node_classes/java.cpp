@@ -12,10 +12,8 @@
 
 using namespace node_classes;
 
-Napi::Object java::init(Napi::Env env, Napi::Object exports) {
-    Napi::Function func = DefineClass(env, "java", {
-        InstanceMethod<&java::getClass>("getClass"),
-    });
+void java::init(Napi::Env env, Napi::Object &exports) {
+    Napi::Function func = DefineClass(env, "java", {});
 
     auto constructor = new Napi::FunctionReference();
 
@@ -23,7 +21,6 @@ Napi::Object java::init(Napi::Env env, Napi::Object exports) {
     exports.Set("java", func);
 
     env.SetInstanceData<Napi::FunctionReference>(constructor);
-    return exports;
 }
 
 java::java(const Napi::CallbackInfo &info) : ObjectWrap(info) {
@@ -40,14 +37,12 @@ java::java(const Napi::CallbackInfo &info) : ObjectWrap(info) {
 
         const std::string cp = util::classpath_elements_to_classpath(classpathElements);
         java_environment = jni::jvm_wrapper(lib_path, version, cp);
-    CATCH_EXCEPTIONS
-}
 
-Napi::Value java::getClass(const Napi::CallbackInfo &info) {
-    CHECK_ARGS(napi_tools::string);
-
-    TRY
-        return java_class_proxy::createInstance(info.Env(), Value(), info[0].ToString());
+        Value().DefineProperty(
+                Napi::PropertyDescriptor::Value("classpath", Napi::String::New(info.Env(), cp), napi_enumerable));
+        Value().DefineProperty(Napi::PropertyDescriptor::Value("version", Napi::Number::New(info.Env(),
+                                                                                            java_environment->GetVersion()),
+                                                               napi_enumerable));
     CATCH_EXCEPTIONS
 }
 
