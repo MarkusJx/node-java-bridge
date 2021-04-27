@@ -9,6 +9,9 @@ namespace node_classes {
     public:
         static Napi::Function getConstructor(Napi::Env env, const Napi::Object &class_proxy);
 
+        static Napi::Value fromJObject(Napi::Env env, const jni::jobject_wrapper<jobject> &obj,
+                                        const Napi::Object &class_proxy);
+
         explicit java_instance_proxy(const Napi::CallbackInfo &info);
 
         jni::jobject_wrapper<jobject> object;

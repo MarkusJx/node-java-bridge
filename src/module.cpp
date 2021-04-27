@@ -1,14 +1,11 @@
 #include <napi.h>
-#include <iostream>
 #include <jni.h>
 #include <napi_tools.hpp>
-#include <windows.h>
+#include <node_classes/node_jobject_wrapper.hpp>
+#include <logger.hpp>
 
-#include "jvm_lib/shared_library.hpp"
-#include "jvm_lib/jni_wrapper.hpp"
 #include "node_classes/java.hpp"
 #include "node_classes/java_class_proxy.hpp"
-#include "node_classes/java_instance_proxy.hpp"
 #include "util.hpp"
 
 void addToClasspath(const Napi::CallbackInfo &info) {
@@ -21,9 +18,13 @@ void addToClasspath(const Napi::CallbackInfo &info) {
 }
 
 Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
+    logger::StaticLogger::create(logger::LoggerMode::MODE_CONSOLE);
     EXPORT_FUNCTION(exports, env, addToClasspath);
     node_classes::java::init(env, exports);
     node_classes::java_class_proxy::init(env, exports);
+    node_classes::node_jobject_wrapper::init(env, exports);
+
+    logger::StaticLogger::debug("InitAll() called");
 
     return exports;
 }

@@ -21,10 +21,8 @@ module.exports = {
         java = new native.java(JVM_PATH, "10");
         this.javaInstance = java;
     },
-    load: function (classname) {
-        const cls = new native.java_class_proxy(java, classname);
-        console.log("class proxy:", cls);
-        return cls.getClassConstructor();
+    import: function (classname) {
+        return java.getClass(classname).getClassConstructor();
     },
     javaInstance: java
 };

@@ -11,6 +11,10 @@ namespace node_classes {
 
         explicit java(const Napi::CallbackInfo &info);
 
+        Napi::Value getClass(const Napi::CallbackInfo &info);
+
+        Napi::Object getClass(const Napi::Env &env, const std::string &classname);
+
         ~java() override;
 
         static std::vector<std::string> classpathElements;

@@ -62,6 +62,15 @@ namespace jni {
             obj = reinterpret_cast<T>(object);
         }
 
+        jobject_wrapper(jobject object, shared_releaser releaser) : shared_releaser(std::move(releaser)) {
+            obj = reinterpret_cast<T>(object);
+        }
+
+        template<class U>
+        jobject_wrapper<U> as() const {
+            return jobject_wrapper<U>(this->obj, *this);
+        }
+
         jobject_wrapper &operator=(jobject newObject) {
             this->reset();
 
@@ -93,6 +102,8 @@ namespace jni {
         jni_wrapper() noexcept;
 
         explicit jni_wrapper(jvm_env env);
+
+        void checkForError() const;
 
         [[nodiscard]] jobject_wrapper<jstring> string_to_jstring(const std::string &str) const;
 
@@ -129,6 +140,22 @@ namespace jni {
         [[nodiscard]] jfloat jobject_to_jfloat(jobject obj) const;
 
         [[nodiscard]] jdouble jobject_to_jdouble(jobject obj) const;
+
+        [[nodiscard]] jobject_wrapper<jobject> create_jint(jint e) const;
+
+        [[nodiscard]] jobject_wrapper<jobject> create_jshort(jshort e) const;
+
+        [[nodiscard]] jobject_wrapper<jobject> create_jdouble(jdouble e) const;
+
+        [[nodiscard]] jobject_wrapper<jobject> create_jfloat(jfloat e) const;
+
+        [[nodiscard]] jobject_wrapper<jobject> create_jlong(jlong e) const;
+
+        [[nodiscard]] jobject_wrapper<jobject> create_jbyte(jbyte e) const;
+
+        [[nodiscard]] jobject_wrapper<jobject> create_jchar(jchar e) const;
+
+        [[nodiscard]] jobject_wrapper<jobject> create_jboolean(jboolean e) const;
 
         [[nodiscard]] JNIEnv *operator->() const;
 
@@ -183,6 +210,11 @@ namespace jni {
         java_function(std::vector<std::string> parameterTypes, std::string returnType, std::string functionName,
                       jmethodID method, bool isStatic, jni_wrapper env);
 
+        [[nodiscard]] jobject_wrapper<jobject> callStatic(jclass clazz, const std::vector<jvalue> &args) const;
+
+        [[nodiscard]] jobject_wrapper<jobject> call(const jobject_wrapper<jobject> &classInstance,
+                                                    const std::vector<jvalue> &args) const;
+
         std::vector<std::string> parameterTypes;
         std::string returnType;
         std::string name;
@@ -197,15 +229,15 @@ namespace jni {
     public:
         java_constructor(jobject object, const jni_wrapper &jni);
 
-        [[nodiscard]] jint numArguments() const;
-
-        [[nodiscard]] std::vector<std::string> getParameterTypes() const;
-
-        [[nodiscard]] jobject_wrapper<jobject> newInstance(const std::vector<jobject> &args) const;
+        [[nodiscard]] jobject_wrapper<jobject> newInstance(const std::vector<jobject_wrapper<jobject>> &args) const;
 
         [[nodiscard]] std::string to_string() const;
 
+        std::vector<std::string> parameterTypes;
+
     private:
+        [[nodiscard]] std::vector<std::string> getParameterTypes() const;
+
         jni_wrapper jni;
     };
 

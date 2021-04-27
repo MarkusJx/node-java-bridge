@@ -6,9 +6,18 @@
 #include "jvm_lib/jni_wrapper.hpp"
 
 namespace node_classes {
+    /**
+     * A java class proxy class<br>
+     *<br>
+     * JS Properties:<br>
+     * class_name {string} The java class name<br>
+     * java_instance {object} The node_classes::java instance as a javascript object
+     */
     class java_class_proxy : public Napi::ObjectWrap<java_class_proxy> {
     public:
         static void init(Napi::Env env, Napi::Object &exports);
+
+        static Napi::Object createInstance(const Napi::Object &java_instance, const Napi::String &classname);
 
         /**
          * Create a java class proxy.
@@ -19,7 +28,7 @@ namespace node_classes {
          */
         explicit java_class_proxy(const Napi::CallbackInfo &info);
 
-        [[nodiscard]] Napi::Value getClassConstructor(const Napi::CallbackInfo &info);
+        Napi::Value getClassConstructor(const Napi::CallbackInfo &info);
 
         std::shared_ptr<jni::java_class> clazz;
 
@@ -28,6 +37,8 @@ namespace node_classes {
         jni::jvm_wrapper jvm;
 
         std::string classname;
+
+        static Napi::FunctionReference *constructor;
     };
 }
 

@@ -73,19 +73,8 @@ std::string java_exception::generateErrorMessage(const std::vector<std::string> 
 }
 
 java_constructor::java_constructor(jobject object, const jni_wrapper &jni) : jobject_wrapper<jobject>(object, jni),
-                                                                             jni(jni) {}
-
-jint java_constructor::numArguments() const {
-    jclass constructor = jni->FindClass("java/lang/reflect/Constructor");
-    JVM_CHECK_EXCEPTION(jni);
-
-    jmethodID getParameterCount = jni->GetMethodID(constructor, "getParameterCount", "()I");
-    JVM_CHECK_EXCEPTION(jni);
-
-    jint res = jni->CallIntMethod(obj, getParameterCount);
-    JVM_CHECK_EXCEPTION(jni);
-
-    return res;
+                                                                             jni(jni), parameterTypes() {
+    parameterTypes = getParameterTypes();
 }
 
 std::vector<std::string> java_constructor::getParameterTypes() const {
@@ -130,7 +119,7 @@ std::vector<std::string> java_constructor::getParameterTypes() const {
     return res;
 }
 
-jobject_wrapper<jobject> java_constructor::newInstance(const std::vector<jobject> &args) const {
+jobject_wrapper<jobject> java_constructor::newInstance(const std::vector<jobject_wrapper<jobject>> &args) const {
     jclass constructor = jni->FindClass("java/lang/reflect/Constructor");
     JVM_CHECK_EXCEPTION(jni);
 
@@ -233,6 +222,10 @@ jni_wrapper jvm_wrapper::attachEnv() const {
     } else {
         throw std::runtime_error("GetEnv failed: " + util::jni_error_to_string(create_result));
     }
+}
+
+void jni_wrapper::checkForError() const {
+    CHECK_EXCEPTION();
 }
 
 jobject_wrapper<jstring> jni_wrapper::string_to_jstring(const std::string &str) const {
@@ -652,6 +645,8 @@ if(env->IsInstanceOf(obj, env->FindClass(className)) ) {\
 } else \
     throw std::runtime_error("Mismatched types: The passed value is not of type " className)
 
+// TODO: Handle null cases
+
 jint jni_wrapper::jobject_to_jint(jobject obj) const {
     JOBJECT_TO_TEMPLATE("java/lang/Integer", "intValue", "()I", CallIntMethod);
 }
@@ -685,6 +680,49 @@ jdouble jni_wrapper::jobject_to_jdouble(jobject obj) const {
 }
 
 #undef JOBJECT_TO_TEMPLATE
+
+#define CREATE_JOBJECT(className, signature) \
+    jclass clazz = env->FindClass(className);\
+    CHECK_EXCEPTION();\
+    jmethodID constructor = env->GetMethodID(clazz, "<init>", signature); \
+    CHECK_EXCEPTION();\
+    jobject obj = env->NewObject(clazz, constructor, e);\
+    CHECK_EXCEPTION();\
+    return jobject_wrapper<jobject>(obj, env)
+
+jobject_wrapper<jobject> jni_wrapper::create_jint(jint e) const {
+    CREATE_JOBJECT("java/lang/Integer", "(I)V");
+}
+
+jobject_wrapper<jobject> jni_wrapper::create_jshort(jshort e) const {
+    CREATE_JOBJECT("java/lang/Short", "(S)V");
+}
+
+jobject_wrapper<jobject> jni_wrapper::create_jdouble(jdouble e) const {
+    CREATE_JOBJECT("java/lang/Double", "(D)V");
+}
+
+jobject_wrapper<jobject> jni_wrapper::create_jfloat(jfloat e) const {
+    CREATE_JOBJECT("java/lang/Float", "(F)V");
+}
+
+jobject_wrapper<jobject> jni_wrapper::create_jlong(jlong e) const {
+    CREATE_JOBJECT("java/lang/Long", "(J)V");
+}
+
+jobject_wrapper<jobject> jni_wrapper::create_jbyte(jbyte e) const {
+    CREATE_JOBJECT("java/lang/Byte", "(B)V");
+}
+
+jobject_wrapper<jobject> jni_wrapper::create_jchar(jchar e) const {
+    CREATE_JOBJECT("java/lang/Character", "(C)V");
+}
+
+jobject_wrapper<jobject> jni_wrapper::create_jboolean(jboolean e) const {
+    CREATE_JOBJECT("java/lang/Boolean", "(Z)V");
+}
+
+#undef CREATE_JOBJECT
 
 JNIEnv *jni_wrapper::operator->() const {
     return env.env;
@@ -750,6 +788,21 @@ java_function::java_function(std::vector<std::string> parameterTypes, std::strin
                                                                                  method(method),
                                                                                  isStatic(isStatic),
                                                                                  env(std::move(env)) {}
+
+jobject_wrapper<jobject> java_function::callStatic(jclass clazz, const std::vector<jvalue> &args) const {
+    jobject_wrapper<jobject> res(env->CallStaticObjectMethodA(clazz, method, args.data()), env);
+    JVM_CHECK_EXCEPTION(env);
+
+    return res;
+}
+
+jobject_wrapper<jobject> java_function::call(const jobject_wrapper<jobject> &classInstance,
+                                             const std::vector<jvalue> &args) const {
+    jobject_wrapper<jobject> res(env->CallObjectMethodA(classInstance, method, args.data()), env);
+    JVM_CHECK_EXCEPTION(env);
+
+    return res;
+}
 
 java_class::java_class(const std::vector<java_field> &static_fields, const std::vector<java_field> &fields,
                        const std::vector<java_function> &static_functions, const std::vector<java_function> &functions,
