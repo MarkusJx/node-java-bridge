@@ -24,6 +24,9 @@ namespace conversion_helper {
     Napi::Value call_matching_function(const Napi::CallbackInfo &args, const Napi::Object &java_instance,
                                        const jni::jobject_wrapper<jobject> &classInstance,
                                        const std::vector<jni::java_function> &functions);
+
+    Napi::Value call_matching_static_function(const Napi::CallbackInfo &info, const Napi::Object &java_instance,
+                                              jclass clazz, const std::vector<jni::java_function> &functions);
 }
 
 #endif //NODE_JAVA_BRIDGE_CONVERSION_HELPER_HPP

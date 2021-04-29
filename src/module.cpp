@@ -8,6 +8,8 @@
 #include "node_classes/java_class_proxy.hpp"
 #include "util.hpp"
 
+using namespace markusjx::logging;
+
 void addToClasspath(const Napi::CallbackInfo &info) {
     CHECK_ARGS(napi_tools::string);
 
@@ -18,13 +20,13 @@ void addToClasspath(const Napi::CallbackInfo &info) {
 }
 
 Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
-    logger::StaticLogger::create(logger::LoggerMode::MODE_CONSOLE);
+    StaticLogger::create(LoggerMode::MODE_CONSOLE, LogLevel::DEBUG, SyncMode::SYNC);
     EXPORT_FUNCTION(exports, env, addToClasspath);
     node_classes::java::init(env, exports);
     node_classes::java_class_proxy::init(env, exports);
     node_classes::node_jobject_wrapper::init(env, exports);
 
-    logger::StaticLogger::debug("InitAll() called");
+    StaticLogger::debug("InitAll() called");
 
     return exports;
 }

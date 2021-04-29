@@ -15,6 +15,7 @@ setTimeout(() => {
     console.log(instance.charAt(0));
     console.log(instance.charAt(0));
     console.log(instance.indexOf('a'));
+    console.log(cls.valueOf(25));
 
     //cls.abc = "hello";
     //cls.CASE_INSENSITIVE_ORDER = "abc";

@@ -10,7 +10,7 @@
 #define GET_JAVA_INSTANCE() info.This().ToObject().Get("java.instance").ToObject()
 
 using namespace node_classes;
-using namespace logger;
+using namespace markusjx::logging;
 
 Napi::Value java_instance_proxy::staticGetter(const Napi::CallbackInfo &info) {
     Napi::Object class_proxy_instance = info.This().ToObject().Get("class.proxy.instance").ToObject();
@@ -34,7 +34,18 @@ void java_instance_proxy::staticSetter(const Napi::CallbackInfo &info, const Nap
 }
 
 Napi::Value java_instance_proxy::callStaticFunction(const Napi::CallbackInfo &info) {
-    return info.Env().Null();
+    const std::string functionName(static_cast<const char *>(info.Data()));
+    StaticLogger::debugStream << "Calling static method '" << functionName << "' with " << info.Length()
+                              << " argument(s)";
+    Napi::Object class_proxy_instance = info.This().ToObject().Get("class.proxy.instance").ToObject();
+    auto *ptr = Napi::ObjectWrap<java_class_proxy>::Unwrap(class_proxy_instance);
+
+    Napi::Object java_instance = class_proxy_instance.Get("java.instance").ToObject();
+
+    TRY
+        return conversion_helper::call_matching_static_function(info, java_instance, ptr->clazz->clazz,
+                                                                ptr->clazz->static_functions.at(functionName));
+    CATCH_EXCEPTIONS
 }
 
 Napi::Function java_instance_proxy::getConstructor(Napi::Env env, const Napi::Object &class_proxy) {

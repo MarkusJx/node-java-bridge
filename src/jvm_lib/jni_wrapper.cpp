@@ -789,19 +789,22 @@ java_function::java_function(std::vector<std::string> parameterTypes, std::strin
                                                                                  isStatic(isStatic),
                                                                                  env(std::move(env)) {}
 
-jobject_wrapper<jobject> java_function::callStatic(jclass clazz, const std::vector<jvalue> &args) const {
-    jobject_wrapper<jobject> res(env->CallStaticObjectMethodA(clazz, method, args.data()), env);
-    JVM_CHECK_EXCEPTION(env);
+std::string java_function::to_string() const {
+    std::stringstream ss;
+    if (isStatic) {
+        ss << "static ";
+    }
 
-    return res;
-}
+    ss << util::make_java_name_readable(returnType) << ' ' << name << '(';
+    for (size_t i = 0; i < parameterTypes.size(); i++) {
+        if (i > 0) {
+            ss << ", ";
+        }
+        ss << util::make_java_name_readable(parameterTypes[i]);
+    }
 
-jobject_wrapper<jobject> java_function::call(const jobject_wrapper<jobject> &classInstance,
-                                             const std::vector<jvalue> &args) const {
-    jobject_wrapper<jobject> res(env->CallObjectMethodA(classInstance, method, args.data()), env);
-    JVM_CHECK_EXCEPTION(env);
-
-    return res;
+    ss << ')';
+    return ss.str();
 }
 
 java_class::java_class(const std::vector<java_field> &static_fields, const std::vector<java_field> &fields,

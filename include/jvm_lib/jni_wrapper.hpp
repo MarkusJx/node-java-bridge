@@ -210,10 +210,7 @@ namespace jni {
         java_function(std::vector<std::string> parameterTypes, std::string returnType, std::string functionName,
                       jmethodID method, bool isStatic, jni_wrapper env);
 
-        [[nodiscard]] jobject_wrapper<jobject> callStatic(jclass clazz, const std::vector<jvalue> &args) const;
-
-        [[nodiscard]] jobject_wrapper<jobject> call(const jobject_wrapper<jobject> &classInstance,
-                                                    const std::vector<jvalue> &args) const;
+        [[nodiscard]] std::string to_string() const;
 
         std::vector<std::string> parameterTypes;
         std::string returnType;

@@ -3,8 +3,24 @@ project(node_java_bridge)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# Fis for string streams
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+# Get the ExternalProject module
+include(ExternalProject)
+
+# Download and build the logger
+ExternalProject_Add(logger_project
+        GIT_REPOSITORY https://github.com/MarkusJx/logger
+        PREFIX ${CMAKE_CURRENT_BINARY_DIR}/logger
+        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY})
+
+# Get the install directory path
+ExternalProject_Get_Property(logger_project install_dir)
+set(logger_dir ${install_dir})
+
+# Include all logger directories
+link_directories(${logger_dir}/lib)
 
 # Get the n-api-tools include directory
 execute_process(COMMAND node -p "require('@markusjx/n-api-tools').include"
@@ -27,7 +43,7 @@ endif()
 message(STATUS "Java include directories: ${JAVA_INCLUDE_DIRS}")
 
 # Include the directories
-include_directories(${CMAKE_JS_INC} ${N_API_TOOLS_DIR} ${JAVA_INCLUDE_DIRS} "include" "external")
+include_directories(${CMAKE_JS_INC} ${N_API_TOOLS_DIR} ${JAVA_INCLUDE_DIRS} "${logger_dir}/include" "include")
 
 # Enable n-api exceptions (so we can just throw exceptions
 # and n-api will catch them and re-throw them as js exceptions
@@ -37,8 +53,7 @@ add_compile_definitions(NAPI_CPP_EXCEPTIONS)
 set(SRC src/module.cpp src/jvm_lib/shared_library.cpp src/jvm_lib/jni_wrapper.cpp src/util.cpp include/util.hpp
         src/node_classes/java.cpp src/node_classes/java_class_proxy.cpp src/node_classes/conversion_helper.cpp
         src/node_classes/java_instance_proxy.cpp src/node_classes/node_jobject_wrapper.cpp)
-set(EXTERNAL external/logger.cpp)
-add_library(${PROJECT_NAME} SHARED ${SRC} ${EXTERNAL} ${CMAKE_JS_SRC})
+add_library(${PROJECT_NAME} SHARED ${SRC} ${CMAKE_JS_SRC})
 
 # Print the architecture
 if ("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
@@ -48,7 +63,15 @@ elseif ("${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
 endif ()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
-target_link_libraries(${PROJECT_NAME} ${CMAKE_JS_LIB})
+
+if (NOT WIN32)
+    target_link_libraries(${PROJECT_NAME} logger ${CMAKE_JS_LIB} pthread)
+else ()
+    target_link_libraries(${PROJECT_NAME} logger ${CMAKE_JS_LIB})
+endif ()
+
+# Add logger as a dependency to the current project
+add_dependencies(${PROJECT_NAME} logger_project)
 
 # Include N-API wrappers
 execute_process(COMMAND node -p "require('node-addon-api').include"

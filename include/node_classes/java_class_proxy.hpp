@@ -10,8 +10,8 @@ namespace node_classes {
      * A java class proxy class<br>
      *<br>
      * JS Properties:<br>
-     * class_name {string} The java class name<br>
-     * java_instance {object} The node_classes::java instance as a javascript object
+     * class.name {string} The java class name<br>
+     * java.instance {object} The node_classes::java instance as a javascript object
      */
     class java_class_proxy : public Napi::ObjectWrap<java_class_proxy> {
     public:

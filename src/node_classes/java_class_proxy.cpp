@@ -7,7 +7,7 @@
 #include <logger.hpp>
 
 using namespace node_classes;
-using namespace logger;
+using namespace markusjx::logging;
 
 void java_class_proxy::init(Napi::Env env, Napi::Object &exports) {
     Napi::Function func = DefineClass(env, "java_class_proxy", {

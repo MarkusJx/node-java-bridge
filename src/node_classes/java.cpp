@@ -13,7 +13,7 @@
 #endif
 
 using namespace node_classes;
-using namespace logger;
+using namespace markusjx::logging;
 
 void java::init(Napi::Env env, Napi::Object &exports) {
     Napi::Function func = DefineClass(env, "java", {

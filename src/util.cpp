@@ -98,3 +98,31 @@ std::string util::classpath_elements_to_classpath(const std::vector<std::string>
 
     return res;
 }
+
+std::string util::make_java_name_readable(const std::string &to_convert) {
+    if (to_convert == "Z") {
+        return "boolean";
+    } else if (to_convert == "B") {
+        return "byte";
+    } else if (to_convert == "C") {
+        return "char";
+    } else if (to_convert == "S") {
+        return "short";
+    } else if (to_convert == "I") {
+        return "int";
+    } else if (to_convert == "J") {
+        return "long";
+    } else if (to_convert == "F") {
+        return "float";
+    } else if (to_convert == "D") {
+        return "double";
+    } else if (to_convert == "V") {
+        return "void";
+    } else if (!to_convert.empty() && to_convert[0] == '[') {
+        return make_java_name_readable(to_convert.substr(1)) + "[]";
+    } else if (!to_convert.empty() && to_convert[0] == 'L') {
+        return string_replace(to_convert.substr(1, to_convert.size() - 2), '/', '.');
+    } else {
+        return to_convert;
+    }
+}
