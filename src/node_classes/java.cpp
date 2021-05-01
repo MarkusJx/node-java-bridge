@@ -19,6 +19,7 @@ void java::init(Napi::Env env, Napi::Object &exports) {
     Napi::Function func = DefineClass(env, "java", {
             InstanceMethod("getClass", &java::getClass, napi_enumerable),
             InstanceMethod("appendToClasspath", &java::appendToClasspath, napi_enumerable),
+            InstanceAccessor("loadedJars", &java::getLoadedJars, nullptr, napi_enumerable)
     });
 
     auto constructor = new Napi::FunctionReference();
@@ -29,7 +30,7 @@ void java::init(Napi::Env env, Napi::Object &exports) {
     env.SetInstanceData<Napi::FunctionReference>(constructor);
 }
 
-java::java(const Napi::CallbackInfo &info) : ObjectWrap(info) {
+java::java(const Napi::CallbackInfo &info) : ObjectWrap(info), loaded_jars() {
     CHECK_ARGS(napi_tools::string, napi_tools::undefined | napi_tools::string);
 
     StaticLogger::debug("Creating a new java instance");
@@ -43,15 +44,19 @@ java::java(const Napi::CallbackInfo &info) : ObjectWrap(info) {
             version = JNI_DEFAULT_VERSION;
         }
 
-        const std::string cp = util::classpath_elements_to_classpath(classpathElements);
-        StaticLogger::debugStream << "Creating a java instance with version " << version << " and classpath " << cp;
-        java_environment = jni::jvm_wrapper(lib_path, version, cp);
+        StaticLogger::debugStream << "Creating a java instance with version " << info[1].ToString().Utf8Value();
+        java_environment = jni::jvm_wrapper(lib_path, version);
 
-        Value().DefineProperty(
-                Napi::PropertyDescriptor::Value("classpath", Napi::String::New(info.Env(), cp), napi_enumerable));
         Value().DefineProperty(Napi::PropertyDescriptor::Value("version",
-                                                               Napi::Number::New(info.Env(),
-                                                                                 java_environment->GetVersion()),
+                                                               Napi::String::New(info.Env(),
+                                                                                 util::get_java_version_from_jint(
+                                                                                         java_environment->GetVersion())),
+                                                               napi_enumerable));
+
+        Value().DefineProperty(Napi::PropertyDescriptor::Value("wantedVersion",
+                                                               Napi::String::New(info.Env(),
+                                                                                 util::get_java_version_from_jint(
+                                                                                         version)),
                                                                napi_enumerable));
     CATCH_EXCEPTIONS
 }
@@ -71,11 +76,19 @@ void java::appendToClasspath(const Napi::CallbackInfo &info) {
     CHECK_ARGS(napi_tools::string);
     TRY
         const std::string toAppend = info[0].ToString().Utf8Value();
+        loaded_jars.push_back(toAppend);
         StaticLogger::debugStream << "Appending to classpath: " << toAppend;
         java_environment.appendClasspath(toAppend);
     CATCH_EXCEPTIONS
 }
 
-java::~java() = default;
+Napi::Value java::getLoadedJars(const Napi::CallbackInfo &info) {
+    Napi::Array res = Napi::Array::New(info.Env());
+    for (size_t i = 0; i < loaded_jars.size(); i++) {
+        res.Set(i, Napi::String::New(info.Env(), loaded_jars[i]));
+    }
 
-std::vector<std::string> java::classpathElements;
+    return res;
+}
+
+java::~java() = default;

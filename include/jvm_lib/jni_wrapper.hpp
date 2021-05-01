@@ -8,86 +8,12 @@
 #include <shared_releaser.hpp>
 
 #include "shared_library.hpp"
+#include "jobject_wrapper.hpp"
 
 namespace jni {
-
     namespace jni_types {
         using JNI_CreateJavaVM_t = decltype(::JNI_CreateJavaVM);
     }
-
-    class java_exception : public std::exception {
-    public:
-        java_exception(const std::vector<std::string> &causes, const std::vector<std::string> &frames);
-
-        java_exception(const java_exception &other);
-
-        [[nodiscard]] const char *what() const override;
-
-        static std::string
-        generateErrorMessage(const std::vector<std::string> &causes, const std::vector<std::string> &frames);
-
-    private:
-        std::string message;
-    };
-
-    class jvm_env : public shared_releaser {
-    public:
-        jvm_env() noexcept;
-
-        jvm_env(JavaVM *vm, JNIEnv *env, bool detachThread = false);
-
-        JNIEnv *operator->() const;
-
-        JavaVM *jvm;
-        JNIEnv *env;
-    };
-
-    template<class T>
-    class jobject_wrapper : public shared_releaser {
-    public:
-        jobject_wrapper() : obj(nullptr), shared_releaser(nullptr) {}
-
-        jobject_wrapper(T object, jvm_env env) : obj(object), shared_releaser([object, env] {
-            if (object != nullptr) {
-                env->DeleteLocalRef(object);
-            }
-        }) {}
-
-        template<class = int, class = typename std::enable_if_t<std::negation_v<std::is_same<T, jobject>>, int>>
-        jobject_wrapper(jobject object, jvm_env env) : shared_releaser([object, env] {
-            if (object != nullptr) {
-                env->DeleteLocalRef(object);
-            }
-        }) {
-            obj = reinterpret_cast<T>(object);
-        }
-
-        jobject_wrapper(jobject object, shared_releaser releaser) : shared_releaser(std::move(releaser)) {
-            obj = reinterpret_cast<T>(object);
-        }
-
-        template<class U>
-        jobject_wrapper<U> as() const {
-            return jobject_wrapper<U>(this->obj, *this);
-        }
-
-        jobject_wrapper &operator=(jobject newObject) {
-            this->reset();
-
-            obj = reinterpret_cast<T>(newObject);
-            return *this;
-        }
-
-        operator T() const {
-            return obj;
-        }
-
-        [[nodiscard]] bool ok() const {
-            return obj != nullptr;
-        }
-
-        T obj;
-    };
 
     class java_constructor;
 
@@ -177,7 +103,7 @@ namespace jni {
     public:
         jvm_wrapper() noexcept;
 
-        jvm_wrapper(const std::string &jvmPath, jint version, std::string classPath);
+        jvm_wrapper(const std::string &jvmPath, jint version);
 
         [[nodiscard]] jni_wrapper attachEnv() const;
 
@@ -185,7 +111,6 @@ namespace jni {
     private:
         shared_library library;
         jint version;
-        std::string classpath;
     };
 
     class java_field {

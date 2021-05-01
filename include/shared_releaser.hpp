@@ -7,6 +7,9 @@
  * A class for calling a function when destroyed.
  * Works almost like a std::shared_ptr just without the pointer part.
  * Based on: https://codereview.stackexchange.com/questions/166395/custom-stdshared-ptrt-implementation
+ * Was originally used and created by and for my autobet project.
+ *
+ * @author MarkusJx
  */
 class shared_releaser {
 public:

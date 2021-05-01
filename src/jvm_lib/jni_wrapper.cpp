@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "jvm_lib/jni_wrapper.hpp"
+#include "jvm_lib/java_exception.hpp"
 #include "util.hpp"
 
 #define CHECK_EXCEPTION() if (env->ExceptionCheck()) throwLastException(__LINE__)
@@ -27,50 +28,6 @@ using namespace jni_types;
  * | V | void    |
  * +-------------+
  */
-
-java_exception::java_exception(const std::vector<std::string> &causes, const std::vector<std::string> &frames)
-        : std::exception(), message(generateErrorMessage(causes, frames)) {}
-
-java_exception::java_exception(const java_exception &other) = default;
-
-const char *java_exception::what() const {
-    return message.c_str();
-}
-
-std::string java_exception::generateErrorMessage(const std::vector<std::string> &causes,
-                                                 const std::vector<std::string> &frames) {
-    // NOTE: Can't use string streams, the module will crash
-    try {
-        std::string res;
-        for (size_t i = 0; i < causes.size(); i++) {
-            if (i == 0) {
-                res += causes[i];
-
-                if (!frames.empty()) {
-                    res += '\n';
-                }
-
-                for (const std::string &frame : frames) {
-                    res += '\t';
-                    res += "at ";
-                    res += frame;
-                    res += '\n';
-                }
-            } else {
-                res += "Caused by: ";
-                res += causes[i];
-            }
-
-            if ((i + 1) < causes.size()) {
-                res += '\n';
-            }
-        }
-
-        return res;
-    } catch (...) {
-        return "Could not get the error message";
-    }
-}
 
 java_constructor::java_constructor(jobject object, const jni_wrapper &jni) : jobject_wrapper<jobject>(object, jni),
                                                                              jni(jni), parameterTypes() {
@@ -161,8 +118,7 @@ jni_wrapper::jni_wrapper(jvm_env env) : env(std::move(env)), initialized(true), 
 
 jvm_wrapper::jvm_wrapper() noexcept: jni_wrapper(), library(), version(0) {}
 
-jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version, std::string classPath)
-        : jni_wrapper(), version(version), classpath(std::move(classPath)) {
+jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version) : jni_wrapper(), version(version) {
     initialized = true;
     library = shared_library(jvmPath);
     JNI_CreateJavaVM = library.getFunction<JNI_CreateJavaVM_t>("JNI_CreateJavaVM");
@@ -171,26 +127,23 @@ jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version, std::string c
     JNIEnv *environment = nullptr;
 
     JavaVMInitArgs vm_args;
-    std::vector<JavaVMOption> options;
-    if (!classpath.empty()) {
-        options.push_back(JavaVMOption{
-                const_cast<char *>(classpath.c_str()),
-                nullptr
-        });
-    }
 
     vm_args.version = version;
-    vm_args.nOptions = static_cast<jint>(options.size());
-    vm_args.options = options.data();
+    vm_args.nOptions = 0;
+    vm_args.options = nullptr;
     vm_args.ignoreUnrecognized = false;
 
     jint create_code = JNI_CreateJavaVM(&jvm, (void **) &environment, &vm_args);
     if (create_code != JNI_OK) {
         throw std::runtime_error("JNI_CreateJavaVM failed: " + util::jni_error_to_string(create_code));
     } else {
-        env = jvm_env(jvm, environment);
+        env = jvm_env(jvm, environment, version);
     }
 
+    // The start class loader is the system default one.
+    // It may evolve to a more potent one during the
+    // execution of the program, just like a pokèmon.
+    // Nah, I dunno either, never played those games.
     classLoader = getSystemClassLoader();
 }
 
@@ -200,17 +153,9 @@ jni_wrapper jvm_wrapper::attachEnv() const {
 
     if (create_result == JNI_EDETACHED) {
         JavaVMInitArgs vm_args;
-        std::vector<JavaVMOption> options;
-        if (!classpath.empty()) {
-            options.push_back(JavaVMOption{
-                    const_cast<char *>(classpath.c_str()),
-                    nullptr
-            });
-        }
-
         vm_args.version = version;
-        vm_args.nOptions = static_cast<jint>(options.size());
-        vm_args.options = options.data();
+        vm_args.nOptions = 0;
+        vm_args.options = nullptr;
         vm_args.ignoreUnrecognized = false;
 
         create_result = env.jvm->AttachCurrentThread(reinterpret_cast<void **>(&environment), &vm_args);
@@ -265,6 +210,12 @@ jclass jni_wrapper::getJavaLangClass() const {
 }
 
 jobject_wrapper<jobject> jni_wrapper::getClassByName(const std::string &className) const {
+    /*
+     * Java code:
+     *
+     * Class<?> clazz = Class.forName(className, true, this.classLoader);
+     * return clazz;
+     */
     jclass Class = getJavaLangClass();
 
     jmethodID forName = env->GetStaticMethodID(Class, "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;");
@@ -884,18 +835,3 @@ java_class::java_class(const std::vector<java_field> &static_fields, const std::
                                                                                    functions(util::map_vector_to_map(
                                                                                            functions)), constructors(
                 std::move(constructors)), clazz(clazz) {}
-
-jvm_env::jvm_env() noexcept: env(nullptr), jvm(nullptr), shared_releaser(nullptr) {}
-
-jvm_env::jvm_env(JavaVM *vm, JNIEnv *environment, bool detachThread) : env(environment), jvm(vm),
-                                                                       shared_releaser([vm, detachThread] {
-                                                                           if (detachThread) {
-                                                                               vm->DetachCurrentThread();
-                                                                           } else {
-                                                                               vm->DestroyJavaVM();
-                                                                           }
-                                                                       }) {}
-
-JNIEnv *jvm_env::operator->() const {
-    return env;
-}

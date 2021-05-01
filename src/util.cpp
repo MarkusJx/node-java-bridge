@@ -84,21 +84,6 @@ jint util::string_to_java_version(const std::string &ver) {
     }
 }
 
-std::string util::classpath_elements_to_classpath(const std::vector<std::string> &elements) {
-    std::string res;
-    res += "-Djava.class.path=";
-
-    for (size_t i = 0; i < elements.size(); i++) {
-        if (i > 0) {
-            res += CP_DELIMITER;
-        }
-
-        res += elements[i];
-    }
-
-    return res;
-}
-
 std::string util::make_java_name_readable(const std::string &to_convert) {
     if (to_convert == "Z") {
         return "boolean";
@@ -125,4 +110,20 @@ std::string util::make_java_name_readable(const std::string &to_convert) {
     } else {
         return to_convert;
     }
+}
+
+std::string util::get_java_version_from_jint(jint version) {
+    // The major version will be in the higher
+    // 16 bits and the minor version will
+    // be in the lower 16 bits
+
+    // Shift 16 bits to the right
+    const jint hi = version >> 16;
+
+    // Shift 16 bits to the left to discard
+    // the major version bits, then shift
+    // 16 bits to the right to move everything back
+    const jint lo = (version << 16) >> 16;
+
+    return std::to_string(hi) + "." + std::to_string(lo);
 }

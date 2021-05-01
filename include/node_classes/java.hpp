@@ -19,9 +19,12 @@ namespace node_classes {
 
         ~java() override;
 
-        static std::vector<std::string> classpathElements;
-
         jni::jvm_wrapper java_environment;
+
+    private:
+        Napi::Value getLoadedJars(const Napi::CallbackInfo &info);
+
+        std::vector<std::string> loaded_jars;
     };
 }
 

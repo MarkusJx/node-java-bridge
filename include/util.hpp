@@ -39,9 +39,9 @@ namespace util {
 
     jint string_to_java_version(const std::string &to_convert);
 
-    std::string classpath_elements_to_classpath(const std::vector<std::string> &elements);
-
     std::string make_java_name_readable(const std::string &to_convert);
+
+    std::string get_java_version_from_jint(jint version);
 }
 
 #endif //NODE_JAVA_BRIDGE_UTIL_HPP
