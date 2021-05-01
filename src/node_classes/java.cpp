@@ -17,7 +17,8 @@ using namespace markusjx::logging;
 
 void java::init(Napi::Env env, Napi::Object &exports) {
     Napi::Function func = DefineClass(env, "java", {
-            InstanceMethod("getClass", &java::getClass, napi_enumerable)
+            InstanceMethod("getClass", &java::getClass, napi_enumerable),
+            InstanceMethod("appendToClasspath", &java::appendToClasspath, napi_enumerable),
     });
 
     auto constructor = new Napi::FunctionReference();
@@ -57,11 +58,22 @@ java::java(const Napi::CallbackInfo &info) : ObjectWrap(info) {
 
 Napi::Value java::getClass(const Napi::CallbackInfo &info) {
     CHECK_ARGS(napi_tools::string);
-    return java_class_proxy::createInstance(this->Value(), info[0].ToString());
+    TRY
+        return java_class_proxy::createInstance(this->Value(), info[0].ToString());
+    CATCH_EXCEPTIONS
 }
 
 Napi::Object java::getClass(const Napi::Env &env, const std::string &classname) {
     return java_class_proxy::createInstance(this->Value(), Napi::String::New(env, classname));
+}
+
+void java::appendToClasspath(const Napi::CallbackInfo &info) {
+    CHECK_ARGS(napi_tools::string);
+    TRY
+        const std::string toAppend = info[0].ToString().Utf8Value();
+        StaticLogger::debugStream << "Appending to classpath: " << toAppend;
+        java_environment.appendClasspath(toAppend);
+    CATCH_EXCEPTIONS
 }
 
 java::~java() = default;

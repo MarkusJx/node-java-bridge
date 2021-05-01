@@ -123,6 +123,8 @@ namespace jni {
 
         void throwLastException(int line = -1) const;
 
+        void appendClasspath(const std::string& path);
+
         [[nodiscard]] std::string get_object_class_name(jobject obj) const;
 
         [[nodiscard]] jint jobject_to_jint(jobject obj) const;
@@ -164,8 +166,11 @@ namespace jni {
         operator bool() const;
 
     protected:
+        jobject_wrapper<jobject> getSystemClassLoader();
+
         jvm_env env;
         bool initialized;
+        jobject_wrapper<jobject> classLoader;
     };
 
     class jvm_wrapper final : public jni_wrapper {

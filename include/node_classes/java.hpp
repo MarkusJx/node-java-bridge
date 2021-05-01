@@ -15,6 +15,8 @@ namespace node_classes {
 
         Napi::Object getClass(const Napi::Env &env, const std::string &classname);
 
+        void appendToClasspath(const Napi::CallbackInfo &info);
+
         ~java() override;
 
         static std::vector<std::string> classpathElements;

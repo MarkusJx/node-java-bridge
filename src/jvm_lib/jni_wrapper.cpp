@@ -157,7 +157,7 @@ std::string java_constructor::to_string() const {
 
 jni_wrapper::jni_wrapper() noexcept: env(), initialized(false) {}
 
-jni_wrapper::jni_wrapper(jvm_env env) : env(std::move(env)), initialized(true) {}
+jni_wrapper::jni_wrapper(jvm_env env) : env(std::move(env)), initialized(true), classLoader(getSystemClassLoader()) {}
 
 jvm_wrapper::jvm_wrapper() noexcept: jni_wrapper(), library(), version(0) {}
 
@@ -190,6 +190,8 @@ jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version, std::string c
     } else {
         env = jvm_env(jvm, environment);
     }
+
+    classLoader = getSystemClassLoader();
 }
 
 jni_wrapper jvm_wrapper::attachEnv() const {
@@ -265,10 +267,10 @@ jclass jni_wrapper::getJavaLangClass() const {
 jobject_wrapper<jobject> jni_wrapper::getClassByName(const std::string &className) const {
     jclass Class = getJavaLangClass();
 
-    jmethodID forName = env->GetStaticMethodID(Class, "forName", "(Ljava/lang/String;)Ljava/lang/Class;");
+    jmethodID forName = env->GetStaticMethodID(Class, "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;");
     CHECK_EXCEPTION();
 
-    jobject clazz = env->CallStaticObjectMethod(Class, forName, string_to_jstring(className).obj);
+    jobject clazz = env->CallStaticObjectMethod(Class, forName, string_to_jstring(className).obj, true, classLoader.obj);
     CHECK_EXCEPTION();
 
     return jobject_wrapper<jobject>(clazz, env);
@@ -627,6 +629,71 @@ std::string jni_wrapper::get_object_class_name(jobject obj) const {
     CHECK_EXCEPTION();
 
     return jstring_to_string(name);
+}
+
+void jni_wrapper::appendClasspath(const std::string& path) {
+    // This. was. torture.
+    /*
+     * This whole thing is based on this: https://stackoverflow.com/a/60775
+     * Java code:
+     *
+     * File toLoad = new File(path);
+     * URI uri = toLoad.toURI();
+     * URL url = uri.toURL();
+     * URL[] urls = new URL[]{url};
+     * URLClassLoader newClassLoader = new URLClassLoader(urls, this.classLoader);
+     * this.classLoader = newClassLoader;
+     */
+    jclass File = env->FindClass("java/io/File");
+    CHECK_EXCEPTION();
+    jmethodID FileConstructor = env->GetMethodID(File, "<init>", "(Ljava/lang/String;)V");
+    CHECK_EXCEPTION();
+    jmethodID toURI = env->GetMethodID(File, "toURI", "()Ljava/net/URI;");
+    CHECK_EXCEPTION();
+    jclass URI = env->FindClass("java/net/URI");
+    CHECK_EXCEPTION();
+    jmethodID toURL = env->GetMethodID(URI, "toURL", "()Ljava/net/URL;");
+    CHECK_EXCEPTION();
+
+    auto j_path = string_to_jstring(path);
+    jobject_wrapper<jobject> file(env->NewObject(File, FileConstructor, j_path.obj), env);
+    CHECK_EXCEPTION();
+
+    jobject_wrapper<jobject> uri(env->CallObjectMethod(file, toURI), env);
+    CHECK_EXCEPTION();
+    jobject_wrapper<jobject> url(env->CallObjectMethod(uri, toURL), env);
+    CHECK_EXCEPTION();
+
+    jclass URLClassLoader = env->FindClass("java/net/URLClassLoader");
+    CHECK_EXCEPTION();
+    jmethodID classLoaderInit = env->GetMethodID(URLClassLoader, "<init>", "([Ljava/net/URL;Ljava/lang/ClassLoader;)V");
+    CHECK_EXCEPTION();
+
+    jclass URL = env->FindClass("java/net/URL");
+    CHECK_EXCEPTION();
+    jobject_wrapper<jobjectArray> urls(env->NewObjectArray(1, URL, url), env);
+    CHECK_EXCEPTION();
+
+    jobject_wrapper<jobject> newClassLoader(env->NewObject(URLClassLoader, classLoaderInit, urls.obj, classLoader.obj), env);
+    CHECK_EXCEPTION();
+
+    classLoader = newClassLoader;
+}
+
+jobject_wrapper<jobject> jni_wrapper::getSystemClassLoader() {
+    /*
+     * Java code:
+     *
+     * return ClassLoader.getSystemClassLoader();
+     */
+    jclass classLoaderCls = env->FindClass("java/lang/ClassLoader");
+    CHECK_EXCEPTION();
+    jmethodID getSystemClassLoaderMethod = env->GetStaticMethodID(classLoaderCls, "getSystemClassLoader", "()Ljava/lang/ClassLoader;");
+    CHECK_EXCEPTION();
+    jobject_wrapper res(env->CallStaticObjectMethod(classLoaderCls, getSystemClassLoaderMethod), env);
+    CHECK_EXCEPTION();
+
+    return res;
 }
 
 #define JOBJECT_TO_TEMPLATE(className, valueFunc, signature, method) \

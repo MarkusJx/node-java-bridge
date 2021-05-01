@@ -8,13 +8,14 @@ if (process.argv.indexOf("--debug") >= 0) {
 
 const JVM_PATH = "C:\\Program Files\\AdoptOpenJDK\\jdk-11.0.10.9-hotspot\\bin\\client\\jvm.dll";
 
-//const java = new native.java(JVM_PATH, "10");
-let java = null;
+let java = new native.java(JVM_PATH, "10");
+//let java = null;
 
 module.exports = {
     classpath: {
         append: function(path) {
-            native.addToClasspath(path);
+            java.appendToClasspath(path);
+            //native.addToClasspath(path);
         }
     },
     createJVM: function() {

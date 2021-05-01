@@ -1,8 +1,14 @@
 const java = require("./index");
+const path = require('path');
+
+process.chdir(__dirname);
+console.log(process.cwd());
 
 setTimeout(() => {
-    java.classpath.append("some path");
-    java.createJVM();
+    //java.classpath.append(path.join(__dirname, "*"));
+    //java.classpath.append("*");
+    java.classpath.append("C:/Users/marku/CLionProjects/node-java-bridge/dbLib-1.0-SNAPSHOT.jar");
+    //java.createJVM();
 
     const cls = java.import("java.lang.String");
     //console.log(cls);
@@ -20,5 +26,8 @@ setTimeout(() => {
     //cls.abc = "hello";
     //cls.CASE_INSENSITIVE_ORDER = "abc";
 
-    //console.log(java.javaInstance);
+    console.log(java.javaInstance);
+
+    const SQLite = java.import("io.github.markusjx.database.persistence.SQLiteProvider");
+    console.log(SQLite);
 }, 100);
