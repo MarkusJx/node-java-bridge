@@ -2,9 +2,9 @@
 #include <napi_tools.hpp>
 #include <logger.hpp>
 
-#include "node_classes/java.hpp"
 #include "node_classes/java_class_proxy.hpp"
 #include "util.hpp"
+#include "node_classes/java.hpp"
 
 #ifdef JNI_VERSION_1_8
 #   define JNI_DEFAULT_VERSION JNI_VERSION_1_8

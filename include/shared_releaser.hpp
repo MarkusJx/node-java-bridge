@@ -2,6 +2,7 @@
 #define MARKUSJX_SHARED_RELEASER_HPP
 
 #include <functional>
+#include <mutex>
 
 /**
  * A class for calling a function when destroyed.
@@ -16,22 +17,25 @@ public:
     /**
      * Create a shared_releaser without setting a function
      */
-    inline shared_releaser(std::nullptr_t) noexcept: on_destroy(nullptr), use_count(new std::size_t(0)) {}
+    shared_releaser(std::nullptr_t) noexcept: on_destroy(nullptr), use_count(new std::size_t(0)),
+                                              mtx(new std::mutex()) {}
 
     /**
      * Create a shared_releaser
      *
      * @param on_destroy the function to call on destruction
      */
-    inline explicit shared_releaser(std::function<void()> on_destroy) : on_destroy(std::move(on_destroy)),
-                                                                        use_count(new std::size_t(1)) {}
+    explicit shared_releaser(std::function<void()> on_destroy) : on_destroy(std::move(on_destroy)),
+                                                                 use_count(new std::size_t(1)),
+                                                                 mtx(new std::mutex()) {}
 
     /**
      * Create a shared_releaser from another instance
      *
      * @param rhs the other instance to copy from
      */
-    inline shared_releaser(const shared_releaser &rhs) : use_count(rhs.use_count), on_destroy(rhs.on_destroy) {
+    shared_releaser(const shared_releaser &rhs) : use_count(rhs.use_count), on_destroy(rhs.on_destroy), mtx(rhs.mtx) {
+        if (mtx) std::unique_lock<std::mutex> lock(*mtx);
         ++*use_count;
     }
 
@@ -40,9 +44,11 @@ public:
      *
      * @param rhs the object to move
      */
-    inline shared_releaser(shared_releaser &&rhs) noexcept: use_count(rhs.use_count), on_destroy(rhs.on_destroy) {
+    shared_releaser(shared_releaser &&rhs) noexcept: use_count(rhs.use_count), on_destroy(rhs.on_destroy),
+                                                     mtx(rhs.mtx) {
         rhs.use_count = new std::size_t(0);
         rhs.on_destroy = nullptr;
+        rhs.mtx = nullptr;
     }
 
     /**
@@ -51,7 +57,7 @@ public:
      * @param rhs the object to copy from
      * @return this
      */
-    inline shared_releaser &operator=(const shared_releaser &rhs) {
+    shared_releaser &operator=(const shared_releaser &rhs) {
         shared_releaser rhs_copy(rhs);
         this->swap(rhs_copy);
         return *this;
@@ -63,7 +69,7 @@ public:
      * @param rhs the object to move
      * @return this
      */
-    inline shared_releaser &operator=(shared_releaser &&rhs) noexcept {
+    shared_releaser &operator=(shared_releaser &&rhs) noexcept {
         this->swap(rhs);
         return *this;
     }
@@ -73,9 +79,25 @@ public:
      *
      * @param rhs the other instance to swap with
      */
-    inline void swap(shared_releaser &rhs) {
+    void swap(shared_releaser &rhs) {
         std::swap(this->use_count, rhs.use_count);
         std::swap(this->on_destroy, rhs.on_destroy);
+        std::swap(this->mtx, rhs.mtx);
+    }
+
+    /**
+     * Assign another shared_releaser to this
+     *
+     * @param rhs the releaser to assign to this
+     */
+    void assign(const shared_releaser &rhs) {
+        this->destructor();
+        this->use_count = rhs.use_count;
+        this->on_destroy = rhs.on_destroy;
+        this->mtx = rhs.mtx;
+
+        if (mtx) std::unique_lock<std::mutex> lock(*mtx);
+        ++*use_count;
     }
 
     /**
@@ -83,7 +105,7 @@ public:
      *
      * @return true, if the function is not nullptr
      */
-    [[nodiscard]] inline operator bool() const noexcept {
+    [[nodiscard]] operator bool() const noexcept {
         return on_destroy.operator bool();
     }
 
@@ -92,7 +114,7 @@ public:
      *
      * @param new_fn the new function to swap with or nullptr to just call the release function
      */
-    inline void reset(const std::function<void()> &new_fn = nullptr) {
+    void reset(const std::function<void()> &new_fn = nullptr) {
         this->destructor();
         if (new_fn) {
             this->use_count = new std::size_t(1);
@@ -100,33 +122,49 @@ public:
             this->use_count = new std::size_t(0);
         }
         this->on_destroy = new_fn;
+        this->mtx = new std::mutex();
     }
 
     /**
      * The shared_releaser destructor.
      * Calls the release function if the use count equals zero
      */
-    inline ~shared_releaser() {
+    ~shared_releaser() {
         this->destructor();
     }
 
 private:
     std::size_t *use_count;
     std::function<void()> on_destroy;
+    std::mutex *mtx;
 
     /**
      * The destruction function
      */
-    inline void destructor() {
+    void destructor() {
+        if (mtx)
+            mtx->lock();
+
         if (on_destroy && --*use_count <= 0) {
+            if (mtx)
+                mtx->unlock();
+
             on_destroy();
+            delete mtx;
             delete use_count;
         } else if (!on_destroy) {
+            if (mtx)
+                mtx->unlock();
+
+            delete mtx;
             delete use_count;
+        } else if (mtx) {
+            mtx->unlock();
         }
 
         use_count = nullptr;
         on_destroy = nullptr;
+        mtx = nullptr;
     }
 };
 

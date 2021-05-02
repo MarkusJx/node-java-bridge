@@ -86,21 +86,21 @@ jint util::string_to_java_version(const std::string &ver) {
 
 std::string util::make_java_name_readable(const std::string &to_convert) {
     if (to_convert == "Z") {
-        return "boolean";
+        return "java.lang.Boolean";
     } else if (to_convert == "B") {
-        return "byte";
+        return "java.lang.Byte";
     } else if (to_convert == "C") {
-        return "char";
+        return "java.lang.Character";
     } else if (to_convert == "S") {
-        return "short";
+        return "java.lang.Short";
     } else if (to_convert == "I") {
-        return "int";
+        return "java.lang.Integer";
     } else if (to_convert == "J") {
-        return "long";
+        return "java.lang.Long";
     } else if (to_convert == "F") {
-        return "float";
+        return "java.lang.Float";
     } else if (to_convert == "D") {
-        return "double";
+        return "java.lang.Double";
     } else if (to_convert == "V") {
         return "void";
     } else if (!to_convert.empty() && to_convert[0] == '[') {
@@ -126,4 +126,13 @@ std::string util::get_java_version_from_jint(jint version) {
     const jint lo = (version << 16) >> 16;
 
     return std::to_string(hi) + "." + std::to_string(lo);
+}
+
+bool util::hasEnding(std::string const &fullString, std::string const &ending) {
+    // https://stackoverflow.com/a/874160
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
 }

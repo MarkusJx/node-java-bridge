@@ -47,9 +47,13 @@ namespace jni {
 
         [[nodiscard]] java_class getClass(const std::string &className) const;
 
+        [[nodiscard]] jclass getJClass(const std::string &className) const;
+
         void throwLastException(int line = -1) const;
 
         void appendClasspath(const std::string& path);
+
+        [[nodiscard]] bool class_is_assignable(const std::string &sub, const std::string &sup) const;
 
         [[nodiscard]] std::string get_object_class_name(jobject obj) const;
 
@@ -96,7 +100,7 @@ namespace jni {
 
         jvm_env env;
         bool initialized;
-        jobject_wrapper<jobject> classLoader;
+        static jobject_wrapper<jobject> classLoader;
     };
 
     class jvm_wrapper final : public jni_wrapper {

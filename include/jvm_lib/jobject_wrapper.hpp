@@ -25,7 +25,7 @@ namespace jni {
          * Create an empty jobject_wrapper.
          * Can't do shit, keep that in mind.
          */
-        jobject_wrapper() : obj(nullptr), shared_releaser(nullptr) {}
+        jobject_wrapper() noexcept: obj(nullptr), shared_releaser(nullptr) {}
 
         /**
          * Store any jni object
@@ -84,6 +84,17 @@ namespace jni {
         }
 
         /**
+         * Assign another jobject to this wrapper.
+         * Destroys the old object if required.
+         *
+         * @param other the jobject_wrapper to assign
+         */
+        void assign(const jobject_wrapper<T> &other) {
+            this->shared_releaser::assign(other);
+            obj = other.obj;
+        }
+
+        /**
          * Assign a new object to this and release
          * the old one into the wild by taking it
          * into the woods. We all know what happens next.
@@ -91,11 +102,14 @@ namespace jni {
          * @param newObject the
          * @return
          */
-        jobject_wrapper &operator=(jobject newObject) {
-            this->reset();
+        void assign(jobject newObject, const jvm_env &env) {
+            this->reset([newObject, env] {
+                if (newObject != nullptr) {
+                    env.attach_env()->DeleteLocalRef(newObject);
+                }
+            });
 
             obj = reinterpret_cast<T>(newObject);
-            return *this;
         }
 
         /**
@@ -118,7 +132,7 @@ namespace jni {
          * @return true if obj is not nullptr
          */
         [[nodiscard]] bool ok() const {
-            return obj != nullptr;
+            return obj != nullptr && this->operator bool();
         }
 
         // The stored value

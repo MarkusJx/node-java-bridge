@@ -96,6 +96,7 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
     Napi::Object java_instance = class_proxy_instance.Get("java.instance").ToObject();
 
     StaticLogger::debugStream << "Creating a new '" << class_ptr->classname << "' instance";
+    classname = class_ptr->classname;
 
     {
         std::unique_lock lock(class_ptr->mtx);

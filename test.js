@@ -21,5 +21,14 @@ setTimeout(() => {
     console.log(java.getJavaInstance().loadedJars);
 
     const SQLite = java.importClass("io.github.markusjx.database.persistence.SQLiteProvider");
-    console.log(SQLite);
+    const action = java.importClass("org.hibernate.tool.schema.Action");
+    const provider = new SQLite("", action.NONE, false, ["abc"]);
+
+    console.log(Object.getOwnPropertyNames(provider));
+
+    const CustomPersistence = java.importClass("io.github.markusjx.database.persistence.CustomPersistence");
+    const factory = CustomPersistence.createEntityManagerFactory("documents", provider);
+    const em = factory.createEntityManager();
+
+    console.log(em);
 }, 100);

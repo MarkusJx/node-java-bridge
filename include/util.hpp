@@ -42,6 +42,8 @@ namespace util {
     std::string make_java_name_readable(const std::string &to_convert);
 
     std::string get_java_version_from_jint(jint version);
+
+    bool hasEnding(std::string const &fullString, std::string const &ending);
 }
 
 #endif //NODE_JAVA_BRIDGE_UTIL_HPP

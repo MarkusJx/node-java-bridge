@@ -13,7 +13,7 @@ namespace conversion_helper {
                                  const jni::jobject_wrapper<jobject> &obj, const std::string &signature);
 
     jni::jobject_wrapper<jobject> value_to_jobject(const Napi::Env &env, const jni::jni_wrapper &j_env,
-                                                   const Napi::Value &value, const std::string &signature);
+                                                   const Napi::Value &value, std::string signature);
 
     std::string napi_valuetype_to_string(napi_valuetype type);
 

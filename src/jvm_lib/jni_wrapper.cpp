@@ -1,5 +1,4 @@
 #include <stdexcept>
-#include <sstream>
 #include <iostream>
 #include <utility>
 
@@ -112,9 +111,15 @@ std::string java_constructor::to_string() const {
     return jni.jstring_to_string(string);
 }
 
+jobject_wrapper<jobject> jni_wrapper::classLoader;
+
 jni_wrapper::jni_wrapper() noexcept: env(), initialized(false) {}
 
-jni_wrapper::jni_wrapper(jvm_env env) : env(std::move(env)), initialized(true), classLoader(getSystemClassLoader()) {}
+jni_wrapper::jni_wrapper(jvm_env env) : env(std::move(env)), initialized(true) {
+    if (!classLoader.ok()) {
+        classLoader.assign(getSystemClassLoader());
+    }
+}
 
 jvm_wrapper::jvm_wrapper() noexcept: jni_wrapper(), library(), version(0) {}
 
@@ -144,7 +149,9 @@ jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version) : jni_wrapper
     // It may evolve to a more potent one during the
     // execution of the program, just like a pokèmon.
     // Nah, I dunno either, never played those games.
-    classLoader = getSystemClassLoader();
+    if (!classLoader) {
+        classLoader.assign(getSystemClassLoader());
+    }
 }
 
 jni_wrapper jvm_wrapper::attachEnv() const {
@@ -307,7 +314,7 @@ std::vector<java_field> jni_wrapper::getClassFields(const std::string &className
 
     const auto getFieldId = [&](const jobject_wrapper<jobject> &field, const std::string &fieldName,
                                 const std::string &signature) -> jfieldID {
-        jclass javaClass = env->FindClass(util::string_replace(className, '.', '/').c_str());
+        jclass javaClass = getJClass(className);
         CHECK_EXCEPTION();
 
         jfieldID id;
@@ -431,7 +438,7 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
 
     const auto get_id = [&](const std::string &name, const std::string &returnType,
                             const std::vector<std::string> &parameterTypes) -> jmethodID {
-        jclass javaClass = env->FindClass(util::string_replace(className, '.', '/').c_str());
+        jclass javaClass = getJClass(className);
         CHECK_EXCEPTION();
 
         std::string signature;
@@ -488,9 +495,27 @@ java_class jni_wrapper::getClass(const std::string &className) const {
     const std::vector<java_function> functions = getClassFunctions(className, false);
     const std::vector<java_function> staticFunctions = getClassFunctions(className, true);
     const std::vector<java_constructor> constructors = getClassConstructors(className);
-    jclass clazz = env->FindClass(util::string_replace(className, '.', '/').c_str());
+    jclass clazz = getJClass(className);
 
     return java_class(staticFields, fields, staticFunctions, functions, constructors, clazz);
+}
+
+jclass jni_wrapper::getJClass(const std::string &className) const {
+    /*
+     * Java code:
+     *
+     * Class<?> clazz = Class.forName(className, true, this.classLoader);
+     * return clazz;
+     */
+    jclass Class = getJavaLangClass();
+
+    jmethodID forName = env->GetStaticMethodID(Class, "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;");
+    CHECK_EXCEPTION();
+
+    jobject clazz = env->CallStaticObjectMethod(Class, forName, string_to_jstring(className).obj, true, classLoader.obj);
+    CHECK_EXCEPTION();
+
+    return reinterpret_cast<jclass>(clazz);
 }
 
 void jni_wrapper::throwLastException(int line) const {
@@ -547,16 +572,17 @@ void jni_wrapper::throwLastException(int line) const {
             }
         }
 
-        throwable = env->CallObjectMethod(throwable, throwable_getCause);
+        throwable.assign(env->CallObjectMethod(throwable, throwable_getCause), env);
         if (env->ExceptionCheck()) throw std::runtime_error("Could not get the throwable cause");
 
         if (throwable != nullptr) {
-            frames = env->CallObjectMethod(throwable, throwable_getStackTrace);
+            frames.assign(env->CallObjectMethod(throwable, throwable_getStackTrace), env);
             if (env->ExceptionCheck()) throw std::runtime_error("Could not get the frames");
             numFrames = env->GetArrayLength(frames);
             if (env->ExceptionCheck()) throw std::runtime_error("Could not get the number of frames");
         }
     }
+
     throw java_exception(causes, stackFrames);
 }
 
@@ -628,7 +654,17 @@ void jni_wrapper::appendClasspath(const std::string& path) {
     jobject_wrapper<jobject> newClassLoader(env->NewObject(URLClassLoader, classLoaderInit, urls.obj, classLoader.obj), env);
     CHECK_EXCEPTION();
 
-    classLoader = newClassLoader;
+    classLoader.assign(newClassLoader);
+}
+
+bool jni_wrapper::class_is_assignable(const std::string &sub, const std::string &sup) const {
+    if (util::hasEnding(sub, "[]") || util::hasEnding(sup, "[]")) return false;
+    if (sub == sup) return true;
+
+    jclass clazz1 = getJClass(sub);
+    jclass clazz2 = getJClass(sup);
+
+    return env->IsAssignableFrom(clazz1, clazz2);
 }
 
 jobject_wrapper<jobject> jni_wrapper::getSystemClassLoader() {
@@ -648,6 +684,7 @@ jobject_wrapper<jobject> jni_wrapper::getSystemClassLoader() {
 }
 
 #define JOBJECT_TO_TEMPLATE(className, valueFunc, signature, method) \
+if (!obj) throw std::runtime_error("The object was null");\
 jclass cls = env->GetObjectClass(obj);\
 CHECK_EXCEPTION();\
 \
@@ -662,8 +699,6 @@ if(env->IsInstanceOf(obj, env->FindClass(className)) ) {\
     return result;\
 } else \
     throw std::runtime_error("Mismatched types: The passed value is not of type " className)
-
-// TODO: Handle null cases
 
 jint jni_wrapper::jobject_to_jint(jobject obj) const {
     JOBJECT_TO_TEMPLATE("java/lang/Integer", "intValue", "()I", CallIntMethod);

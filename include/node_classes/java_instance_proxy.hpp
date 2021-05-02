@@ -17,6 +17,7 @@ namespace node_classes {
         jni::jobject_wrapper<jobject> object;
         std::shared_ptr<jni::java_class> clazz;
         jni::jvm_wrapper jvm;
+        std::string classname;
 
     private:
         static Napi::Value staticGetter(const Napi::CallbackInfo &info);

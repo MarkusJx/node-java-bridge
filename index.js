@@ -16,9 +16,8 @@ module.exports = {
             java.appendToClasspath(path);
         }
     },
-    createJVM: function(version) {
+    createJVM: function(version, jvmPath = null) {
         java = new native.java(JVM_PATH, version);
-        this.javaInstance = java;
     },
     importClass: function (classname) {
         return java.getClass(classname).getClassConstructor();
