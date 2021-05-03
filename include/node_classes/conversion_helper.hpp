@@ -10,7 +10,7 @@ namespace conversion_helper {
                                             const Napi::Object &java_instance);
 
     Napi::Value jobject_to_value(const Napi::Env &env, const Napi::Object &java_instance,
-                                 const jni::jobject_wrapper<jobject> &obj, const std::string &signature);
+                                 const jni::jobject_wrapper<jobject> &obj, std::string signature);
 
     jni::jobject_wrapper<jobject> value_to_jobject(const Napi::Env &env, const jni::jni_wrapper &j_env,
                                                    const Napi::Value &value, std::string signature);
@@ -20,6 +20,12 @@ namespace conversion_helper {
     jni::jobject_wrapper<jobject> match_constructor_arguments(const Napi::CallbackInfo &args,
                                                               const jni::jni_wrapper &j_env,
                                                               const std::vector<jni::java_constructor> &constructors);
+
+    const jni::java_constructor *find_matching_constructor(const Napi::CallbackInfo &args,
+                                                           const jni::jni_wrapper &j_env,
+                                                           const std::vector<jni::java_constructor> &constructors,
+                                                           std::vector<jni::jobject_wrapper<jobject>> &outArgs,
+                                                           std::string &error);
 
     Napi::Value call_matching_function(const Napi::CallbackInfo &args, const Napi::Object &java_instance,
                                        const jni::jobject_wrapper<jobject> &classInstance,

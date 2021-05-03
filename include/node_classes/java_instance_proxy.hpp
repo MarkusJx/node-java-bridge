@@ -10,7 +10,7 @@ namespace node_classes {
         static Napi::Function getConstructor(Napi::Env env, const Napi::Object &class_proxy);
 
         static Napi::Value fromJObject(Napi::Env env, const jni::jobject_wrapper<jobject> &obj,
-                                        const Napi::Object &class_proxy);
+                                       const Napi::Object &class_proxy);
 
         explicit java_instance_proxy(const Napi::CallbackInfo &info);
 
@@ -21,9 +21,15 @@ namespace node_classes {
 
     private:
         static Napi::Value staticGetter(const Napi::CallbackInfo &info);
-        static void staticSetter(const Napi::CallbackInfo &info, const Napi::Value& value);
+
+        static void staticSetter(const Napi::CallbackInfo &info, const Napi::Value &value);
 
         static Napi::Value callStaticFunction(const Napi::CallbackInfo &info);
+
+        static std::vector<Napi::ObjectWrap<java_instance_proxy>::PropertyDescriptor>
+        generateProperties(const Napi::Object &class_proxy);
+
+        static Napi::Value newInstance(const Napi::CallbackInfo &info);
     };
 }
 

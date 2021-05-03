@@ -27,7 +27,7 @@ namespace jni {
     public:
         jni_wrapper() noexcept;
 
-        explicit jni_wrapper(jvm_env env);
+        explicit jni_wrapper(jvm_env env, jint version);
 
         void checkForError() const;
 
@@ -89,7 +89,11 @@ namespace jni {
 
         [[nodiscard]] jobject_wrapper<jobject> create_jboolean(jboolean e) const;
 
+        [[nodiscard]] jni_wrapper attachEnv() const;
+
         [[nodiscard]] JNIEnv *operator->() const;
+
+        jvm_env &getEnv();
 
         operator jvm_env() const;
 
@@ -101,6 +105,7 @@ namespace jni {
         jvm_env env;
         bool initialized;
         static jobject_wrapper<jobject> classLoader;
+        jint version;
     };
 
     class jvm_wrapper final : public jni_wrapper {
@@ -109,12 +114,9 @@ namespace jni {
 
         jvm_wrapper(const std::string &jvmPath, jint version);
 
-        [[nodiscard]] jni_wrapper attachEnv() const;
-
         std::function<jni_types::JNI_CreateJavaVM_t> JNI_CreateJavaVM = nullptr;
     private:
         shared_library library;
-        jint version;
     };
 
     class java_field {
@@ -174,6 +176,8 @@ namespace jni {
 
     class java_class {
     public:
+        java_class();
+
         java_class(const std::vector<java_field> &static_fields, const std::vector<java_field> &fields,
                    const std::vector<java_function> &static_functions, const std::vector<java_function> &functions,
                    std::vector<java_constructor> constructors, jclass clazz);

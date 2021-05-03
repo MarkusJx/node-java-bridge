@@ -1,9 +1,15 @@
+#include <iostream>
+
 #include "node_classes/conversion_helper.hpp"
 #include "node_classes/java_instance_proxy.hpp"
 #include "node_classes/java.hpp"
 #include "util.hpp"
 
-#include <iostream>
+#define TRY_RUN(statement) try { \
+                                statement;\
+                            } catch (const std::exception &e) {\
+                                throw Napi::Error::New(env, e.what()); \
+                            }
 
 Napi::Value
 conversion_helper::static_java_field_to_object(const jni::java_field &to_convert, jclass clazz, const Napi::Env &env,
@@ -13,58 +19,63 @@ conversion_helper::static_java_field_to_object(const jni::java_field &to_convert
 
 Napi::Value conversion_helper::jobject_to_value(const Napi::Env &env, const Napi::Object &java_instance,
                                                 const jni::jobject_wrapper<jobject> &obj,
-                                                const std::string &signature) {
+                                                std::string signature) {
     node_classes::java *java_ptr = Napi::ObjectWrap<node_classes::java>::Unwrap(java_instance);
     if (!java_ptr) {
-        throw Napi::Error::New(env);
+        throw Napi::Error::New(env, "Could not unwrap the java instance");
     }
 
+    signature = util::make_java_name_readable(signature);
+
     jni::jni_wrapper j_env = java_ptr->java_environment.attachEnv();
-    if (signature == "I") {
+    if (signature == "java.lang.Integer") {
         // Value is an integer
-        return Napi::Number::New(env, j_env.jobject_to_jint(obj));
-    } else if (signature == "Z") {
+        TRY_RUN(return Napi::Number::New(env, j_env.jobject_to_jint(obj)))
+    } else if (signature == "java.lang.Boolean") {
         // Value is a boolean
-        return Napi::Boolean::New(env, j_env.jobject_to_jboolean(obj));
-    } else if (signature == "B") {
+        TRY_RUN(return Napi::Boolean::New(env, j_env.jobject_to_jboolean(obj)))
+    } else if (signature == "java.lang.Byte") {
         // Value is a byte
-        return Napi::Number::New(env, j_env.jobject_to_jbyte(obj));
-    } else if (signature == "C") {
+        TRY_RUN(return Napi::Number::New(env, j_env.jobject_to_jbyte(obj)))
+    } else if (signature == "java.lang.Character") {
         // Value is a char
-        return Napi::String::New(env, std::string(1, (char) j_env.jobject_to_jchar(obj)));
-    } else if (signature == "S") {
+        TRY_RUN(return Napi::String::New(env, std::string(1, (char) j_env.jobject_to_jchar(obj))))
+    } else if (signature == "java.lang.Short") {
         // Value is a short
-        return Napi::Number::New(env, j_env.jobject_to_jshort(obj));
-    } else if (signature == "J") {
+        TRY_RUN(return Napi::Number::New(env, j_env.jobject_to_jshort(obj)))
+    } else if (signature == "java.lang.Long") {
         // Value is a long
         // TODO: Return raw values
-        return Napi::Number::New(env, (double) j_env.jobject_to_jlong(obj));
-    } else if (signature == "F") {
+        TRY_RUN(return Napi::Number::New(env, (double) j_env.jobject_to_jlong(obj)))
+    } else if (signature == "java.lang.Float") {
         // Value is a float
-        return Napi::Number::New(env, j_env.jobject_to_jfloat(obj));
-    } else if (signature == "D") {
+        TRY_RUN(return Napi::Number::New(env, j_env.jobject_to_jfloat(obj)))
+    } else if (signature == "java.lang.Double") {
         // Value is a double
-        return Napi::Number::New(env, j_env.jobject_to_jdouble(obj));
-    } else if (signature == "Ljava/lang/String;" || signature == "java.lang.String") {
+        TRY_RUN(return Napi::Number::New(env, j_env.jobject_to_jdouble(obj)))
+    } else if (signature == "java.lang.String") {
         // Value is a string
-        return Napi::String::New(env,
-                                 j_env.jstring_to_string(reinterpret_cast<jstring>(obj.obj)));
-    } else if (signature[0] == '[') {
+        TRY_RUN(return Napi::String::New(env,
+                                         j_env.jstring_to_string(reinterpret_cast<jstring>(obj.obj))))
+    } else if (util::hasEnding(signature, "[]")) {
         // The value is an array
-        jni::jobject_wrapper<jobjectArray> j_array = obj.as<jobjectArray>();
-        const jsize size = j_env->GetArrayLength(j_array);
-        Napi::Array array = Napi::Array::New(env, static_cast<size_t>(size));
+        try {
+            jni::jobject_wrapper<jobjectArray> j_array = obj.as<jobjectArray>();
+            const jsize size = j_env->GetArrayLength(j_array);
+            Napi::Array array = Napi::Array::New(env, static_cast<size_t>(size));
 
-        for (jsize i = 0; i < size; i++) {
-            auto cur = jni::jobject_wrapper(j_env->GetObjectArrayElement(j_array, i), j_env);
-            array.Set(i, jobject_to_value(env, java_instance, cur, signature.substr(1)));
+            for (jsize i = 0; i < size; i++) {
+                auto cur = jni::jobject_wrapper(j_env->GetObjectArrayElement(j_array, i), j_env);
+                array.Set(i, jobject_to_value(env, java_instance, cur, signature.substr(1)));
+            }
+
+            return array;
+        } catch (const std::exception &e) {
+            throw Napi::Error::New(env, e.what());
         }
-
-        return array;
     } else {
         // The value is a class instance
-        const std::string classname = util::string_replace(signature.substr(1, signature.length() - 2), '/', '.');
-        Napi::Object class_proxy = java_ptr->getClass(env, classname);
+        Napi::Object class_proxy = java_ptr->getClass(env, signature);
 
         return node_classes::java_instance_proxy::fromJObject(env, obj, class_proxy);
     }
@@ -82,44 +93,42 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
     }
 
     signature = util::make_java_name_readable(signature);
-    std::cout << "Expected signature: " << signature << std::endl;
-
-    if (signature == "int" || signature == "java.lang.Integer") {
+    if (signature == "java.lang.Integer") {
         // Value is an integer
         CHECK_TYPE_MATCH(IsNumber, number);
-        return j_env.create_jint(value.ToNumber().operator int());
+        TRY_RUN(return j_env.create_jint(value.ToNumber().operator int()))
     } else if (signature == "java.lang.Boolean") {
         // Value is a boolean
         CHECK_TYPE_MATCH(IsBoolean, boolean);
-        return j_env.create_jboolean(value.ToBoolean());
+        TRY_RUN(return j_env.create_jboolean(value.ToBoolean()))
     } else if (signature == "java.lang.Byte") {
         // Value is a byte
         CHECK_TYPE_MATCH(IsNumber, number);
-        return j_env.create_jbyte((jbyte) value.ToNumber().operator int());
+        TRY_RUN(return j_env.create_jbyte((jbyte) value.ToNumber().operator int()))
     } else if (signature == "java.lang.Char") {
         // Value is a char
         CHECK_TYPE_MATCH(IsString, string);
-        return j_env.create_jchar(value.ToString().Utf8Value()[0]);
+        TRY_RUN(return j_env.create_jchar(value.ToString().Utf8Value()[0]))
     } else if (signature == "java.lang.Short") {
         // Value is a short
         CHECK_TYPE_MATCH(IsNumber, number);
-        return j_env.create_jshort((jshort) value.ToNumber().operator int());
+        TRY_RUN(return j_env.create_jshort((jshort) value.ToNumber().operator int()))
     } else if (signature == "java.lang.Long") {
         // Value is a long
         CHECK_TYPE_MATCH(IsNumber, number);
-        return j_env.create_jlong((jlong) value.ToNumber().operator long long());
+        TRY_RUN(return j_env.create_jlong((jlong) value.ToNumber().operator long long()))
     } else if (signature == "java.lang.Float") {
         // Value is a float
         CHECK_TYPE_MATCH(IsNumber, number);
-        return j_env.create_jfloat(value.ToNumber().operator float());
+        TRY_RUN(return j_env.create_jfloat(value.ToNumber().operator float()))
     } else if (signature == "java.lang.Double") {
         // Value is a double
         CHECK_TYPE_MATCH(IsNumber, number);
-        return j_env.create_jdouble(value.ToNumber().operator double());
+        TRY_RUN(return j_env.create_jdouble(value.ToNumber().operator double()))
     } else if (signature == "java.lang.String") {
         // Value is a string
         CHECK_TYPE_MATCH(IsString, string);
-        return j_env.string_to_jstring(value.ToString().Utf8Value()).as<jobject>();
+        TRY_RUN(return j_env.string_to_jstring(value.ToString().Utf8Value()).as<jobject>())
     } else if (util::hasEnding(signature, "[]")) {
         CHECK_TYPE_MATCH(IsArray, array);
         auto array = value.As<Napi::Array>();
@@ -145,16 +154,20 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
         // Expecting a class instance
         CHECK_TYPE_MATCH(IsObject, object);
         Napi::Object obj = value.ToObject();
-
         auto *ptr = Napi::ObjectWrap<node_classes::java_instance_proxy>::Unwrap(obj);
-        std::string classname = util::make_java_name_readable(ptr->classname);
 
-        std::string expected_classname = util::make_java_name_readable(signature);
-        if (!j_env.class_is_assignable(classname, expected_classname)) {
-            throw Napi::TypeError::New(env, "Expected class " + expected_classname + " but got " + classname);
+        try {
+            std::string classname = util::make_java_name_readable(ptr->classname);
+            std::string expected_classname = util::make_java_name_readable(signature);
+
+            if (!j_env.class_is_assignable(classname, expected_classname)) {
+                throw Napi::TypeError::New(env, "Expected class " + expected_classname + " but got " + classname);
+            }
+
+            return ptr->object;
+        } catch (const std::exception &e) {
+            throw Napi::Error::New(env, e.what());
         }
-
-        return ptr->object;
     }
 }
 
@@ -187,7 +200,7 @@ std::string conversion_helper::napi_valuetype_to_string(napi_valuetype type) {
 
 bool value_type_matches_signature(const Napi::Value &value, std::string signature, const jni::jni_wrapper &j_env) {
     signature = util::make_java_name_readable(signature);
-    std::cout << signature << ", type: " << conversion_helper::napi_valuetype_to_string(value.Type()) << std::endl;
+
     if (value.IsNull()) {
         return true;
     } else if (value.IsBoolean()) {
@@ -260,6 +273,28 @@ jni::jobject_wrapper<jobject> conversion_helper::match_constructor_arguments(con
     }
 
     throw Napi::TypeError::New(args.Env(), ss.str());
+}
+
+const jni::java_constructor *conversion_helper::find_matching_constructor(const Napi::CallbackInfo &args,
+                                                                          const jni::jni_wrapper &j_env,
+                                                                          const std::vector<jni::java_constructor> &constructors,
+                                                                          std::vector<jni::jobject_wrapper<jobject>> &outArgs,
+                                                                          std::string &error) {
+    for (const auto &c : constructors) {
+        if (args_match_java_types(args, c.parameterTypes, j_env)) {
+            outArgs = args_to_java_arguments(args, j_env, c.parameterTypes);
+            return &c;
+        }
+    }
+
+    std::stringstream ss;
+    ss << "Could not find an appropriate constructor. Options were:";
+    for (const auto &c : constructors) {
+        ss << std::endl << '\t' << c.to_string();
+    }
+
+    error = ss.str();
+    return nullptr;
 }
 
 void jobject_to_jvalue(const std::string &signature, const jni::jobject_wrapper<jobject> &arg,

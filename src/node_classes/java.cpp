@@ -19,6 +19,7 @@ void java::init(Napi::Env env, Napi::Object &exports) {
     Napi::Function func = DefineClass(env, "java", {
             InstanceMethod("getClass", &java::getClass, napi_enumerable),
             InstanceMethod("appendToClasspath", &java::appendToClasspath, napi_enumerable),
+            InstanceMethod("appendToClasspathAsync", &java::appendToClasspathAsync, napi_enumerable),
             InstanceAccessor("loadedJars", &java::getLoadedJars, nullptr, napi_enumerable)
     });
 
@@ -31,7 +32,7 @@ void java::init(Napi::Env env, Napi::Object &exports) {
 }
 
 java::java(const Napi::CallbackInfo &info) : ObjectWrap(info), loaded_jars() {
-    CHECK_ARGS(napi_tools::string, napi_tools::undefined | napi_tools::string);
+    CHECK_ARGS(napi_tools::string, napi_tools::null | napi_tools::string);
 
     StaticLogger::debug("Creating a new java instance");
 
@@ -45,7 +46,11 @@ java::java(const Napi::CallbackInfo &info) : ObjectWrap(info), loaded_jars() {
         }
 
         StaticLogger::debugStream << "Creating a java instance with version " << info[1].ToString().Utf8Value();
-        java_environment = jni::jvm_wrapper(lib_path, version);
+        try {
+            java_environment = jni::jvm_wrapper(lib_path, version);
+        } catch (const std::exception &e) {
+            StaticLogger::error(e.what());
+        }
 
         Value().DefineProperty(Napi::PropertyDescriptor::Value("version",
                                                                Napi::String::New(info.Env(),
@@ -82,6 +87,17 @@ void java::appendToClasspath(const Napi::CallbackInfo &info) {
     CATCH_EXCEPTIONS
 }
 
+Napi::Value java::appendToClasspathAsync(const Napi::CallbackInfo &info) {
+    CHECK_ARGS(napi_tools::string);
+    const std::string toAppend = info[0].ToString().Utf8Value();
+
+    return napi_tools::promises::promise<void>(info.Env(), [this, toAppend] {
+        loaded_jars.push_back(toAppend);
+        StaticLogger::debugStream << "Appending to classpath: " << toAppend;
+        java_environment.appendClasspath(toAppend);
+    });
+}
+
 Napi::Value java::getLoadedJars(const Napi::CallbackInfo &info) {
     Napi::Array res = Napi::Array::New(info.Env());
     for (size_t i = 0; i < loaded_jars.size(); i++) {
@@ -91,4 +107,13 @@ Napi::Value java::getLoadedJars(const Napi::CallbackInfo &info) {
     return res;
 }
 
-java::~java() = default;
+java::~java() {
+    // Force reset the jvm in the destructor
+    // as any later calls to destroy the
+    // jvm will cause the jvm to crash.
+    // I don't know why this happens, but I can
+    // prevent it using this thing.
+    // Those crashes only happen occasionally,
+    // if not many operations are executed.
+    java_environment.getEnv().forceReset();
+}

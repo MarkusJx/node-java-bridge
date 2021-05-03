@@ -48,7 +48,9 @@ Napi::Value java_instance_proxy::callStaticFunction(const Napi::CallbackInfo &in
     CATCH_EXCEPTIONS
 }
 
-Napi::Function java_instance_proxy::getConstructor(Napi::Env env, const Napi::Object &class_proxy) {
+std::vector<Napi::ObjectWrap<java_instance_proxy>::PropertyDescriptor>
+java_instance_proxy::generateProperties(const Napi::Object &class_proxy) {
+    StaticLogger::debug("Unwrapping the class proxy");
     std::vector<Napi::ObjectWrap<java_instance_proxy>::PropertyDescriptor> properties;
     java_class_proxy *cls = Napi::ObjectWrap<java_class_proxy>::Unwrap(class_proxy);
 
@@ -76,7 +78,58 @@ Napi::Function java_instance_proxy::getConstructor(Napi::Env env, const Napi::Ob
                                           (void *) f.first.c_str()));
     }
 
-    return DefineClass(env, "java_instance_proxy", properties);
+    properties.push_back(StaticMethod("newInstance", &java_instance_proxy::newInstance, napi_enumerable));
+
+    return properties;
+}
+
+Napi::Function java_instance_proxy::getConstructor(Napi::Env env, const Napi::Object &class_proxy) {
+    return DefineClass(env, "java_instance_proxy", generateProperties(class_proxy));
+}
+
+class instance_def {
+public:
+    instance_def() : class_proxy(nullptr) {}
+
+    instance_def(std::shared_ptr<Napi::ObjectReference> class_proxy, jni::jobject_wrapper<jobject> object)
+            : class_proxy(std::move(class_proxy)), object(std::move(object)) {}
+
+    static Napi::Value toNapiValue(const Napi::Env &env, const instance_def &c) {
+        try {
+            Napi::Value val = java_instance_proxy::fromJObject(env, c.object, c.class_proxy->Value());
+            c.class_proxy->Unref();
+
+            return val;
+        } catch (const std::exception &e) {
+            throw Napi::Error::New(env, e.what());
+        }
+    }
+
+private:
+    std::shared_ptr<Napi::ObjectReference> class_proxy;
+    jni::jobject_wrapper<jobject> object;
+};
+
+Napi::Value java_instance_proxy::newInstance(const Napi::CallbackInfo &info) {
+    std::shared_ptr<Napi::ObjectReference> class_ref = std::make_shared<Napi::ObjectReference>();
+    std::vector<jni::jobject_wrapper<jobject>> args;
+
+    Napi::Object class_proxy = info.This().ToObject().Get("class.proxy.instance").ToObject();
+    java_class_proxy *class_ptr = Napi::ObjectWrap<java_class_proxy>::Unwrap(class_proxy);
+
+    std::string error;
+    *class_ref = Napi::Persistent(class_proxy);
+    auto constructor = conversion_helper::find_matching_constructor(info, class_ptr->jvm,
+                                                                    class_ptr->clazz->constructors, args, error);
+
+    return napi_tools::promises::promise<instance_def>(info.Env(), [class_ref, constructor, args, error] {
+        if (!constructor || !error.empty()) {
+            throw std::runtime_error(error);
+        }
+
+        jni::jobject_wrapper<jobject> j_object = constructor->newInstance(args);
+        return instance_def(class_ref, j_object);
+    });
 }
 
 Napi::Value java_instance_proxy::fromJObject(Napi::Env env, const jni::jobject_wrapper<jobject> &obj,
@@ -85,6 +138,7 @@ Napi::Value java_instance_proxy::fromJObject(Napi::Env env, const jni::jobject_w
 
     Napi::Object jobject_wrapper = node_jobject_wrapper::createInstance();
     Napi::ObjectWrap<node_jobject_wrapper>::Unwrap(jobject_wrapper)->setData(obj);
+    StaticLogger::debug("Done setting the data");
 
     Napi::Function constructor = getConstructor(env, class_proxy);
     return constructor.New({jobject_wrapper});

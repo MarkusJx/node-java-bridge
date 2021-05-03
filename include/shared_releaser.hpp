@@ -17,8 +17,7 @@ public:
     /**
      * Create a shared_releaser without setting a function
      */
-    shared_releaser(std::nullptr_t) noexcept: on_destroy(nullptr), use_count(new std::size_t(0)),
-                                              mtx(new std::mutex()) {}
+    shared_releaser(std::nullptr_t) noexcept: on_destroy(nullptr), use_count(new std::size_t(0)) {}
 
     /**
      * Create a shared_releaser
@@ -26,16 +25,14 @@ public:
      * @param on_destroy the function to call on destruction
      */
     explicit shared_releaser(std::function<void()> on_destroy) : on_destroy(std::move(on_destroy)),
-                                                                 use_count(new std::size_t(1)),
-                                                                 mtx(new std::mutex()) {}
+                                                                 use_count(new std::size_t(1)) {}
 
     /**
      * Create a shared_releaser from another instance
      *
      * @param rhs the other instance to copy from
      */
-    shared_releaser(const shared_releaser &rhs) : use_count(rhs.use_count), on_destroy(rhs.on_destroy), mtx(rhs.mtx) {
-        if (mtx) std::unique_lock<std::mutex> lock(*mtx);
+    shared_releaser(const shared_releaser &rhs) : use_count(rhs.use_count), on_destroy(rhs.on_destroy) {
         ++*use_count;
     }
 
@@ -44,11 +41,9 @@ public:
      *
      * @param rhs the object to move
      */
-    shared_releaser(shared_releaser &&rhs) noexcept: use_count(rhs.use_count), on_destroy(rhs.on_destroy),
-                                                     mtx(rhs.mtx) {
+    shared_releaser(shared_releaser &&rhs) noexcept: use_count(rhs.use_count), on_destroy(rhs.on_destroy) {
         rhs.use_count = new std::size_t(0);
         rhs.on_destroy = nullptr;
-        rhs.mtx = nullptr;
     }
 
     /**
@@ -82,7 +77,6 @@ public:
     void swap(shared_releaser &rhs) {
         std::swap(this->use_count, rhs.use_count);
         std::swap(this->on_destroy, rhs.on_destroy);
-        std::swap(this->mtx, rhs.mtx);
     }
 
     /**
@@ -94,9 +88,7 @@ public:
         this->destructor();
         this->use_count = rhs.use_count;
         this->on_destroy = rhs.on_destroy;
-        this->mtx = rhs.mtx;
 
-        if (mtx) std::unique_lock<std::mutex> lock(*mtx);
         ++*use_count;
     }
 
@@ -122,7 +114,6 @@ public:
             this->use_count = new std::size_t(0);
         }
         this->on_destroy = new_fn;
-        this->mtx = new std::mutex();
     }
 
     /**
@@ -136,35 +127,20 @@ public:
 private:
     std::size_t *use_count;
     std::function<void()> on_destroy;
-    std::mutex *mtx;
 
     /**
      * The destruction function
      */
     void destructor() {
-        if (mtx)
-            mtx->lock();
-
         if (on_destroy && --*use_count <= 0) {
-            if (mtx)
-                mtx->unlock();
-
             on_destroy();
-            delete mtx;
             delete use_count;
         } else if (!on_destroy) {
-            if (mtx)
-                mtx->unlock();
-
-            delete mtx;
             delete use_count;
-        } else if (mtx) {
-            mtx->unlock();
         }
 
         use_count = nullptr;
         on_destroy = nullptr;
-        mtx = nullptr;
     }
 };
 

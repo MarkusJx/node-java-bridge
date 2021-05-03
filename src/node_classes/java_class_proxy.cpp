@@ -11,7 +11,7 @@ using namespace markusjx::logging;
 
 void java_class_proxy::init(Napi::Env env, Napi::Object &exports) {
     Napi::Function func = DefineClass(env, "java_class_proxy", {
-            InstanceMethod<&java_class_proxy::getClassConstructor>("getClassConstructor")
+            InstanceMethod("getClassConstructor", &java_class_proxy::getClassConstructor, napi_enumerable),
     });
 
     constructor = new Napi::FunctionReference();

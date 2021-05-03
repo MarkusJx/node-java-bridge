@@ -17,6 +17,8 @@ namespace node_classes {
 
         void appendToClasspath(const Napi::CallbackInfo &info);
 
+        Napi::Value appendToClasspathAsync(const Napi::CallbackInfo &info);
+
         ~java() override;
 
         jni::jvm_wrapper java_environment;

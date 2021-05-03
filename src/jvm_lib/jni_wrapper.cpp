@@ -76,26 +76,27 @@ std::vector<std::string> java_constructor::getParameterTypes() const {
 }
 
 jobject_wrapper<jobject> java_constructor::newInstance(const std::vector<jobject_wrapper<jobject>> &args) const {
-    jclass constructor = jni->FindClass("java/lang/reflect/Constructor");
-    JVM_CHECK_EXCEPTION(jni);
+    jni_wrapper env = jni.attachEnv();
+    jclass constructor = env->FindClass("java/lang/reflect/Constructor");
+    JVM_CHECK_EXCEPTION(env);
 
-    jmethodID newInstance_m = jni->GetMethodID(constructor, "newInstance", "([Ljava/lang/Object;)Ljava/lang/Object;");
-    JVM_CHECK_EXCEPTION(jni);
+    jmethodID newInstance_m = env->GetMethodID(constructor, "newInstance", "([Ljava/lang/Object;)Ljava/lang/Object;");
+    JVM_CHECK_EXCEPTION(env);
 
-    jclass Object = jni->FindClass("java/lang/Object");
-    JVM_CHECK_EXCEPTION(jni);
-    jobject_wrapper<jobjectArray> argArr(jni->NewObjectArray(static_cast<jsize>(args.size()), Object, nullptr),
+    jclass Object = env->FindClass("java/lang/Object");
+    JVM_CHECK_EXCEPTION(env);
+    jobject_wrapper<jobjectArray> argArr(env->NewObjectArray(static_cast<jsize>(args.size()), Object, nullptr),
                                          jni);
-    JVM_CHECK_EXCEPTION(jni);
+    JVM_CHECK_EXCEPTION(env);
 
     for (size_t i = 0; i < args.size(); i++) {
-        jni->SetObjectArrayElement(argArr, static_cast<jsize>(i), args[i]);
-        JVM_CHECK_EXCEPTION(jni);
+        env->SetObjectArrayElement(argArr, static_cast<jsize>(i), args[i]);
+        JVM_CHECK_EXCEPTION(env);
     }
 
-    jobject instance = jni->CallObjectMethod(obj, newInstance_m, argArr.obj);
-    JVM_CHECK_EXCEPTION(jni);
-    return jobject_wrapper(instance, jni);
+    jobject instance = env->CallObjectMethod(obj, newInstance_m, argArr.obj);
+    JVM_CHECK_EXCEPTION(env);
+    return jobject_wrapper(instance, env);
 }
 
 std::string java_constructor::to_string() const {
@@ -113,17 +114,18 @@ std::string java_constructor::to_string() const {
 
 jobject_wrapper<jobject> jni_wrapper::classLoader;
 
-jni_wrapper::jni_wrapper() noexcept: env(), initialized(false) {}
+jni_wrapper::jni_wrapper() noexcept: env(), initialized(false), version(0) {}
 
-jni_wrapper::jni_wrapper(jvm_env env) : env(std::move(env)), initialized(true) {
+jni_wrapper::jni_wrapper(jvm_env env, jint version) : env(std::move(env)), initialized(true), version(version) {
     if (!classLoader.ok()) {
         classLoader.assign(getSystemClassLoader());
     }
 }
 
-jvm_wrapper::jvm_wrapper() noexcept: jni_wrapper(), library(), version(0) {}
+jvm_wrapper::jvm_wrapper() noexcept: jni_wrapper(), library() {}
 
-jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version) : jni_wrapper(), version(version) {
+jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version) : jni_wrapper() {
+    this->version = version;
     initialized = true;
     library = shared_library(jvmPath);
     JNI_CreateJavaVM = library.getFunction<JNI_CreateJavaVM_t>("JNI_CreateJavaVM");
@@ -142,7 +144,7 @@ jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version) : jni_wrapper
     if (create_code != JNI_OK) {
         throw std::runtime_error("JNI_CreateJavaVM failed: " + util::jni_error_to_string(create_code));
     } else {
-        env = jvm_env(jvm, environment, version);
+        env = jvm_env(std::make_shared<jvm_jvm>(jvm), environment, version);
     }
 
     // The start class loader is the system default one.
@@ -154,25 +156,19 @@ jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version) : jni_wrapper
     }
 }
 
-jni_wrapper jvm_wrapper::attachEnv() const {
+jni_wrapper jni_wrapper::attachEnv() const {
     JNIEnv *environment = nullptr;
     jint create_result = env.jvm->GetEnv(reinterpret_cast<void **>(&environment), version);
 
     if (create_result == JNI_EDETACHED) {
-        JavaVMInitArgs vm_args;
-        vm_args.version = version;
-        vm_args.nOptions = 0;
-        vm_args.options = nullptr;
-        vm_args.ignoreUnrecognized = false;
-
-        create_result = env.jvm->AttachCurrentThread(reinterpret_cast<void **>(&environment), &vm_args);
+        create_result = env.jvm->AttachCurrentThread(reinterpret_cast<void **>(&environment), nullptr);
         if (create_result == JNI_OK) {
-            return jni_wrapper(jvm_env(env.jvm, environment, true));
+            return jni_wrapper(jvm_env(env.jvm, environment, version, true), version);
         } else {
             throw std::runtime_error("AttachCurrentThread failed: " + util::jni_error_to_string(create_result));
         }
     } else if (create_result == JNI_OK) {
-        return jni_wrapper(env);
+        return *this;
     } else {
         throw std::runtime_error("GetEnv failed: " + util::jni_error_to_string(create_result));
     }
@@ -778,7 +774,11 @@ jobject_wrapper<jobject> jni_wrapper::create_jboolean(jboolean e) const {
 #undef CREATE_JOBJECT
 
 JNIEnv *jni_wrapper::operator->() const {
-    return env.env;
+    return env.operator->();
+}
+
+jvm_env &jni_wrapper::getEnv() {
+    return env;
 }
 
 jni_wrapper::operator jvm_env() const {
@@ -859,6 +859,8 @@ std::string java_function::to_string() const {
     ss << ')';
     return ss.str();
 }
+
+java_class::java_class() : clazz(nullptr) {}
 
 java_class::java_class(const std::vector<java_field> &static_fields, const std::vector<java_field> &fields,
                        const std::vector<java_function> &static_functions, const std::vector<java_function> &functions,

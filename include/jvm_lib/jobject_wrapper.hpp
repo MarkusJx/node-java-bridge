@@ -34,9 +34,7 @@ namespace jni {
          * @param env the environment to delete the object with
          */
         jobject_wrapper(T object, jvm_env env) : obj(object), shared_releaser([object, env] {
-            if (object != nullptr) {
-                env->DeleteLocalRef(object);
-            }
+            deleteRef(object, env);
         }) {}
 
         /**
@@ -51,11 +49,7 @@ namespace jni {
          */
         template<class = int, class = typename std::enable_if_t<std::negation_v<std::is_same<T, jobject>>, int>>
         jobject_wrapper(jobject object, jvm_env env) : shared_releaser([object, env] {
-            if (object != nullptr) {
-                // Attach a new environment to this
-                // thread and delete the local ref
-                env.attach_env()->DeleteLocalRef(object);
-            }
+            deleteRef(object, env);
         }) {
             // Cast object to T
             obj = reinterpret_cast<T>(object);
@@ -104,9 +98,7 @@ namespace jni {
          */
         void assign(jobject newObject, const jvm_env &env) {
             this->reset([newObject, env] {
-                if (newObject != nullptr) {
-                    env.attach_env()->DeleteLocalRef(newObject);
-                }
+                deleteRef(newObject, env);
             });
 
             obj = reinterpret_cast<T>(newObject);
@@ -137,6 +129,19 @@ namespace jni {
 
         // The stored value
         T obj;
+
+    private:
+        /**
+         * Delete the reference to the object
+         *
+         * @param object the object to dereference
+         * @param env the environment the object was created in
+         */
+        static void deleteRef(jobject object, const jvm_env &env) {
+            if (object != nullptr && env.valid()) {
+                env.attach_env()->DeleteLocalRef(object);
+            }
+        }
     };
 }
 
