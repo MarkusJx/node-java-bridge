@@ -12,6 +12,16 @@ namespace node_classes {
     class jvm_container {
     public:
         /**
+         * Create the jvm_container.
+         * Don't use this, use createInstance instead.
+         * This is only public as the unique_ptr uses it.
+         *
+         * @param lib_path the path to the jvm shared library
+         * @param version the jvm version to use
+         */
+        jvm_container(const std::string &lib_path, jint version);
+
+        /**
          * Create the static jvm_container instance.
          * This will create the root jvm_jvm, which will
          * load the shared library and create the actual
@@ -28,16 +38,6 @@ namespace node_classes {
          * subsequent calls to the vm to fail.
          */
         static void destroyInstance();
-
-        /**
-         * Create the jvm_container.
-         * Don't use this, use createInstance instead.
-         * This is only public as the unique_ptr uses it.
-         *
-         * @param lib_path the path to the jvm shared library
-         * @param version the jvm version to use
-         */
-        explicit jvm_container(const std::string &lib_path, jint version);
 
         /**
          * Get a reference to the root jvm_wrapper.

@@ -40,6 +40,8 @@ java::java(const Napi::CallbackInfo &info) : ObjectWrap(info), loaded_jars() {
     TRY
         const std::string lib_path = info[0].ToString();
         jint version;
+
+        // Parse the version string (if exists)
         if (info[1].IsString()) {
             version = util::string_to_java_version(info[1].ToString().Utf8Value());
         } else {

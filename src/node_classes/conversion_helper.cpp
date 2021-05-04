@@ -388,7 +388,7 @@ Napi::Value call_function(const jni::java_function &function, const jni::jobject
 #define CALL_STATIC_FUNCTION(functionName) auto res = j_env->functionName(clazz, function.method, args.data());\
                                             j_env.checkForError()
 
-Napi::Value call_static_function(const jni::java_function &function, jclass clazz,const Napi::Env &env,
+Napi::Value call_static_function(const jni::java_function &function, jclass clazz, const Napi::Env &env,
                                  const std::vector<jvalue> &args, const jni::jni_wrapper &j_env) {
     const std::string &signature = function.returnType;
     if (signature == "V") {
@@ -553,6 +553,7 @@ jvalue conversion_helper::call_function(const jni::java_function &function,
     } else {
         // Value is some kind of object
         CALL_FUNCTION(CallObjectMethodA);
+        std::cout << "Type: " << j_env.get_object_class_name(res) << std::endl;
         val.l = res;
     }
 
@@ -609,7 +610,8 @@ jvalue conversion_helper::call_static_function(const jni::java_function &functio
     } else {
         // Value is some kind of object
         CALL_STATIC_FUNCTION(CallStaticObjectMethodA);
-        val.l = res;
+        val.l = j_env->NewGlobalRef(res);
+        std::cout << "Ptr1: " << val.l << ", type: " << j_env.get_object_class_name(val.l) << std::endl;
     }
 
     return val;
@@ -649,6 +651,8 @@ Napi::Value conversion_helper::jvalue_to_napi_value(jvalue value, const std::str
         // Value is some kind of object
         jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
         jni::jobject_wrapper<jobject> obj(value.l, j_env);
+
+        j_env->DeleteGlobalRef(value.l);
         return conversion_helper::jobject_to_value(env, obj, signature);
     }
 }

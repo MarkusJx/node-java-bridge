@@ -15,7 +15,7 @@ namespace jni {
      * either extend jobject or be equal to jobject
      */
     template<class T>
-    class jobject_wrapper : public shared_releaser {
+    class jobject_wrapper {
     public:
         static_assert(std::is_pointer_v<T>, "T must be a pointer");
         static_assert(std::is_base_of_v<std::remove_pointer_t<jobject>, std::remove_pointer_t<T>> ||
@@ -25,7 +25,7 @@ namespace jni {
          * Create an empty jobject_wrapper.
          * Can't do shit, keep that in mind.
          */
-        jobject_wrapper() noexcept: obj(nullptr), shared_releaser(nullptr) {}
+        jobject_wrapper() noexcept: obj(nullptr), releaser(nullptr) {}
 
         /**
          * Store any jni object
@@ -33,9 +33,14 @@ namespace jni {
          * @param object the object to store
          * @param env the environment to delete the object with
          */
-        jobject_wrapper(T object, jvm_env env) : obj(object), shared_releaser([object, env] {
-            deleteRef(object, env);
-        }) {}
+        jobject_wrapper(T object, const jvm_env &env) : obj(object), releaser(nullptr) {
+            obj = reinterpret_cast<T>(env->NewGlobalRef(object));
+            T obj_cpy = obj;
+
+            releaser = shared_releaser([obj_cpy, env] {
+                deleteRef(obj_cpy, env);
+            });
+        }
 
         /**
          * Wrap around a jobject.
@@ -48,11 +53,14 @@ namespace jni {
          * @param env the environment to work in
          */
         template<class = int, class = typename std::enable_if_t<std::negation_v<std::is_same<T, jobject>>, int>>
-        jobject_wrapper(jobject object, jvm_env env) : shared_releaser([object, env] {
-            deleteRef(object, env);
-        }) {
+        jobject_wrapper(jobject object, const jvm_env &env) : releaser(nullptr) {
             // Cast object to T
-            obj = reinterpret_cast<T>(object);
+            obj = reinterpret_cast<T>(env->NewGlobalRef(object));
+            T obj_cpy = obj;
+
+            releaser = shared_releaser([obj_cpy, env] {
+                deleteRef(obj_cpy, env);
+            });
         }
 
         /**
@@ -61,10 +69,9 @@ namespace jni {
          * @param object the object to store
          * @param releaser the releaser used to delete the object
          */
-        jobject_wrapper(jobject object, shared_releaser releaser) : shared_releaser(std::move(releaser)) {
+        jobject_wrapper(jobject object, shared_releaser releaser) : releaser(std::move(releaser)) {
             obj = reinterpret_cast<T>(object);
         }
-
 
         /**
          * Cast this jobject to another type
@@ -74,7 +81,7 @@ namespace jni {
          */
         template<class U>
         jobject_wrapper<U> as() const {
-            return jobject_wrapper<U>(this->obj, *this);
+            return jobject_wrapper<U>(this->obj, releaser);
         }
 
         /**
@@ -84,7 +91,7 @@ namespace jni {
          * @param other the jobject_wrapper to assign
          */
         void assign(const jobject_wrapper<T> &other) {
-            this->shared_releaser::assign(other);
+            releaser.assign(other.releaser);
             obj = other.obj;
         }
 
@@ -93,15 +100,16 @@ namespace jni {
          * the old one into the wild by taking it
          * into the woods. We all know what happens next.
          *
-         * @param newObject the
-         * @return
+         * @param newObject the object to copy
+         * @param env the environment to work in
          */
         void assign(jobject newObject, const jvm_env &env) {
-            this->reset([newObject, env] {
-                deleteRef(newObject, env);
-            });
+            obj = reinterpret_cast<T>(env->NewGlobalRef(newObject));
+            T object = obj;
 
-            obj = reinterpret_cast<T>(newObject);
+            releaser.reset([object, env] {
+                deleteRef(object, env);
+            });
         }
 
         /**
@@ -124,13 +132,15 @@ namespace jni {
          * @return true if obj is not nullptr
          */
         [[nodiscard]] bool ok() const {
-            return obj != nullptr && this->operator bool();
+            return obj != nullptr && releaser;
         }
 
         // The stored value
         T obj;
 
     private:
+        shared_releaser releaser;
+
         /**
          * Delete the reference to the object
          *
@@ -139,7 +149,7 @@ namespace jni {
          */
         static void deleteRef(jobject object, const jvm_env &env) {
             if (object != nullptr && env.valid()) {
-                env.attach_env()->DeleteLocalRef(object);
+                env.attach_env()->DeleteGlobalRef(object);
             }
         }
     };

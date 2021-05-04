@@ -16,9 +16,9 @@ persistent_object::persistent_object(const Napi::Object &object) : releaser(null
 }
 
 Napi::Object persistent_object::value() const {
-    return reference->Value();
-}
-
-void persistent_object::reset() {
-    releaser.reset();
+    if (reference == nullptr) {
+        throw std::runtime_error("The persistent_object is not initialized");
+    } else {
+        return reference->Value();
+    }
 }

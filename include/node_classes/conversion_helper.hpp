@@ -5,9 +5,30 @@
 
 #include "jvm_lib/jni_wrapper.hpp"
 
+/**
+ * A namespace for type conversions between
+ * java values and n-api values.
+ * Can also handle function calls.
+ */
 namespace conversion_helper {
+    /**
+     * Convert a static java class field to a n-api value
+     *
+     * @param to_convert the field to convert
+     * @param clazz the class of the field to convert
+     * @param env the environment to work in
+     * @return the converted value
+     */
     Napi::Value static_java_field_to_object(const jni::java_field &to_convert, jclass clazz, const Napi::Env &env);
 
+    /**
+     * Convert a jobject to a n-api value
+     *
+     * @param env the environment to work in
+     * @param obj the jobject to convert
+     * @param signature the signature of the object to convert
+     * @return the converted n-api value
+     */
     Napi::Value jobject_to_value(const Napi::Env &env, const jni::jobject_wrapper<jobject> &obj, std::string signature);
 
     jni::jobject_wrapper<jobject> value_to_jobject(const Napi::Env &env, const Napi::Value &value,
