@@ -1,23 +1,27 @@
 {
-  "name": "@markusjx/node-java-bridge",
-  "version": "1.0.0",
+  "name": "@markusjx/java",
+  "version": "0.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node test.js",
+    "test": "mocha test",
     "pretest": "npm run build",
     "build": "cmake-js compile",
     "build:dev": "cmake-js compile -D",
     "pretest:dev": "npm run build:dev",
-    "test:dev": "node test.js --debug"
+    "test:dev": "node test.js --debug",
+    "postinstall": "node --unhandled-rejections=strict scripts/setJavaDllPath.js"
   },
   "author": "MarkusJx",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "bindings": "^1.5.0"
+  },
   "devDependencies": {
     "@markusjx/n-api-tools": "^1.0.6",
     "cmake-js": "^6.1.0",
     "find-java-home": "^1.2.0",
+    "mocha": "^8.3.2",
     "node-addon-api": "^3.1.0"
   },
   "cmake-js": {

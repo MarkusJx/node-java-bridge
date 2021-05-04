@@ -10,7 +10,9 @@ void jvm_container::createInstance(const std::string &lib_path, jint version) {
 }
 
 void jvm_container::destroyInstance() {
-    instance.reset();
+    if (instance) {
+        instance.reset();
+    }
 }
 
 jvm_container::jvm_container(const std::string &lib_path, jint version) {

@@ -122,7 +122,7 @@ jni_wrapper::jni_wrapper(jvm_env env) : env(std::move(env)), initialized(true) {
     }
 }
 
-jvm_wrapper::jvm_wrapper() noexcept: jni_wrapper(), library() {}
+jvm_wrapper::jvm_wrapper() noexcept: jni_wrapper() {}
 
 jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version) : jni_wrapper() {
     initialized = true;
@@ -154,6 +154,8 @@ jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version) : jni_wrapper
         classLoader.assign(getSystemClassLoader());
     }
 }
+
+shared_library jvm_wrapper::library;
 
 jni_wrapper jni_wrapper::attachEnv() const {
     return jni_wrapper(env.attach_env());

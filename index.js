@@ -1,13 +1,15 @@
+const path = require('path');
+const fs = require('fs');
+
 let native;
 if (process.argv.indexOf("--debug") >= 0) {
     console.warn("Running in debug mode");
     native = require('./build/Debug/node_java_bridge');
 } else {
-    native = require('./build/Release/node_java_bridge');
+    native = require('bindings')('node_java_bridge.node');
 }
 
-const JVM_PATH = "C:\\Program Files\\AdoptOpenJDK\\jdk-11.0.10.9-hotspot\\bin\\client\\jvm.dll";
-//const JVM_PATH = "C:\\Users\\marku\\Desktop\\jdk\\build\\windows-x86_64-server-fastdebug\\jdk\\bin\\server\\jvm.dll";
+const JVM_PATH = JSON.parse(fs.readFileSync(path.join(__dirname, 'jvmLibPath.json'), {encoding: 'utf-8'}));
 
 const java_version = {
     VER_1_1: "1.1",

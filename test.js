@@ -23,6 +23,7 @@ setTimeout(() => {
     console.log(instance.charAt(0).then(console.log));
     console.log(instance.indexOf('a').then(console.log));
     console.log(cls.valueOf(25).then(e => console.log("val", e)).catch(console.error));
+    console.log(instance.toString().then(console.log));
     //return;
 
     //cls.abc = "hello";

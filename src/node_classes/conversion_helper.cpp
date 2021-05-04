@@ -552,7 +552,7 @@ jvalue conversion_helper::call_function(const jni::java_function &function,
     } else {
         // Value is some kind of object
         CALL_FUNCTION(CallObjectMethodA);
-        val.l = res;
+        val.l = j_env->NewGlobalRef(res);
     }
 
     return val;

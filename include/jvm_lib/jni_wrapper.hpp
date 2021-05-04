@@ -426,7 +426,7 @@ namespace jni {
         std::function<jni_types::JNI_CreateJavaVM_t> JNI_CreateJavaVM = nullptr;
     private:
         // The shared library instance
-        shared_library library;
+        static shared_library library;
     };
 
     /**

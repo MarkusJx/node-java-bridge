@@ -28,7 +28,7 @@ execute_process(COMMAND node -p "require('@markusjx/n-api-tools').include"
         OUTPUT_VARIABLE N_API_TOOLS_DIR)
 
 # Get the java include directories
-execute_process(COMMAND node --unhandled-rejections=strict printJavaHome.js
+execute_process(COMMAND node --unhandled-rejections=strict scripts/printJavaHome.js
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         OUTPUT_VARIABLE JAVA_INCLUDE_DIRS
         ERROR_VARIABLE JAVA_HOME_ERROR
