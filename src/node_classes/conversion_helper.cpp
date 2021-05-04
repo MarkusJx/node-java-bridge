@@ -2,8 +2,9 @@
 
 #include "node_classes/conversion_helper.hpp"
 #include "node_classes/java_instance_proxy.hpp"
+#include "node_classes/jvm_container.hpp"
 #include "node_classes/java.hpp"
-#include "util.hpp"
+#include "util/util.hpp"
 
 #define TRY_RUN(statement) try { \
                                 statement;\
@@ -12,22 +13,14 @@
                             }
 
 Napi::Value
-conversion_helper::static_java_field_to_object(const jni::java_field &to_convert, jclass clazz, const Napi::Env &env,
-                                               const Napi::Object &java_instance) {
-    return jobject_to_value(env, java_instance, to_convert.getStatic(clazz), to_convert.signature);
+conversion_helper::static_java_field_to_object(const jni::java_field &to_convert, jclass clazz, const Napi::Env &env) {
+    return jobject_to_value(env, to_convert.getStatic(clazz), to_convert.signature);
 }
 
-Napi::Value conversion_helper::jobject_to_value(const Napi::Env &env, const Napi::Object &java_instance,
-                                                const jni::jobject_wrapper<jobject> &obj,
+Napi::Value conversion_helper::jobject_to_value(const Napi::Env &env, const jni::jobject_wrapper<jobject> &obj,
                                                 std::string signature) {
-    node_classes::java *java_ptr = Napi::ObjectWrap<node_classes::java>::Unwrap(java_instance);
-    if (!java_ptr) {
-        throw Napi::Error::New(env, "Could not unwrap the java instance");
-    }
-
+    jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
     signature = util::make_java_name_readable(signature);
-
-    jni::jni_wrapper j_env = java_ptr->java_environment.attachEnv();
     if (signature == "java.lang.Integer") {
         // Value is an integer
         TRY_RUN(return Napi::Number::New(env, j_env.jobject_to_jint(obj)))
@@ -54,6 +47,7 @@ Napi::Value conversion_helper::jobject_to_value(const Napi::Env &env, const Napi
         // Value is a double
         TRY_RUN(return Napi::Number::New(env, j_env.jobject_to_jdouble(obj)))
     } else if (signature == "java.lang.String") {
+        std::cout << j_env.get_object_class_name(obj.obj) << std::endl;
         // Value is a string
         TRY_RUN(return Napi::String::New(env,
                                          j_env.jstring_to_string(reinterpret_cast<jstring>(obj.obj))))
@@ -66,7 +60,7 @@ Napi::Value conversion_helper::jobject_to_value(const Napi::Env &env, const Napi
 
             for (jsize i = 0; i < size; i++) {
                 auto cur = jni::jobject_wrapper(j_env->GetObjectArrayElement(j_array, i), j_env);
-                array.Set(i, jobject_to_value(env, java_instance, cur, signature.substr(1)));
+                array.Set(i, jobject_to_value(env, cur, signature.substr(1)));
             }
 
             return array;
@@ -75,7 +69,7 @@ Napi::Value conversion_helper::jobject_to_value(const Napi::Env &env, const Napi
         }
     } else {
         // The value is a class instance
-        Napi::Object class_proxy = java_ptr->getClass(env, signature);
+        Napi::Object class_proxy = node_classes::java::getClass(env, signature);
 
         return node_classes::java_instance_proxy::fromJObject(env, obj, class_proxy);
     }
@@ -85,13 +79,13 @@ Napi::Value conversion_helper::jobject_to_value(const Napi::Env &env, const Napi
 if (!value.check())                   \
     throw Napi::TypeError::New(env, "Expected type " #type " but got " + napi_valuetype_to_string(value.Type()))
 
-jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::Env &env, const jni::jni_wrapper &j_env,
-                                                                  const Napi::Value &value,
+jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::Env &env, const Napi::Value &value,
                                                                   std::string signature) {
     if (value.IsNull()) {
         return jni::jobject_wrapper<jobject>();
     }
 
+    jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
     signature = util::make_java_name_readable(signature);
     if (signature == "java.lang.Integer") {
         // Value is an integer
@@ -142,7 +136,7 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
             j_env.checkForError();
 
             for (jint i = 0; i < array_size; i++) {
-                j_env->SetObjectArrayElement(j_array, i, value_to_jobject(env, j_env, array.Get(i), classname));
+                j_env->SetObjectArrayElement(j_array, i, value_to_jobject(env, array.Get(i), classname));
                 j_env.checkForError();
             }
 
@@ -247,22 +241,21 @@ bool args_match_java_types(const Napi::CallbackInfo &args, const std::vector<std
 }
 
 std::vector<jni::jobject_wrapper<jobject>> args_to_java_arguments(const Napi::CallbackInfo &args,
-                                                                  const jni::jni_wrapper &j_env,
                                                                   const std::vector<std::string> &parameterTypes) {
     std::vector<jni::jobject_wrapper<jobject>> arguments;
     for (size_t i = 0; i < args.Length(); i++) {
-        arguments.push_back(conversion_helper::value_to_jobject(args.Env(), j_env, args[i], parameterTypes[i]));
+        arguments.push_back(conversion_helper::value_to_jobject(args.Env(), args[i], parameterTypes[i]));
     }
 
     return arguments;
 }
 
 jni::jobject_wrapper<jobject> conversion_helper::match_constructor_arguments(const Napi::CallbackInfo &args,
-                                                                             const jni::jni_wrapper &j_env,
                                                                              const std::vector<jni::java_constructor> &constructors) {
+    jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
     for (const auto &c : constructors) {
         if (args_match_java_types(args, c.parameterTypes, j_env)) {
-            return c.newInstance(args_to_java_arguments(args, j_env, c.parameterTypes));
+            return c.newInstance(args_to_java_arguments(args, c.parameterTypes));
         }
     }
 
@@ -276,13 +269,13 @@ jni::jobject_wrapper<jobject> conversion_helper::match_constructor_arguments(con
 }
 
 const jni::java_constructor *conversion_helper::find_matching_constructor(const Napi::CallbackInfo &args,
-                                                                          const jni::jni_wrapper &j_env,
                                                                           const std::vector<jni::java_constructor> &constructors,
                                                                           std::vector<jni::jobject_wrapper<jobject>> &outArgs,
                                                                           std::string &error) {
+    jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
     for (const auto &c : constructors) {
         if (args_match_java_types(args, c.parameterTypes, j_env)) {
-            outArgs = args_to_java_arguments(args, j_env, c.parameterTypes);
+            outArgs = args_to_java_arguments(args, c.parameterTypes);
             return &c;
         }
     }
@@ -343,8 +336,7 @@ std::vector<jvalue> jobjects_to_jvalues(const std::vector<std::string> &paramete
                                     j_env.checkForError()
 
 Napi::Value call_function(const jni::java_function &function, const jni::jobject_wrapper<jobject> &classInstance,
-                          const jni::jni_wrapper &j_env, const Napi::Env &env, const std::vector<jvalue> &args,
-                          const Napi::Object &javaInstance) {
+                          const Napi::Env &env, const std::vector<jvalue> &args, const jni::jni_wrapper &j_env) {
     const std::string &signature = function.returnType;
     if (signature == "V") {
         // Method returns void
@@ -387,7 +379,7 @@ Napi::Value call_function(const jni::java_function &function, const jni::jobject
         // Value is some kind of object
         CALL_FUNCTION(CallObjectMethodA);
         jni::jobject_wrapper<jobject> obj(res, j_env);
-        return conversion_helper::jobject_to_value(env, javaInstance, obj, signature);
+        return conversion_helper::jobject_to_value(env, obj, signature);
     }
 }
 
@@ -396,9 +388,8 @@ Napi::Value call_function(const jni::java_function &function, const jni::jobject
 #define CALL_STATIC_FUNCTION(functionName) auto res = j_env->functionName(clazz, function.method, args.data());\
                                             j_env.checkForError()
 
-Napi::Value call_static_function(const jni::java_function &function, jclass clazz, const jni::jni_wrapper &j_env,
-                                 const Napi::Env &env, const std::vector<jvalue> &args,
-                                 const Napi::Object &javaInstance) {
+Napi::Value call_static_function(const jni::java_function &function, jclass clazz,const Napi::Env &env,
+                                 const std::vector<jvalue> &args, const jni::jni_wrapper &j_env) {
     const std::string &signature = function.returnType;
     if (signature == "V") {
         // Method returns void
@@ -441,7 +432,7 @@ Napi::Value call_static_function(const jni::java_function &function, jclass claz
         // Value is some kind of object
         CALL_STATIC_FUNCTION(CallStaticObjectMethodA);
         jni::jobject_wrapper<jobject> obj(res, j_env);
-        return conversion_helper::jobject_to_value(env, javaInstance, obj, signature);
+        return conversion_helper::jobject_to_value(env, obj, signature);
     }
 }
 
@@ -457,36 +448,207 @@ Napi::TypeError throw_no_matching_fn(const Napi::Env &env, const std::vector<jni
     return Napi::TypeError::New(env, ss.str());
 }
 
-Napi::Value conversion_helper::call_matching_function(const Napi::CallbackInfo &args, const Napi::Object &java_instance,
+Napi::Value conversion_helper::call_matching_function(const Napi::CallbackInfo &args,
                                                       const jni::jobject_wrapper<jobject> &classInstance,
                                                       const std::vector<jni::java_function> &functions) {
-    jni::jni_wrapper j_env = Napi::ObjectWrap<node_classes::java>::Unwrap(java_instance)->java_environment.attachEnv();
-
+    jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
     for (const auto &f : functions) {
         if (args_match_java_types(args, f.parameterTypes, j_env)) {
-            std::vector<jni::jobject_wrapper<jobject>> j_args = args_to_java_arguments(args, j_env, f.parameterTypes);
+            std::vector<jni::jobject_wrapper<jobject>> j_args = args_to_java_arguments(args, f.parameterTypes);
             std::vector<jvalue> values = jobjects_to_jvalues(f.parameterTypes, j_env, j_args);
 
-            return call_function(f, classInstance, j_env, args.Env(), values, java_instance);
+            return call_function(f, classInstance, args.Env(), values, j_env);
         }
     }
 
     throw throw_no_matching_fn(args.Env(), functions);
 }
 
-Napi::Value conversion_helper::call_matching_static_function(const Napi::CallbackInfo &args,
-                                                             const Napi::Object &java_instance, jclass clazz,
+Napi::Value conversion_helper::call_matching_static_function(const Napi::CallbackInfo &args, jclass clazz,
                                                              const std::vector<jni::java_function> &functions) {
-    jni::jni_wrapper j_env = Napi::ObjectWrap<node_classes::java>::Unwrap(java_instance)->java_environment.attachEnv();
+    jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
 
     for (const auto &f : functions) {
         if (args_match_java_types(args, f.parameterTypes, j_env)) {
-            std::vector<jni::jobject_wrapper<jobject>> j_args = args_to_java_arguments(args, j_env, f.parameterTypes);
+            std::vector<jni::jobject_wrapper<jobject>> j_args = args_to_java_arguments(args, f.parameterTypes);
             std::vector<jvalue> values = jobjects_to_jvalues(f.parameterTypes, j_env, j_args);
 
-            return call_static_function(f, clazz, j_env, args.Env(), values, java_instance);
+            return call_static_function(f, clazz, args.Env(), values, j_env);
         }
     }
 
     throw throw_no_matching_fn(args.Env(), functions);
+}
+
+const jni::java_function *conversion_helper::find_matching_function(const Napi::CallbackInfo &args,
+                                                                    const std::vector<jni::java_function> &functions,
+                                                                    std::vector<jni::jobject_wrapper<jobject>> &outArgs,
+                                                                    std::string &error,
+                                                                    std::vector<jvalue> &outValues) {
+    jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+    for (const auto &f : functions) {
+        if (args_match_java_types(args, f.parameterTypes, j_env)) {
+            outArgs = args_to_java_arguments(args, f.parameterTypes);
+            outValues = jobjects_to_jvalues(f.parameterTypes, j_env, outArgs);
+
+            return &f;
+        }
+    }
+
+    std::stringstream ss;
+    ss << "Could not find a matching function. Options were:";
+    for (const auto &f : functions) {
+        ss << std::endl << '\t' << f.to_string();
+    }
+    error = ss.str();
+    return nullptr;
+}
+
+#define CALL_FUNCTION(functionName) auto res = j_env->functionName(classInstance, function.method, args.data()); \
+                                    j_env.checkForError()
+
+jvalue conversion_helper::call_function(const jni::java_function &function,
+                                        const jni::jobject_wrapper<jobject> &classInstance,
+                                        const std::vector<jvalue> &args) {
+    const std::string &signature = function.returnType;
+    jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+
+    jvalue val;
+    if (signature == "V") {
+        // Method returns void
+        j_env->CallVoidMethodA(classInstance, function.method, args.data());
+        j_env.checkForError();
+    } else if (signature == "I") {
+        // Value is an integer
+        CALL_FUNCTION(CallIntMethodA);
+        val.i = res;
+    } else if (signature == "Z") {
+        // Value is a boolean
+        CALL_FUNCTION(CallBooleanMethodA);
+        val.z = res;
+    } else if (signature == "B") {
+        // Value is a byte
+        CALL_FUNCTION(CallByteMethodA);
+        val.b = res;
+    } else if (signature == "C") {
+        // Value is a char
+        CALL_FUNCTION(CallCharMethodA);
+        val.c = res;
+    } else if (signature == "S") {
+        // Value is a short
+        CALL_FUNCTION(CallShortMethodA);
+        val.s = res;
+    } else if (signature == "J") {
+        // Value is a long
+        CALL_FUNCTION(CallLongMethodA);
+        val.j = res;
+    } else if (signature == "F") {
+        // Value is a float
+        CALL_FUNCTION(CallFloatMethodA);
+        val.f = res;
+    } else if (signature == "D") {
+        // Value is a double
+        CALL_FUNCTION(CallDoubleMethodA);
+        val.d = res;
+    } else {
+        // Value is some kind of object
+        CALL_FUNCTION(CallObjectMethodA);
+        val.l = res;
+    }
+
+    return val;
+}
+
+#undef CALL_FUNCTION
+
+#define CALL_STATIC_FUNCTION(functionName) auto res = j_env->functionName(clazz, function.method, args.data());\
+                                            j_env.checkForError()
+
+jvalue conversion_helper::call_static_function(const jni::java_function &function, jclass clazz,
+                                               const std::vector<jvalue> &args) {
+    jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+    const std::string &signature = function.returnType;
+
+    jvalue val;
+    if (signature == "V") {
+        // Method returns void
+        j_env->CallStaticVoidMethodA(clazz, function.method, args.data());
+        j_env.checkForError();
+    } else if (signature == "I") {
+        // Value is an integer
+        CALL_STATIC_FUNCTION(CallStaticIntMethodA);
+        val.i = res;
+    } else if (signature == "Z") {
+        // Value is a boolean
+        CALL_STATIC_FUNCTION(CallStaticBooleanMethodA);
+        val.z = res;
+    } else if (signature == "B") {
+        // Value is a byte
+        CALL_STATIC_FUNCTION(CallStaticByteMethodA);
+        val.b = res;
+    } else if (signature == "C") {
+        // Value is a char
+        CALL_STATIC_FUNCTION(CallStaticCharMethodA);
+        val.c = res;
+    } else if (signature == "S") {
+        // Value is a short
+        CALL_STATIC_FUNCTION(CallStaticShortMethodA);
+        val.s = res;
+    } else if (signature == "J") {
+        // Value is a long
+        CALL_STATIC_FUNCTION(CallStaticLongMethodA);
+        val.j = res;
+    } else if (signature == "F") {
+        // Value is a float
+        CALL_STATIC_FUNCTION(CallStaticFloatMethodA);
+        val.f = res;
+    } else if (signature == "D") {
+        // Value is a double
+        CALL_STATIC_FUNCTION(CallStaticDoubleMethodA);
+        val.d = res;
+    } else {
+        // Value is some kind of object
+        CALL_STATIC_FUNCTION(CallStaticObjectMethodA);
+        val.l = res;
+    }
+
+    return val;
+}
+
+#undef CALL_STATIC_FUNCTION
+
+Napi::Value conversion_helper::jvalue_to_napi_value(jvalue value, const std::string &signature, const Napi::Env &env) {
+    if (signature == "V") {
+        // Method returns void
+        return env.Undefined();
+    } else if (signature == "I") {
+        // Value is an integer
+        return Napi::Number::From(env, value.i);
+    } else if (signature == "Z") {
+        // Value is a boolean
+        return Napi::Boolean::New(env, value.z);
+    } else if (signature == "B") {
+        // Value is a byte
+        return Napi::Number::From(env, value.b);
+    } else if (signature == "C") {
+        // Value is a char
+        return Napi::String::New(env, std::string({static_cast<char>(value.c)}));
+    } else if (signature == "S") {
+        // Value is a short
+        return Napi::Number::From(env, value.s);
+    } else if (signature == "J") {
+        // Value is a long
+        return Napi::Number::From(env, value.j);
+    } else if (signature == "F") {
+        // Value is a float
+        return Napi::Number::From(env, value.f);
+    } else if (signature == "D") {
+        // Value is a double
+        return Napi::Number::From(env, value.d);
+    } else {
+        // Value is some kind of object
+        jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+        jni::jobject_wrapper<jobject> obj(value.l, j_env);
+        return conversion_helper::jobject_to_value(env, obj, signature);
+    }
 }

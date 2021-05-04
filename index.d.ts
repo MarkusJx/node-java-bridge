@@ -62,7 +62,7 @@ export class java_instance {
      * @param classname the name of the class to search for
      * @return the created java class proxy instance
      */
-    public getClass(classname: string): java_class_proxy;
+    public static getClass(classname: string): java_class_proxy;
 
     /**
      * Get a class proxy
@@ -116,11 +116,6 @@ declare class java_class_proxy extends java_object {
     public 'class.name': string;
 
     /**
-     * The java vm instance
-     */
-    public 'java.instance': java_instance;
-
-    /**
      * Get the class's constructor
      *
      * @return the java instance proxy constructor
@@ -149,11 +144,6 @@ export class java_instance_proxy extends java_object {
      * The class proxy class instance
      */
     public static readonly 'class.proxy.instance': java_class_proxy;
-
-    /**
-     * The java class instance
-     */
-    public readonly 'java.instance': java_instance;
 
     public static newInstance(...args: any_type[]): Promise<java_instance_proxy>;
 

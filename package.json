@@ -15,7 +15,7 @@
   "license": "MIT",
   "dependencies": {},
   "devDependencies": {
-    "@markusjx/n-api-tools": "^1.0.4",
+    "@markusjx/n-api-tools": "^1.0.6",
     "cmake-js": "^6.1.0",
     "find-java-home": "^1.2.0",
     "node-addon-api": "^3.1.0"

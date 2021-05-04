@@ -5,7 +5,7 @@
 #include <vector>
 #include <map>
 #include <jni.h>
-#include <shared_releaser.hpp>
+#include <util/shared_releaser.hpp>
 
 #include "shared_library.hpp"
 #include "jobject_wrapper.hpp"

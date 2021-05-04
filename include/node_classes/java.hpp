@@ -3,6 +3,7 @@
 
 #include <napi.h>
 #include "jvm_lib/jni_wrapper.hpp"
+#include "util/persistent_object.hpp"
 
 namespace node_classes {
     class java : public Napi::ObjectWrap<java> {
@@ -11,17 +12,15 @@ namespace node_classes {
 
         explicit java(const Napi::CallbackInfo &info);
 
-        Napi::Value getClass(const Napi::CallbackInfo &info);
+        static Napi::Value getClass(const Napi::CallbackInfo &info);
 
-        Napi::Object getClass(const Napi::Env &env, const std::string &classname);
+        static Napi::Object getClass(const Napi::Env &env, const std::string &classname);
 
         void appendToClasspath(const Napi::CallbackInfo &info);
 
         Napi::Value appendToClasspathAsync(const Napi::CallbackInfo &info);
 
         ~java() override;
-
-        jni::jvm_wrapper java_environment;
 
     private:
         Napi::Value getLoadedJars(const Napi::CallbackInfo &info);

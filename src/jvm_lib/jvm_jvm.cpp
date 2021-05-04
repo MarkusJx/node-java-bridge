@@ -1,5 +1,6 @@
 #include <jni.h>
 #include <stdexcept>
+#include <logger.hpp>
 
 #include "jvm_lib/jvm_jvm.hpp"
 
@@ -23,7 +24,7 @@ jint jvm_jvm::AttachCurrentThread(void **env, void *options) {
 jint jvm_jvm::DetachCurrentThread() {
     if (!valid()) throw std::runtime_error("The vm was destroyed");
 
-    std::unique_lock<std::mutex> lock(mtx);
+    //std::unique_lock<std::mutex> lock(mtx);
     return jvm->DetachCurrentThread();
 }
 
@@ -36,7 +37,7 @@ void jvm_jvm::forceReset() {
 }
 
 bool jvm_jvm::valid() {
-    std::unique_lock<std::mutex> lock(mtx);
+    //std::unique_lock<std::mutex> lock(mtx);
     return jvm != nullptr;
 }
 
@@ -47,6 +48,7 @@ std::mutex &jvm_jvm::mutex() {
 jvm_jvm::~jvm_jvm() {
     if (valid()) {
         std::unique_lock<std::mutex> lock(mtx);
+        markusjx::logging::StaticLogger::debug("Destroying the java vm");
         jvm->DestroyJavaVM();
     }
 }

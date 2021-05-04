@@ -1,5 +1,5 @@
 #include <stdexcept>
-#include <util.hpp>
+#include <util/util.hpp>
 #include <logger.hpp>
 
 #include "jvm_lib/jvm_env.hpp"

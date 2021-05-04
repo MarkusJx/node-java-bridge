@@ -50,10 +50,10 @@ include_directories(${CMAKE_JS_INC} ${N_API_TOOLS_DIR} ${JAVA_INCLUDE_DIRS} "${l
 add_compile_definitions(NAPI_CPP_EXCEPTIONS)
 
 # Set the source files and create the shared library
-set(SRC src/module.cpp src/jvm_lib/shared_library.cpp src/jvm_lib/jni_wrapper.cpp src/util.cpp include/util.hpp
+set(SRC src/module.cpp src/jvm_lib/shared_library.cpp src/jvm_lib/jni_wrapper.cpp src/util/util.cpp include/util/util.hpp
         src/node_classes/java.cpp src/node_classes/java_class_proxy.cpp src/node_classes/conversion_helper.cpp
         src/node_classes/java_instance_proxy.cpp src/node_classes/node_jobject_wrapper.cpp
-        src/jvm_lib/jvm_env.cpp src/jvm_lib/java_exception.cpp src/jvm_lib/jvm_jvm.cpp)
+        src/jvm_lib/jvm_env.cpp src/jvm_lib/java_exception.cpp src/jvm_lib/jvm_jvm.cpp src/util/persistent_object.cpp src/node_classes/jvm_container.cpp)
 add_library(${PROJECT_NAME} SHARED ${SRC} ${CMAKE_JS_SRC})
 
 # Print the architecture

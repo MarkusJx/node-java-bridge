@@ -17,7 +17,7 @@ public:
     /**
      * Create a shared_releaser without setting a function
      */
-    shared_releaser(std::nullptr_t) noexcept: on_destroy(nullptr), use_count(new std::size_t(0)) {}
+    shared_releaser(std::nullptr_t) noexcept: on_destroy(nullptr), use_count(new std::size_t(1)) {}
 
     /**
      * Create a shared_releaser

@@ -4,13 +4,50 @@
 #include "node_classes/java_instance_proxy.hpp"
 #include "node_classes/java_class_proxy.hpp"
 #include "node_classes/node_jobject_wrapper.hpp"
+#include "node_classes/java.hpp"
+#include "definitions.hpp"
 
 #include <logger.hpp>
+#include <utility>
 
-#define GET_JAVA_INSTANCE() info.This().ToObject().Get("java.instance").ToObject()
+#ifdef JAVA_WINDOWS
+#   define STRDUP(str) _strdup(str)
+#else
+#   define STRDUP(str) strdup(str)
+#endif //JAVA_WINDOWS
 
 using namespace node_classes;
 using namespace markusjx::logging;
+
+class instance_def {
+public:
+    instance_def() : class_proxy() {}
+
+    instance_def(util::persistent_object class_proxy, jni::jobject_wrapper<jobject> object)
+            : class_proxy(std::move(class_proxy)), object(std::move(object)) {}
+
+    [[maybe_unused]] static Napi::Value toNapiValue(const Napi::Env &env, const instance_def &c) {
+        return java_instance_proxy::fromJObject(env, c.object, c.class_proxy.value());
+    }
+
+private:
+    [[maybe_unused]] util::persistent_object class_proxy;
+    [[maybe_unused]] jni::jobject_wrapper<jobject> object;
+};
+
+class jvalue_converter {
+public:
+    jvalue_converter() : value(), signature() {}
+
+    jvalue_converter(jvalue value, std::string signature) : value(value), signature(std::move(signature)) {}
+
+    [[maybe_unused]] static Napi::Value toNapiValue(const Napi::Env &env, const jvalue_converter &c) {
+        return conversion_helper::jvalue_to_napi_value(c.value, c.signature, env);
+    }
+
+    [[maybe_unused]] std::string signature;
+    [[maybe_unused]] jvalue value;
+};
 
 Napi::Value java_instance_proxy::staticGetter(const Napi::CallbackInfo &info) {
     Napi::Object class_proxy_instance = info.This().ToObject().Get("class.proxy.instance").ToObject();
@@ -19,8 +56,7 @@ Napi::Value java_instance_proxy::staticGetter(const Napi::CallbackInfo &info) {
     std::unique_lock lock(ptr->mtx);
     jni::java_field field = ptr->clazz->static_fields.at(toRetrieve);
 
-    Napi::Object java_instance = class_proxy_instance.Get("java.instance").ToObject();
-    return conversion_helper::static_java_field_to_object(field, ptr->clazz->clazz, info.Env(), java_instance);
+    return conversion_helper::static_java_field_to_object(field, ptr->clazz->clazz, info.Env());
 }
 
 void java_instance_proxy::staticSetter(const Napi::CallbackInfo &info, const Napi::Value &value) {
@@ -29,8 +65,7 @@ void java_instance_proxy::staticSetter(const Napi::CallbackInfo &info, const Nap
     std::string toRetrieve(static_cast<const char *>(info.Data()));
 
     jni::java_field field = ptr->clazz->static_fields.at(toRetrieve);
-    field.setStatic(ptr->clazz->clazz,
-                    conversion_helper::value_to_jobject(info.Env(), ptr->jvm.attachEnv(), value, field.signature));
+    field.setStatic(ptr->clazz->clazz, conversion_helper::value_to_jobject(info.Env(), value, field.signature));
 }
 
 Napi::Value java_instance_proxy::callStaticFunction(const Napi::CallbackInfo &info) {
@@ -40,16 +75,38 @@ Napi::Value java_instance_proxy::callStaticFunction(const Napi::CallbackInfo &in
     Napi::Object class_proxy_instance = info.This().ToObject().Get("class.proxy.instance").ToObject();
     auto *ptr = Napi::ObjectWrap<java_class_proxy>::Unwrap(class_proxy_instance);
 
-    Napi::Object java_instance = class_proxy_instance.Get("java.instance").ToObject();
-
     TRY
-        return conversion_helper::call_matching_static_function(info, java_instance, ptr->clazz->clazz,
+        return conversion_helper::call_matching_static_function(info, ptr->clazz->clazz,
                                                                 ptr->clazz->static_functions.at(functionName));
     CATCH_EXCEPTIONS
 }
 
+Napi::Value java_instance_proxy::callStaticFunctionAsync(const Napi::CallbackInfo &info) {
+    const std::string functionName(static_cast<const char *>(info.Data()));
+    StaticLogger::debugStream << "Calling static method '" << functionName << "' with " << info.Length()
+                              << " argument(s) (async)";
+    Napi::Object class_proxy_instance = info.This().ToObject().Get("class.proxy.instance").ToObject();
+    auto *ptr = Napi::ObjectWrap<java_class_proxy>::Unwrap(class_proxy_instance);
+
+    std::vector<jni::jobject_wrapper<jobject>> args;
+    std::string error;
+    std::vector<jvalue> values;
+    auto func = conversion_helper::find_matching_function(info, ptr->clazz->static_functions.at(functionName), args,
+                                                          error, values);
+    jclass clazz = ptr->clazz->clazz;
+
+    return napi_tools::promises::promise<jvalue_converter>(info.Env(), [args, error, values, func, clazz] {
+        if (func == nullptr) {
+            throw std::runtime_error(error);
+        }
+
+        jvalue val = conversion_helper::call_static_function(*func, clazz, values);
+        return jvalue_converter(val, func->returnType);
+    });
+}
+
 std::vector<Napi::ObjectWrap<java_instance_proxy>::PropertyDescriptor>
-java_instance_proxy::generateProperties(const Napi::Object &class_proxy) {
+java_instance_proxy::generateProperties(const Napi::Object &class_proxy, const Napi::Env &env) {
     StaticLogger::debug("Unwrapping the class proxy");
     std::vector<Napi::ObjectWrap<java_instance_proxy>::PropertyDescriptor> properties;
     java_class_proxy *cls = Napi::ObjectWrap<java_class_proxy>::Unwrap(class_proxy);
@@ -74,8 +131,14 @@ java_instance_proxy::generateProperties(const Napi::Object &class_proxy) {
     StaticLogger::debugStream << "Setting functions for " << cls->clazz->static_functions.size()
                               << " static functions";
     for (const auto &f : cls->clazz->static_functions) {
-        properties.push_back(StaticMethod(f.first.c_str(), &java_instance_proxy::callStaticFunction, napi_enumerable,
+        char *name = STRDUP((f.first + "Sync").c_str());
+        cls->additionalData.emplace_back(name, free);
+        properties.push_back(StaticMethod(name,
+                                          &java_instance_proxy::callStaticFunction, napi_enumerable,
                                           (void *) f.first.c_str()));
+
+        properties.push_back(StaticMethod(f.first.c_str(), &java_instance_proxy::callStaticFunctionAsync,
+                                          napi_enumerable, (void *) f.first.c_str()));
     }
 
     properties.push_back(StaticMethod("newInstance", &java_instance_proxy::newInstance, napi_enumerable));
@@ -84,43 +147,18 @@ java_instance_proxy::generateProperties(const Napi::Object &class_proxy) {
 }
 
 Napi::Function java_instance_proxy::getConstructor(Napi::Env env, const Napi::Object &class_proxy) {
-    return DefineClass(env, "java_instance_proxy", generateProperties(class_proxy));
+    return DefineClass(env, "java_instance_proxy", generateProperties(class_proxy, env));
 }
 
-class instance_def {
-public:
-    instance_def() : class_proxy(nullptr) {}
-
-    instance_def(std::shared_ptr<Napi::ObjectReference> class_proxy, jni::jobject_wrapper<jobject> object)
-            : class_proxy(std::move(class_proxy)), object(std::move(object)) {}
-
-    static Napi::Value toNapiValue(const Napi::Env &env, const instance_def &c) {
-        try {
-            Napi::Value val = java_instance_proxy::fromJObject(env, c.object, c.class_proxy->Value());
-            c.class_proxy->Unref();
-
-            return val;
-        } catch (const std::exception &e) {
-            throw Napi::Error::New(env, e.what());
-        }
-    }
-
-private:
-    std::shared_ptr<Napi::ObjectReference> class_proxy;
-    jni::jobject_wrapper<jobject> object;
-};
-
 Napi::Value java_instance_proxy::newInstance(const Napi::CallbackInfo &info) {
-    std::shared_ptr<Napi::ObjectReference> class_ref = std::make_shared<Napi::ObjectReference>();
     std::vector<jni::jobject_wrapper<jobject>> args;
 
     Napi::Object class_proxy = info.This().ToObject().Get("class.proxy.instance").ToObject();
     java_class_proxy *class_ptr = Napi::ObjectWrap<java_class_proxy>::Unwrap(class_proxy);
 
     std::string error;
-    *class_ref = Napi::Persistent(class_proxy);
-    auto constructor = conversion_helper::find_matching_constructor(info, class_ptr->jvm,
-                                                                    class_ptr->clazz->constructors, args, error);
+    util::persistent_object class_ref(class_proxy);
+    auto constructor = conversion_helper::find_matching_constructor(info, class_ptr->clazz->constructors, args, error);
 
     return napi_tools::promises::promise<instance_def>(info.Env(), [class_ref, constructor, args, error] {
         if (!constructor || !error.empty()) {
@@ -147,7 +185,6 @@ Napi::Value java_instance_proxy::fromJObject(Napi::Env env, const jni::jobject_w
 java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : ObjectWrap(info) {
     Napi::Object class_proxy_instance = info.NewTarget().ToObject().Get("class.proxy.instance").ToObject();
     java_class_proxy *class_ptr = Napi::ObjectWrap<java_class_proxy>::Unwrap(class_proxy_instance);
-    Napi::Object java_instance = class_proxy_instance.Get("java.instance").ToObject();
 
     StaticLogger::debugStream << "Creating a new '" << class_ptr->classname << "' instance";
     classname = class_ptr->classname;
@@ -155,14 +192,13 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
     {
         std::unique_lock lock(class_ptr->mtx);
         clazz = class_ptr->clazz;
-        jvm = class_ptr->jvm;
     }
 
     StaticLogger::debugStream << "Setting getters and setters for " << clazz->fields.size() << " fields";
     for (const auto &f : clazz->fields) {
         const auto getter = [f, this](const Napi::CallbackInfo &info) -> Napi::Value {
             TRY
-                return conversion_helper::jobject_to_value(info.Env(), GET_JAVA_INSTANCE(), f.second.get(object),
+                return conversion_helper::jobject_to_value(info.Env(), f.second.get(object),
                                                            f.second.signature);
             CATCH_EXCEPTIONS
         };
@@ -178,7 +214,7 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
 
                 TRY
                     f.second.set(object,
-                                 conversion_helper::value_to_jobject(info.Env(), jvm, info[0], f.second.signature));
+                                 conversion_helper::value_to_jobject(info.Env(), info[0], f.second.signature));
                 CATCH_EXCEPTIONS
             };
 
@@ -192,14 +228,31 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
             StaticLogger::debugStream << "Calling instance method '" << f.first << "' with " << info.Length()
                                       << " argument(s)";
             TRY
-                return conversion_helper::call_matching_function(info, GET_JAVA_INSTANCE(), object, f.second);
+                return conversion_helper::call_matching_function(info, object, f.second);
             CATCH_EXCEPTIONS
         };
 
-        Value().DefineProperty(Napi::PropertyDescriptor::Function(f.first, function, napi_enumerable));
-    }
+        const auto asyncFunction = [f, this](const Napi::CallbackInfo &info) -> Napi::Value {
+            StaticLogger::debugStream << "Calling instance method '" << f.first << "' with " << info.Length()
+                                      << " argument(s) (async)";
+            std::vector<jni::jobject_wrapper<jobject>> args;
+            std::string error;
+            std::vector<jvalue> values;
+            auto *func = conversion_helper::find_matching_function(info, f.second, args, error,values);
 
-    Value().DefineProperty(Napi::PropertyDescriptor::Value("java.instance", java_instance, napi_enumerable));
+            return napi_tools::promises::promise<jvalue_converter>(info.Env(), [args, error, values, func, this] {
+                if (func == nullptr) {
+                    throw std::runtime_error(error);
+                }
+
+                jvalue val = conversion_helper::call_function(*func, object, values);
+                return jvalue_converter(val, func->returnType);
+            });
+        };
+
+        Value().DefineProperty(Napi::PropertyDescriptor::Function(f.first, asyncFunction, napi_enumerable));
+        Value().DefineProperty(Napi::PropertyDescriptor::Function(f.first + "Sync", function, napi_enumerable));
+    }
 
     if (info.Length() == 1 && node_jobject_wrapper::instanceOf(info[0].ToObject())) {
         StaticLogger::debug("The class constructor was called with a node_jobject_wrapper as first argument, "
@@ -208,6 +261,6 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
     } else {
         StaticLogger::debugStream << "Trying to find a matching constructor for the " << info.Length()
                                   << " provided arguments";
-        object = conversion_helper::match_constructor_arguments(info, jvm.attachEnv(), clazz->constructors);
+        object = conversion_helper::match_constructor_arguments(info, clazz->constructors);
     }
 }

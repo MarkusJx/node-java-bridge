@@ -2,7 +2,7 @@
 #define NODE_JAVA_BRIDGE_JVM_ENV_HPP
 
 #include <jni.h>
-#include <shared_releaser.hpp>
+#include <util/shared_releaser.hpp>
 
 #include "jvm_jvm.hpp"
 

@@ -1,7 +1,7 @@
 #ifndef NODE_JAVA_BRIDGE_JOBJECT_WRAPPER_HPP
 #define NODE_JAVA_BRIDGE_JOBJECT_WRAPPER_HPP
 
-#include <shared_releaser.hpp>
+#include <util/shared_releaser.hpp>
 
 #include "jvm_env.hpp"
 

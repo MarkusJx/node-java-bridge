@@ -45,7 +45,7 @@ module.exports = {
     },
     importClass: function (classname) {
         ensureJVM();
-        return java.getClass(classname).getClassConstructor();
+        return native.java.getClass(classname).getClassConstructor();
     },
     getJavaInstance: function () {
         return java;

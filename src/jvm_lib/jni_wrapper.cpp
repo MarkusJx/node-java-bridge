@@ -4,7 +4,7 @@
 
 #include "jvm_lib/jni_wrapper.hpp"
 #include "jvm_lib/java_exception.hpp"
-#include "util.hpp"
+#include "util/util.hpp"
 
 #define CHECK_EXCEPTION() if (env->ExceptionCheck()) throwLastException(__LINE__)
 #define JVM_CHECK_EXCEPTION(jvm) if (jvm->ExceptionCheck()) jvm.throwLastException(__LINE__)
@@ -197,6 +197,8 @@ std::string jni_wrapper::jstring_to_string(jstring str, bool convertErrors) cons
         } else {
             throw std::runtime_error("Could not get the string characters");
         }
+    } else if (chars == nullptr) {
+        throw std::runtime_error("Could not get the string characters");
     }
 
     std::string res(chars);

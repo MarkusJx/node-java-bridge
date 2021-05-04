@@ -16,7 +16,6 @@ namespace node_classes {
 
         jni::jobject_wrapper<jobject> object;
         std::shared_ptr<jni::java_class> clazz;
-        jni::jvm_wrapper jvm;
         std::string classname;
 
     private:
@@ -26,8 +25,10 @@ namespace node_classes {
 
         static Napi::Value callStaticFunction(const Napi::CallbackInfo &info);
 
+        static Napi::Value callStaticFunctionAsync(const Napi::CallbackInfo &info);
+
         static std::vector<Napi::ObjectWrap<java_instance_proxy>::PropertyDescriptor>
-        generateProperties(const Napi::Object &class_proxy);
+        generateProperties(const Napi::Object &class_proxy, const Napi::Env &env);
 
         static Napi::Value newInstance(const Napi::CallbackInfo &info);
     };

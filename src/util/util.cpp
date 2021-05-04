@@ -1,6 +1,6 @@
 #include <stdexcept>
 
-#include "util.hpp"
+#include "util/util.hpp"
 #include "definitions.hpp"
 
 #ifdef JAVA_WINDOWS
