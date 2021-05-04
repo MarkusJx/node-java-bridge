@@ -46,7 +46,9 @@ std::string util::java_type_to_jni_type(const std::string &to_convert) {
     } else if (to_convert == "void") {
         return "V";
     } else {
-        if (!to_convert.empty() && to_convert[0] != '[' && to_convert[0] != 'L') {
+        if (hasEnding(to_convert, "[]")) {
+            return "[" + java_type_to_jni_type(to_convert.substr(to_convert.size() - 2));
+        } else if (!to_convert.empty() && to_convert[0] != '[' && to_convert[0] != 'L') {
             return 'L' + string_replace(to_convert, '.', '/') + ';';
         } else {
             return string_replace(to_convert, '.', '/');
@@ -129,7 +131,6 @@ std::string util::get_java_version_from_jint(jint version) {
 }
 
 bool util::hasEnding(std::string const &fullString, std::string const &ending) {
-    // https://stackoverflow.com/a/874160
     if (fullString.length() >= ending.length()) {
         return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
     } else {

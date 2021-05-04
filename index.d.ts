@@ -65,14 +65,6 @@ export class java_instance {
     public static getClass(classname: string): java_class_proxy;
 
     /**
-     * Get a class proxy
-     *
-     * @param classname the name of the class to resolve
-     * @return the created java class proxy instance (as a promise)
-     */
-    public getClassAsync(classname: string): Promise<java_class_proxy>;
-
-    /**
      * Append a jar to the classpath.
      * This will not actually append anything to
      * the current classpath but rather create a
@@ -145,6 +137,13 @@ export class java_instance_proxy extends java_object {
      */
     public static readonly 'class.proxy.instance': java_class_proxy;
 
+    /**
+     * Create a new java class instance.
+     * Async version.
+     *
+     * @param args the arguments to create the instance
+     * @return the java_instance_proxy instance
+     */
     public static newInstance(...args: any_type[]): Promise<java_instance_proxy>;
 
     /**
@@ -156,19 +155,60 @@ export class java_instance_proxy extends java_object {
     public constructor(...args: any_type[]);
 }
 
+/**
+ * The main java namespace
+ */
 declare namespace java {
+    /**
+     * Functions for altering the class path
+     */
     namespace classpath {
-        function append(path: string): void;
+        /**
+         * Append a (or multiple) jar(s) to the class path
+         *
+         * @param path the path(s) to append to the class path
+         */
+        function append(path: string | string[]): void;
 
-        function appendAsync(path: string): Promise<void>;
+        /**
+         * Append a (or multiple) jar(s) to the class path.
+         * Async version.
+         *
+         * @param path the path(s) to append to the class path
+         */
+        function appendAsync(path: string | string[]): Promise<void>;
     }
 
+    /**
+     * Create a new java instance.
+     * This will destroy the old instance.
+     *
+     * @param jvmPath the path to the jvm shared library
+     * @param version the version to use
+     */
     function createJVM(jvmPath?: string | null, version?: java_version | string | null): void;
 
+    /**
+     * Import a class
+     *
+     * @param classname the name of the class to resolve
+     * @return the java_instance_proxy constructor
+     */
     function importClass(classname: string): java_instance_proxy_constructor;
 
+    /**
+     * Get the java class instance
+     *
+     * @return the java class instance
+     */
     function getJavaInstance(): java_instance;
 
+    /**
+     * Ensure that the jvm exists
+     *
+     * @param jvmPath the path to the jvm shared library
+     * @param version the version to use
+     */
     function ensureJVM(jvmPath?: string | null, version?: java_version | string | null): void;
 }
 

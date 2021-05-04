@@ -114,9 +114,9 @@ std::string java_constructor::to_string() const {
 
 jobject_wrapper<jobject> jni_wrapper::classLoader;
 
-jni_wrapper::jni_wrapper() noexcept: env(), initialized(false), version(0) {}
+jni_wrapper::jni_wrapper() noexcept: env(), initialized(false) {}
 
-jni_wrapper::jni_wrapper(jvm_env env, jint version) : env(std::move(env)), initialized(true), version(version) {
+jni_wrapper::jni_wrapper(jvm_env env) : env(std::move(env)), initialized(true) {
     if (!classLoader.ok()) {
         classLoader.assign(getSystemClassLoader());
     }
@@ -125,7 +125,6 @@ jni_wrapper::jni_wrapper(jvm_env env, jint version) : env(std::move(env)), initi
 jvm_wrapper::jvm_wrapper() noexcept: jni_wrapper(), library() {}
 
 jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version) : jni_wrapper() {
-    this->version = version;
     initialized = true;
     library = shared_library(jvmPath);
     JNI_CreateJavaVM = library.getFunction<JNI_CreateJavaVM_t>("JNI_CreateJavaVM");
@@ -157,21 +156,7 @@ jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version) : jni_wrapper
 }
 
 jni_wrapper jni_wrapper::attachEnv() const {
-    JNIEnv *environment = nullptr;
-    jint create_result = env.jvm->GetEnv(reinterpret_cast<void **>(&environment), version);
-
-    if (create_result == JNI_EDETACHED) {
-        create_result = env.jvm->AttachCurrentThread(reinterpret_cast<void **>(&environment), nullptr);
-        if (create_result == JNI_OK) {
-            return jni_wrapper(jvm_env(env.jvm, environment, version, true), version);
-        } else {
-            throw std::runtime_error("AttachCurrentThread failed: " + util::jni_error_to_string(create_result));
-        }
-    } else if (create_result == JNI_OK) {
-        return *this;
-    } else {
-        throw std::runtime_error("GetEnv failed: " + util::jni_error_to_string(create_result));
-    }
+    return jni_wrapper(env.attach_env());
 }
 
 void jni_wrapper::checkForError() const {
@@ -223,16 +208,24 @@ jobject_wrapper<jobject> jni_wrapper::getClassByName(const std::string &classNam
      */
     jclass Class = getJavaLangClass();
 
-    jmethodID forName = env->GetStaticMethodID(Class, "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;");
+    jmethodID forName = env->GetStaticMethodID(Class, "forName",
+                                               "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;");
     CHECK_EXCEPTION();
 
-    jobject clazz = env->CallStaticObjectMethod(Class, forName, string_to_jstring(className).obj, true, classLoader.obj);
+    jobject clazz = env->CallStaticObjectMethod(Class, forName, string_to_jstring(className).obj, true,
+                                                classLoader.obj);
     CHECK_EXCEPTION();
 
     return jobject_wrapper<jobject>(clazz, env);
 }
 
 std::vector<java_constructor> jni_wrapper::getClassConstructors(const std::string &className) const {
+    /*
+     * Java code:
+     *
+     * Class<?> clazz = Class.forName(className);
+     * Constructor[] constructors = clazz.getConstructors();
+     */
     jobject_wrapper<jobject> clazz = getClassByName(className);
 
     jmethodID getConstructors = env->GetMethodID(getJavaLangClass(), "getConstructors",
@@ -254,6 +247,24 @@ std::vector<java_constructor> jni_wrapper::getClassConstructors(const std::strin
 }
 
 std::vector<java_field> jni_wrapper::getClassFields(const std::string &className, bool onlyStatic) const {
+    /*
+     * Java code:
+     *
+     * Class<?> clazz = Class.forName(className);
+     * Field[] fields = clazz.getDeclaredFields();
+     *
+     * for (int i = 0; i < fields.length; i++) {
+     *      String signature = fields[i].getType().getName();
+     *      String fieldName = fields[i].getName();
+     *
+     *      int modifiers = fields[i].getModifiers();
+     *      boolean is_static = Modifier.isStatic(modifiers);
+     *      boolean is_public = Modifier.isPublic(modifiers);
+     *      boolean is_final = Modifier.isFinal(modifiers);
+     *
+     *      // Get the fields id and store the information
+     * }
+     */
     jclass Class = getJavaLangClass();
     jobject_wrapper<jobject> clazz = getClassByName(className);
 
@@ -293,6 +304,7 @@ std::vector<java_field> jni_wrapper::getClassFields(const std::string &className
     const jsize numFields = env->GetArrayLength(fields);
     CHECK_EXCEPTION();
 
+    // Get the fields signature as a string
     const auto getFieldSignature = [&](const jobject_wrapper<jobject> &field) -> std::string {
         jobject_wrapper<jobject> type(env->CallObjectMethod(field, field_getType), env);
         CHECK_EXCEPTION();
@@ -303,6 +315,7 @@ std::vector<java_field> jni_wrapper::getClassFields(const std::string &className
         return util::java_type_to_jni_type(jstring_to_string(name));
     };
 
+    // Get the fields name
     const auto getFieldName = [&](const jobject_wrapper<jobject> &field) -> std::string {
         jobject_wrapper<jstring> name(env->CallObjectMethod(field, field_getName), env);
         CHECK_EXCEPTION();
@@ -310,6 +323,7 @@ std::vector<java_field> jni_wrapper::getClassFields(const std::string &className
         return jstring_to_string(name);
     };
 
+    // Get the field id
     const auto getFieldId = [&](const jobject_wrapper<jobject> &field, const std::string &fieldName,
                                 const std::string &signature) -> jfieldID {
         jclass javaClass = getJClass(className);
@@ -355,6 +369,29 @@ std::vector<java_field> jni_wrapper::getClassFields(const std::string &className
 }
 
 std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &className, bool onlyStatic) const {
+    /*
+     * Java code:
+     *
+     * Class<?> clazz = Class.forName();
+     * Method[] methods = class.getDeclaredMethods();
+     *
+     * for (int i = 0; i < methods.length; i++) {
+     *      String name = methods[i].getName();
+     *      String returnType = methods[i].getReturnType().getName();
+     *
+     *      Class[] types = methods[i].getParameterTypes();
+     *      List<String> parameterTypes = new ArrayList<>(types.length);
+     *      for (int i = 0; i < types.length; i++) {
+     *          types.add(types[i].getName());
+     *      }
+     *
+     *      int modifiers = methods[i].getModifiers();
+     *      boolean is_static = Modifier.isStatic(modifiers);
+     *      boolean is_public = Modifier.isPublic(modifiers);
+     *
+     *      // Get the methods id and store the information
+     * }
+     */
     jclass Class = getJavaLangClass();
     jobject_wrapper<jobject> clazz = getClassByName(className);
 
@@ -394,6 +431,7 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
     const jsize numMethods = env->GetArrayLength(methods);
     CHECK_EXCEPTION();
 
+    // Get the function name
     const auto get_name = [&](const jobject_wrapper<jobject> &method) -> std::string {
         jobject_wrapper<jstring> name(env->CallObjectMethod(method, getName), env);
         CHECK_EXCEPTION();
@@ -401,6 +439,7 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
         return jstring_to_string(name);
     };
 
+    // Get the functions return type
     const auto get_return_type = [&](const jobject_wrapper<jobject> &method) -> std::string {
         jobject_wrapper<jobject> type(env->CallObjectMethod(method, getReturnType), env);
         CHECK_EXCEPTION();
@@ -411,6 +450,7 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
         return util::java_type_to_jni_type(jstring_to_string(str));
     };
 
+    // Get the functions parameter type
     const auto get_parameter_types = [&](const jobject_wrapper<jobject> &method) -> std::vector<std::string> {
         jobject_wrapper<jobjectArray> types(env->CallObjectMethod(method, getParameterTypes), env);
         CHECK_EXCEPTION();
@@ -434,6 +474,7 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
         return res;
     };
 
+    // Get the functions id
     const auto get_id = [&](const std::string &name, const std::string &returnType,
                             const std::vector<std::string> &parameterTypes) -> jmethodID {
         jclass javaClass = getJClass(className);
@@ -480,7 +521,7 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
             const std::vector<std::string> parameterTypes = get_parameter_types(method);
             jmethodID id = get_id(name, returnType, parameterTypes);
 
-            res.emplace_back(parameterTypes, returnType, name, id, is_static, *this);
+            res.emplace_back(parameterTypes, returnType, name, id, is_static);
         }
     }
 
@@ -493,7 +534,7 @@ java_class jni_wrapper::getClass(const std::string &className) const {
     const std::vector<java_function> functions = getClassFunctions(className, false);
     const std::vector<java_function> staticFunctions = getClassFunctions(className, true);
     const std::vector<java_constructor> constructors = getClassConstructors(className);
-    jclass clazz = getJClass(className);
+    jobject_wrapper<jclass> clazz(getJClass(className), env);
 
     return java_class(staticFields, fields, staticFunctions, functions, constructors, clazz);
 }
@@ -507,10 +548,12 @@ jclass jni_wrapper::getJClass(const std::string &className) const {
      */
     jclass Class = getJavaLangClass();
 
-    jmethodID forName = env->GetStaticMethodID(Class, "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;");
+    jmethodID forName = env->GetStaticMethodID(Class, "forName",
+                                               "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;");
     CHECK_EXCEPTION();
 
-    jobject clazz = env->CallStaticObjectMethod(Class, forName, string_to_jstring(className).obj, true, classLoader.obj);
+    jobject clazz = env->CallStaticObjectMethod(Class, forName, string_to_jstring(className).obj, true,
+                                                classLoader.obj);
     CHECK_EXCEPTION();
 
     return reinterpret_cast<jclass>(clazz);
@@ -606,7 +649,7 @@ std::string jni_wrapper::get_object_class_name(jobject obj) const {
     return jstring_to_string(name);
 }
 
-void jni_wrapper::appendClasspath(const std::string& path) {
+void jni_wrapper::appendClasspath(const std::string &path) {
     // This. was. torture.
     /*
      * This whole thing is based on this: https://stackoverflow.com/a/60775
@@ -649,7 +692,64 @@ void jni_wrapper::appendClasspath(const std::string& path) {
     jobject_wrapper<jobjectArray> urls(env->NewObjectArray(1, URL, url), env);
     CHECK_EXCEPTION();
 
-    jobject_wrapper<jobject> newClassLoader(env->NewObject(URLClassLoader, classLoaderInit, urls.obj, classLoader.obj), env);
+    jobject_wrapper<jobject> newClassLoader(env->NewObject(URLClassLoader, classLoaderInit, urls.obj, classLoader.obj),
+                                            env);
+    CHECK_EXCEPTION();
+
+    classLoader.assign(newClassLoader);
+}
+
+void jni_wrapper::appendClasspath(const std::vector<std::string> &paths) {
+    /*
+     * This whole thing is based on this: https://stackoverflow.com/a/60775
+     * Java code:
+     *
+     * URL[] urls = new URL[paths.size()];
+     * for (int i = 0; i < paths.size(); i++) {
+     *      File toLoad = new File(paths[i]);
+     *      URI uri = toLoad.toURI();
+     *      URL url = uri.toURL();
+     *      urls[i] = url;
+     * }
+     * URLClassLoader newClassLoader = new URLClassLoader(urls, this.classLoader);
+     * this.classLoader = newClassLoader;
+     */
+    jclass File = env->FindClass("java/io/File");
+    CHECK_EXCEPTION();
+    jmethodID FileConstructor = env->GetMethodID(File, "<init>", "(Ljava/lang/String;)V");
+    CHECK_EXCEPTION();
+    jmethodID toURI = env->GetMethodID(File, "toURI", "()Ljava/net/URI;");
+    CHECK_EXCEPTION();
+    jclass URI = env->FindClass("java/net/URI");
+    CHECK_EXCEPTION();
+    jmethodID toURL = env->GetMethodID(URI, "toURL", "()Ljava/net/URL;");
+    CHECK_EXCEPTION();
+
+    jclass URL = env->FindClass("java/net/URL");
+    CHECK_EXCEPTION();
+    jobject_wrapper<jobjectArray> urls(env->NewObjectArray((jsize) paths.size(), URL, nullptr), env);
+    CHECK_EXCEPTION();
+
+    for (size_t i = 0; i < paths.size(); i++) {
+        auto j_path = string_to_jstring(paths[i]);
+        jobject_wrapper<jobject> file(env->NewObject(File, FileConstructor, j_path.obj), env);
+        CHECK_EXCEPTION();
+
+        jobject_wrapper<jobject> uri(env->CallObjectMethod(file, toURI), env);
+        CHECK_EXCEPTION();
+        jobject_wrapper<jobject> url(env->CallObjectMethod(uri, toURL), env);
+        CHECK_EXCEPTION();
+
+        env->SetObjectArrayElement(urls, (jsize) i, url);
+    }
+
+    jclass URLClassLoader = env->FindClass("java/net/URLClassLoader");
+    CHECK_EXCEPTION();
+    jmethodID classLoaderInit = env->GetMethodID(URLClassLoader, "<init>", "([Ljava/net/URL;Ljava/lang/ClassLoader;)V");
+    CHECK_EXCEPTION();
+
+    jobject_wrapper<jobject> newClassLoader(env->NewObject(URLClassLoader, classLoaderInit, urls.obj, classLoader.obj),
+                                            env);
     CHECK_EXCEPTION();
 
     classLoader.assign(newClassLoader);
@@ -673,7 +773,8 @@ jobject_wrapper<jobject> jni_wrapper::getSystemClassLoader() {
      */
     jclass classLoaderCls = env->FindClass("java/lang/ClassLoader");
     CHECK_EXCEPTION();
-    jmethodID getSystemClassLoaderMethod = env->GetStaticMethodID(classLoaderCls, "getSystemClassLoader", "()Ljava/lang/ClassLoader;");
+    jmethodID getSystemClassLoaderMethod = env->GetStaticMethodID(classLoaderCls, "getSystemClassLoader",
+                                                                  "()Ljava/lang/ClassLoader;");
     CHECK_EXCEPTION();
     jobject_wrapper res(env->CallStaticObjectMethod(classLoaderCls, getSystemClassLoaderMethod), env);
     CHECK_EXCEPTION();
@@ -836,13 +937,9 @@ void java_field::setStatic(jclass clazz, jobject data) const {
 }
 
 java_function::java_function(std::vector<std::string> parameterTypes, std::string returnType, std::string functionName,
-                             jmethodID method, bool isStatic, jni_wrapper env) : parameterTypes(
-        std::move(parameterTypes)),
-                                                                                 returnType(std::move(returnType)),
-                                                                                 name(std::move(functionName)),
-                                                                                 method(method),
-                                                                                 isStatic(isStatic),
-                                                                                 env(std::move(env)) {}
+                             jmethodID method, bool isStatic)
+        : parameterTypes(std::move(parameterTypes)), returnType(std::move(returnType)), name(std::move(functionName)),
+          method(method), isStatic(isStatic) {}
 
 std::string java_function::to_string() const {
     std::stringstream ss;
@@ -862,15 +959,12 @@ std::string java_function::to_string() const {
     return ss.str();
 }
 
-java_class::java_class() : clazz(nullptr) {}
+java_class::java_class() : clazz() {}
 
 java_class::java_class(const std::vector<java_field> &static_fields, const std::vector<java_field> &fields,
                        const std::vector<java_function> &static_functions, const std::vector<java_function> &functions,
-                       std::vector<java_constructor> constructors, jclass clazz) : static_fields(
-        util::map_vector_values_to_map(static_fields)), fields(util::map_vector_values_to_map(fields)),
-                                                                                   static_functions(
-                                                                                           util::map_vector_to_map(
-                                                                                                   static_functions)),
-                                                                                   functions(util::map_vector_to_map(
-                                                                                           functions)), constructors(
-                std::move(constructors)), clazz(clazz) {}
+                       std::vector<java_constructor> constructors, jobject_wrapper<jclass> clazz)
+        : static_fields(util::map_vector_values_to_map(static_fields)),
+          fields(util::map_vector_values_to_map(fields)), static_functions(util::map_vector_to_map(static_functions)),
+          functions(util::map_vector_to_map(functions)), constructors(std::move(constructors)),
+          clazz(std::move(clazz)) {}

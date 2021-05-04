@@ -77,24 +77,50 @@ Napi::Object java::getClass(const Napi::Env &env, const std::string &classname) 
 }
 
 void java::appendToClasspath(const Napi::CallbackInfo &info) {
-    CHECK_ARGS(napi_tools::string);
+    CHECK_ARGS(napi_tools::string | napi_tools::array);
     TRY
-        const std::string toAppend = info[0].ToString().Utf8Value();
-        loaded_jars.push_back(toAppend);
-        StaticLogger::debugStream << "Appending to classpath: " << toAppend;
-        jvm_container::getJvm().appendClasspath(toAppend);
+        if (info[0].IsString()) {
+            const std::string toAppend = info[0].ToString().Utf8Value();
+            loaded_jars.push_back(toAppend);
+            StaticLogger::debugStream << "Appending to classpath: " << toAppend;
+            jvm_container::getJvm().appendClasspath(toAppend);
+        } else {
+            auto arr = info[0].As<Napi::Array>();
+            std::vector<std::string> toAppend(arr.Length());
+
+            for (uint32_t i = 0; i < arr.Length(); i++) {
+                toAppend[i] = arr.Get(i).ToString();
+                loaded_jars.push_back(toAppend[i]);
+            }
+
+            jvm_container::getJvm().appendClasspath(toAppend);
+        }
     CATCH_EXCEPTIONS
 }
 
 Napi::Value java::appendToClasspathAsync(const Napi::CallbackInfo &info) {
-    CHECK_ARGS(napi_tools::string);
-    const std::string toAppend = info[0].ToString().Utf8Value();
+    CHECK_ARGS(napi_tools::string | napi_tools::array);
+    if (info[0].IsString()) {
+        const std::string toAppend = info[0].ToString().Utf8Value();
 
-    return napi_tools::promises::promise<void>(info.Env(), [this, toAppend] {
-        loaded_jars.push_back(toAppend);
-        StaticLogger::debugStream << "Appending to classpath: " << toAppend;
-        jvm_container::getJvm().attachEnv().appendClasspath(toAppend);
-    });
+        return napi_tools::promises::promise<void>(info.Env(), [this, toAppend] {
+            loaded_jars.push_back(toAppend);
+            StaticLogger::debugStream << "Appending to classpath: " << toAppend;
+            jvm_container::getJvm().attachEnv().appendClasspath(toAppend);
+        });
+    } else {
+        auto arr = info[0].As<Napi::Array>();
+        std::vector<std::string> toAppend(arr.Length());
+
+        for (uint32_t i = 0; i < arr.Length(); i++) {
+            toAppend[i] = arr.Get(i).ToString();
+            loaded_jars.push_back(toAppend[i]);
+        }
+
+        return napi_tools::promises::promise<void>(info.Env(), [toAppend] {
+            jvm_container::getJvm().attachEnv().appendClasspath(toAppend);
+        });
+    }
 }
 
 Napi::Value java::getLoadedJars(const Napi::CallbackInfo &info) {

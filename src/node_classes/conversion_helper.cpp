@@ -47,7 +47,6 @@ Napi::Value conversion_helper::jobject_to_value(const Napi::Env &env, const jni:
         // Value is a double
         TRY_RUN(return Napi::Number::New(env, j_env.jobject_to_jdouble(obj)))
     } else if (signature == "java.lang.String") {
-        std::cout << j_env.get_object_class_name(obj.obj) << std::endl;
         // Value is a string
         TRY_RUN(return Napi::String::New(env,
                                          j_env.jstring_to_string(reinterpret_cast<jstring>(obj.obj))))
@@ -553,7 +552,6 @@ jvalue conversion_helper::call_function(const jni::java_function &function,
     } else {
         // Value is some kind of object
         CALL_FUNCTION(CallObjectMethodA);
-        std::cout << "Type: " << j_env.get_object_class_name(res) << std::endl;
         val.l = res;
     }
 
@@ -611,7 +609,6 @@ jvalue conversion_helper::call_static_function(const jni::java_function &functio
         // Value is some kind of object
         CALL_STATIC_FUNCTION(CallStaticObjectMethodA);
         val.l = j_env->NewGlobalRef(res);
-        std::cout << "Ptr1: " << val.l << ", type: " << j_env.get_object_class_name(val.l) << std::endl;
     }
 
     return val;

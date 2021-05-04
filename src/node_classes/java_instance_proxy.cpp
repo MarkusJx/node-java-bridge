@@ -19,6 +19,9 @@
 using namespace node_classes;
 using namespace markusjx::logging;
 
+/**
+ * A helper which will create the class instance
+ */
 class instance_def {
 public:
     instance_def() : class_proxy() {}
@@ -35,6 +38,9 @@ private:
     [[maybe_unused]] jni::jobject_wrapper<jobject> object;
 };
 
+/**
+ * A helper which will convert the function return value
+ */
 class jvalue_converter {
 public:
     jvalue_converter() : value(), signature() {}
@@ -254,7 +260,7 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
         Value().DefineProperty(Napi::PropertyDescriptor::Function(f.first + "Sync", function, napi_enumerable));
     }
 
-    if (info.Length() == 1 && node_jobject_wrapper::instanceOf(info[0].ToObject())) {
+    if (info.Length() == 1 && info[0].IsObject() && node_jobject_wrapper::instanceOf(info[0].ToObject())) {
         StaticLogger::debug("The class constructor was called with a node_jobject_wrapper as first argument, "
                             "creating the class using that information");
         object = Napi::ObjectWrap<node_jobject_wrapper>::Unwrap(info[0].ToObject())->getObject();

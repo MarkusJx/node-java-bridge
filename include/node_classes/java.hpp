@@ -78,7 +78,8 @@ namespace node_classes {
          * take a look at jni::jni_wrapper::appendClasspath
          * for further information.
          * Arguments:
-         *      info[0] {string} the path to the file to append to the classpath
+         *      info[0] {string | array<string>} the path(s) to
+         *              the file(s) to append to the classpath
          *
          * @param info the callback info
          */

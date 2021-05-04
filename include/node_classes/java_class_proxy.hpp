@@ -14,8 +14,20 @@ namespace node_classes {
      */
     class java_class_proxy : public Napi::ObjectWrap<java_class_proxy> {
     public:
+        /**
+         * Write the class proxy class to the module's exports
+         *
+         * @param env the environment to use
+         * @param exports the exports to write to
+         */
         static void init(Napi::Env env, Napi::Object &exports);
 
+        /**
+         * Create a class_proxy instance
+         *
+         * @param classname the name of the class to resolve
+         * @return the created instance
+         */
         static Napi::Object createInstance(const Napi::String &classname);
 
         /**
@@ -26,16 +38,31 @@ namespace node_classes {
          */
         explicit java_class_proxy(const Napi::CallbackInfo &info);
 
+        /**
+         * Get the class's constructor.
+         * Arguments: none
+         *
+         * @param info the callbackInfo
+         * @return
+         */
         Napi::Value getClassConstructor(const Napi::CallbackInfo &info);
 
+        // The jni::java_class instance
         std::shared_ptr<jni::java_class> clazz;
 
+        // A mutex for synchronization
         std::mutex mtx;
 
+        // The name of the class
         std::string classname;
 
+        // A vector to store additional data to be freed on destruction
+        // This is used to store names of the sync calls to any function
+        // (functionName + "Sync") to keep this information as long as the
+        // class is in use.
         std::vector<std::unique_ptr<char, decltype(&free)>> additionalData;
 
+        // The constructor pointer
         static Napi::FunctionReference *constructor;
     };
 }
