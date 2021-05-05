@@ -65,6 +65,14 @@ export class java_instance {
     public static getClass(classname: string): java_class_proxy;
 
     /**
+     * Destroy the jvm.
+     * This will delete the java vm instance
+     * and make all subsequent calls to the
+     * vm invalid in as they'll throw exceptions.
+     */
+    public static destroyJVM(): void;
+
+    /**
      * Append a jar to the classpath.
      * This will not actually append anything to
      * the current classpath but rather create a
@@ -210,6 +218,40 @@ declare namespace java {
      * @param version the version to use
      */
     function ensureJVM(jvmPath?: string | null, version?: java_version | string | null): void;
+
+    /**
+     * Destroy the jvm.
+     * This will delete the java vm instance
+     * and make all subsequent calls to the
+     * vm invalid in as they'll throw exceptions.
+     */
+    function destroyJVM(): void;
+
+    /**
+     * A namespace for logging utilities
+     */
+    namespace logging {
+        /**
+         * Set the log level for the java module
+         *
+         * @param level the level to set
+         */
+        function setLogLevel(level: LogLevel | number): void;
+
+        /**
+         * A log level to set
+         */
+        enum LogLevel {
+            // Show debug, warning and error messages
+            DEBUG = 0,
+            // Show warning and error messages
+            WARNING = 1,
+            // Only show error messages
+            ERROR = 2,
+            // Log nothing at all
+            NONE = 3
+        }
+    }
 }
 
 export default java;

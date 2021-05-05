@@ -109,6 +109,8 @@ namespace util {
      * @return true if fullString ends with ending
      */
     bool hasEnding(std::string const &fullString, std::string const &ending);
+
+    bool isPrimitive(const std::string &signature);
 }
 
 #endif //NODE_JAVA_BRIDGE_UTIL_HPP

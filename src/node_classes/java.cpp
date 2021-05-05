@@ -19,6 +19,7 @@ using namespace markusjx::logging;
 void java::init(Napi::Env env, Napi::Object &exports) {
     Napi::Function func = DefineClass(env, "java", {
             StaticMethod("getClass", &java::getClass, napi_enumerable),
+            StaticMethod("destroyJVM", &java::destroyJVM, napi_enumerable),
             InstanceMethod("appendToClasspath", &java::appendToClasspath, napi_enumerable),
             InstanceMethod("appendToClasspathAsync", &java::appendToClasspathAsync, napi_enumerable),
             InstanceAccessor("loadedJars", &java::getLoadedJars, nullptr, napi_enumerable)
@@ -121,6 +122,12 @@ Napi::Value java::appendToClasspathAsync(const Napi::CallbackInfo &info) {
             jvm_container::getJvm().attachEnv().appendClasspath(toAppend);
         });
     }
+}
+
+void java::destroyJVM(const Napi::CallbackInfo &info) {
+    TRY
+        jvm_container::destroyInstance();
+    CATCH_EXCEPTIONS
 }
 
 Napi::Value java::getLoadedJars(const Napi::CallbackInfo &info) {

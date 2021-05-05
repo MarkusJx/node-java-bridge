@@ -47,7 +47,7 @@ std::string util::java_type_to_jni_type(const std::string &to_convert) {
         return "V";
     } else {
         if (hasEnding(to_convert, "[]")) {
-            return "[" + java_type_to_jni_type(to_convert.substr(to_convert.size() - 2));
+            return "[" + java_type_to_jni_type(to_convert.substr(0, to_convert.size() - 2));
         } else if (!to_convert.empty() && to_convert[0] != '[' && to_convert[0] != 'L') {
             return 'L' + string_replace(to_convert, '.', '/') + ';';
         } else {
@@ -87,22 +87,22 @@ jint util::string_to_java_version(const std::string &ver) {
 }
 
 std::string util::make_java_name_readable(const std::string &to_convert) {
-    if (to_convert == "Z") {
-        return "java.lang.Boolean";
-    } else if (to_convert == "B") {
-        return "java.lang.Byte";
-    } else if (to_convert == "C") {
-        return "java.lang.Character";
-    } else if (to_convert == "S") {
-        return "java.lang.Short";
-    } else if (to_convert == "I") {
-        return "java.lang.Integer";
-    } else if (to_convert == "J") {
-        return "java.lang.Long";
-    } else if (to_convert == "F") {
-        return "java.lang.Float";
-    } else if (to_convert == "D") {
-        return "java.lang.Double";
+    if (to_convert == "Z" || to_convert == "boolean") {
+        return "boolean";
+    } else if (to_convert == "B" || to_convert == "byte") {
+        return "byte";
+    } else if (to_convert == "C" || to_convert == "char") {
+        return "char";
+    } else if (to_convert == "S" || to_convert == "short") {
+        return "short";
+    } else if (to_convert == "I" || to_convert == "int") {
+        return "int";
+    } else if (to_convert == "J" || to_convert == "long") {
+        return "long";
+    } else if (to_convert == "F" || to_convert == "float") {
+        return "float";
+    } else if (to_convert == "D" || to_convert == "double") {
+        return "double";
     } else if (to_convert == "V") {
         return "void";
     } else if (!to_convert.empty() && to_convert[0] == '[') {
@@ -132,8 +132,13 @@ std::string util::get_java_version_from_jint(jint version) {
 
 bool util::hasEnding(std::string const &fullString, std::string const &ending) {
     if (fullString.length() >= ending.length()) {
-        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+        return (0 == fullString.compare(fullString.length() - ending.length(), ending.length(), ending));
     } else {
         return false;
     }
+}
+
+bool util::isPrimitive(const std::string &signature) {
+    return signature == "int" || signature == "boolean" || signature == "long" || signature == "short" ||
+           signature == "double" || signature == "float" || signature == "char" || signature == "byte";
 }

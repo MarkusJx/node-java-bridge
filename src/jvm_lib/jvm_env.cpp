@@ -10,11 +10,10 @@ using namespace jni;
  * Detach a thread from the jvm
  *
  * @param vm the vm to detach the thread from
- * @param detachThread whether to actually detach the thread (may be false on the default environment)
+ * @param detach whether to actually detach the thread (may be false on the default environment)
  */
-void detachThread(const std::shared_ptr<jvm_jvm> &vm, bool detachThread) {
-    std::unique_lock<std::mutex> lock(vm->mutex());
-    if (detachThread && vm && vm->valid()) {
+void detachThread(const std::shared_ptr<jvm_jvm> &vm, bool detach) {
+    if (detach && vm && vm->valid()) {
         vm->DetachCurrentThread();
     }
 }

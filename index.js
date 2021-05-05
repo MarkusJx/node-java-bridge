@@ -21,6 +21,17 @@ const java_version = {
     VER_10: "10"
 };
 
+Object.freeze(java_version);
+
+const LogLevel = {
+    DEBUG: 0,
+    WARNING: 1,
+    ERROR: 2,
+    NONE: 3
+};
+
+Object.freeze(LogLevel);
+
 function ensureJVM(jvmPath = null, version = null) {
     if (java == null) {
         if (jvmPath == null) {
@@ -39,6 +50,10 @@ module.exports = {
         append: function (path) {
             ensureJVM();
             java.appendToClasspath(path);
+        },
+        appendAsync: function(path) {
+            ensureJVM();
+            return java.appendToClasspathAsync(path);
         }
     },
     createJVM: function (jvmPath = null, version = null) {
@@ -53,7 +68,16 @@ module.exports = {
         return java;
     },
     ensureJVM: ensureJVM,
+    destroyJVM: function () {
+        native.java.destroyJVM();
+    },
     reset: function() {
         java = null;
+    },
+    logging: {
+        setLogLevel: function(level) {
+            native.setLoggerMode(level);
+        },
+        LogLevel: LogLevel
     }
 };

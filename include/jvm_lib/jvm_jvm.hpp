@@ -75,13 +75,6 @@ namespace jni {
         bool valid();
 
         /**
-         * Get the jvm_jvm mutex
-         *
-         * @return the mutex reference
-         */
-        std::mutex &mutex();
-
-        /**
          * Destroys the jvm if it is valid
          */
         ~jvm_jvm();

@@ -12,16 +12,6 @@
  */
 namespace conversion_helper {
     /**
-     * Convert a static java class field to a n-api value
-     *
-     * @param to_convert the field to convert
-     * @param clazz the class of the field to convert
-     * @param env the environment to work in
-     * @return the converted value
-     */
-    Napi::Value static_java_field_to_object(const jni::java_field &to_convert, jclass clazz, const Napi::Env &env);
-
-    /**
      * Convert a jobject to a n-api value
      *
      * @param env the environment to work in
@@ -29,7 +19,8 @@ namespace conversion_helper {
      * @param signature the signature of the object to convert
      * @return the converted n-api value
      */
-    Napi::Value jobject_to_value(const Napi::Env &env, const jni::jobject_wrapper<jobject> &obj, std::string signature);
+    Napi::Value jobject_to_value(const Napi::Env &env, const jni::jobject_wrapper<jobject> &obj,
+                                 const std::string &signature);
 
     /**
      * Convert a napi value to a jobject
@@ -40,7 +31,7 @@ namespace conversion_helper {
      * @return the converted jobject
      */
     jni::jobject_wrapper<jobject> value_to_jobject(const Napi::Env &env, const Napi::Value &value,
-                                                   std::string signature);
+                                                                  const std::string &signature);
 
     /**
      * Convert a napi_valuetype to a string
@@ -143,6 +134,30 @@ namespace conversion_helper {
      * @return the converted Napi::Value
      */
     Napi::Value jvalue_to_napi_value(jvalue value, const std::string &signature, const Napi::Env &env);
+
+    /**
+     * Convert a n-api value to a jvalue
+     *
+     * @param env the environment to work in
+     * @param value the value to convert
+     * @param signature the java signature of the value
+     * @param values the values. This is just here to keep jobjects alive
+     * @return the converted value
+     */
+    jvalue napi_value_to_jvalue(const Napi::Env &env, const Napi::Value &value, const std::string &signature,
+                                std::vector<jni::jobject_wrapper<jobject>> &values);
+
+    /**
+     * Convert a Napi::Array to a jarray
+     *
+     * @param env the environment to work in
+     * @param j_env the java environment to work in
+     * @param signature the signature of the java array
+     * @param array the array to convert
+     * @return the converted array
+     */
+    jni::jobject_wrapper<jarray> napi_array_to_jarray(const Napi::Env &env, const jni::jni_wrapper &j_env,
+                                                      const std::string &signature, const Napi::Array &array);
 }
 
 #endif //NODE_JAVA_BRIDGE_CONVERSION_HELPER_HPP

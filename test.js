@@ -24,6 +24,7 @@ setTimeout(() => {
     console.log(instance.indexOf('a').then(console.log));
     console.log(cls.valueOf(25).then(e => console.log("val", e)).catch(console.error));
     console.log(instance.toString().then(console.log));
+    console.log(instance.toCharArraySync());
     //return;
 
     //cls.abc = "hello";

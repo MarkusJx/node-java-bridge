@@ -1,5 +1,4 @@
 #include <stdexcept>
-#include <iostream>
 #include <utility>
 
 #include "jvm_lib/jni_wrapper.hpp"
@@ -69,7 +68,7 @@ std::vector<std::string> java_constructor::getParameterTypes() const {
         jobject_wrapper<jstring> name(jni->CallObjectMethod(type, getName), jni);
         JVM_CHECK_EXCEPTION(jni);
 
-        res.push_back(jni.jstring_to_string(name));
+        res.push_back(util::make_java_name_readable(jni.jstring_to_string(name)));
     }
 
     return res;
@@ -96,7 +95,13 @@ jobject_wrapper<jobject> java_constructor::newInstance(const std::vector<jobject
 
     jobject instance = env->CallObjectMethod(obj, newInstance_m, argArr.obj);
     JVM_CHECK_EXCEPTION(env);
-    return jobject_wrapper(instance, env);
+
+    // Note that we pass the jni instance, which is attached
+    // to the default thread, instead of the instance that is
+    // attached to the current thread to the instance wrapper
+    // to prevent the jvm from locking up since the thread is
+    // never detached
+    return jobject_wrapper<jobject>(instance, jni);
 }
 
 std::string java_constructor::to_string() const {
@@ -314,7 +319,7 @@ std::vector<java_field> jni_wrapper::getClassFields(const std::string &className
         jobject_wrapper<jstring> name(env->CallObjectMethod(type, class_getName), env);
         CHECK_EXCEPTION();
 
-        return util::java_type_to_jni_type(jstring_to_string(name));
+        return util::make_java_name_readable(jstring_to_string(name));
     };
 
     // Get the fields name
@@ -327,9 +332,11 @@ std::vector<java_field> jni_wrapper::getClassFields(const std::string &className
 
     // Get the field id
     const auto getFieldId = [&](const jobject_wrapper<jobject> &field, const std::string &fieldName,
-                                const std::string &signature) -> jfieldID {
+                                const std::string &sig) -> jfieldID {
         jclass javaClass = getJClass(className);
         CHECK_EXCEPTION();
+
+        const std::string signature = util::java_type_to_jni_type(sig);
 
         jfieldID id;
         if (onlyStatic) {
@@ -449,7 +456,7 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
         jobject_wrapper<jstring> str(env->CallObjectMethod(type, class_getName), env);
         CHECK_EXCEPTION();
 
-        return util::java_type_to_jni_type(jstring_to_string(str));
+        return util::make_java_name_readable(jstring_to_string(str));
     };
 
     // Get the functions parameter type
@@ -470,7 +477,7 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
             jobject_wrapper<jstring> name(env->CallObjectMethod(type, class_getName), env);
             CHECK_EXCEPTION();
 
-            res.push_back(util::java_type_to_jni_type(jstring_to_string(name)));
+            res.push_back(util::make_java_name_readable(jstring_to_string(name)));
         }
 
         return res;
@@ -485,10 +492,10 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
         std::string signature;
         signature += '(';
         for (const std::string &param : parameterTypes) {
-            signature += param;
+            signature += util::java_type_to_jni_type(param);
         }
         signature += ')';
-        signature += returnType;
+        signature += util::java_type_to_jni_type(returnType);
 
         jmethodID id;
         if (onlyStatic) {
@@ -760,6 +767,7 @@ void jni_wrapper::appendClasspath(const std::vector<std::string> &paths) {
 bool jni_wrapper::class_is_assignable(const std::string &sub, const std::string &sup) const {
     if (util::hasEnding(sub, "[]") || util::hasEnding(sup, "[]")) return false;
     if (sub == sup) return true;
+    if (util::isPrimitive(sub) || util::isPrimitive(sup)) return false;
 
     jclass clazz1 = getJClass(sub);
     jclass clazz2 = getJClass(sup);
@@ -898,43 +906,151 @@ java_field::java_field(std::string signature, std::string name, jfieldID id, boo
                        jni_wrapper env) : signature(std::move(signature)), name(std::move(name)), id(id),
                                           isStatic(isStatic), isFinal(isFinal), env(std::move(env)) {}
 
-jobject_wrapper<jobject> java_field::get(jobject classInstance) const {
+jvalue java_field::get(jobject classInstance, jobject_wrapper<jobject> &data) const {
     if (isStatic) {
         throw std::runtime_error("Tried to access a static field through a class instance");
     }
 
-    jobject_wrapper<jobject> data(env->GetObjectField(classInstance, id), env);
+    jvalue val;
+    if (signature == "int") {
+        // Value is an integer
+        val.i = env->GetIntField(classInstance, id);
+    } else if (signature == "boolean") {
+        // Value is a boolean
+        val.z = env->GetBooleanField(classInstance, id);
+    } else if (signature == "byte") {
+        // Value is a byte
+        val.b = env->GetByteField(classInstance, id);
+    } else if (signature == "char") {
+        // Value is a char
+        val.c = env->GetCharField(classInstance, id);
+    } else if (signature == "short") {
+        // Value is a short
+        val.s = env->GetShortField(classInstance, id);
+    } else if (signature == "long") {
+        // Value is a long
+        val.j = env->GetLongField(classInstance, id);
+    } else if (signature == "float") {
+        // Value is a float
+        val.f = env->GetFloatField(classInstance, id);
+    } else if (signature == "double") {
+        // Value is a double
+        val.d = env->GetDoubleField(classInstance, id);
+    } else {
+        data = jobject_wrapper<jobject>(env->GetObjectField(classInstance, id), env);
+        val.l = data.obj;
+    }
     JVM_CHECK_EXCEPTION(env);
 
-    return data;
+    return val;
 }
 
-jobject_wrapper<jobject> java_field::getStatic(jclass clazz) const {
+jvalue java_field::getStatic(jclass clazz, jobject_wrapper<jobject> &data) const {
     if (!isStatic) {
         throw std::runtime_error("Tried to access a non-static field through a static accessor");
     }
 
-    jobject_wrapper<jobject> data(env->GetStaticObjectField(clazz, id), env);
+    jvalue val;
+    if (signature == "int") {
+        // Value is an integer
+        val.i = env->GetStaticIntField(clazz, id);
+    } else if (signature == "boolean") {
+        // Value is a boolean
+        val.z = env->GetStaticBooleanField(clazz, id);
+    } else if (signature == "byte") {
+        // Value is a byte
+        val.b = env->GetStaticByteField(clazz, id);
+    } else if (signature == "char") {
+        // Value is a char
+        val.c = env->GetStaticCharField(clazz, id);
+    } else if (signature == "short") {
+        // Value is a short
+        val.s = env->GetStaticShortField(clazz, id);
+    } else if (signature == "long") {
+        // Value is a long
+        val.j = env->GetStaticLongField(clazz, id);
+    } else if (signature == "float") {
+        // Value is a float
+        val.f = env->GetStaticFloatField(clazz, id);
+    } else if (signature == "double") {
+        // Value is a double
+        val.d = env->GetStaticDoubleField(clazz, id);
+    } else {
+        data = jobject_wrapper<jobject>(env->GetStaticObjectField(clazz, id), env);
+        val.l = data.obj;
+    }
     JVM_CHECK_EXCEPTION(env);
 
-    return data;
+    return val;
 }
 
-void java_field::set(jobject classInstance, jobject data) const {
+void java_field::set(jobject classInstance, jvalue data) const {
     if (isStatic) {
         throw std::runtime_error("Tried to access a static field through a class instance");
     }
 
-    env->SetObjectField(classInstance, id, data);
+    if (signature == "int") {
+        // Value is an integer
+        env->SetIntField(classInstance, id, data.i);
+    } else if (signature == "boolean") {
+        // Value is a boolean
+        env->SetBooleanField(classInstance, id, data.z);
+    } else if (signature == "byte") {
+        // Value is a byte
+        env->SetByteField(classInstance, id, data.b);
+    } else if (signature == "char") {
+        // Value is a char
+        env->SetCharField(classInstance, id, data.c);
+    } else if (signature == "short") {
+        // Value is a short
+        env->SetShortField(classInstance, id, data.s);
+    } else if (signature == "long") {
+        // Value is a long
+        env->SetLongField(classInstance, id, data.j);
+    } else if (signature == "float") {
+        // Value is a float
+        env->SetFloatField(classInstance, id, data.f);
+    } else if (signature == "double") {
+        // Value is a double
+        env->SetDoubleField(classInstance, id, data.d);
+    } else {
+        env->SetObjectField(classInstance, id, data.l);
+    }
     JVM_CHECK_EXCEPTION(env);
 }
 
-void java_field::setStatic(jclass clazz, jobject data) const {
+void java_field::setStatic(jclass clazz, jvalue data) const {
     if (!isStatic) {
         throw std::runtime_error("Tried to access a non-static field through a static accessor");
     }
 
-    env->SetStaticObjectField(clazz, id, data);
+    if (signature == "int") {
+        // Value is an integer
+        env->SetStaticIntField(clazz, id, data.i);
+    } else if (signature == "boolean") {
+        // Value is a boolean
+        env->SetStaticBooleanField(clazz, id, data.z);
+    } else if (signature == "byte") {
+        // Value is a byte
+        env->SetStaticByteField(clazz, id, data.b);
+    } else if (signature == "char") {
+        // Value is a char
+        env->SetStaticCharField(clazz, id, data.c);
+    } else if (signature == "short") {
+        // Value is a short
+        env->SetStaticShortField(clazz, id, data.s);
+    } else if (signature == "long") {
+        // Value is a long
+        env->SetStaticLongField(clazz, id, data.j);
+    } else if (signature == "float") {
+        // Value is a float
+        env->SetStaticFloatField(clazz, id, data.f);
+    } else if (signature == "double") {
+        // Value is a double
+        env->SetStaticDoubleField(clazz, id, data.d);
+    } else {
+        env->SetStaticObjectField(clazz, id, data.l);
+    }
     JVM_CHECK_EXCEPTION(env);
 }
 

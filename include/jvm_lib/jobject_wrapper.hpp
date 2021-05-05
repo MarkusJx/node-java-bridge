@@ -33,10 +33,13 @@ namespace jni {
          * @param object the object to store
          * @param env the environment to delete the object with
          */
-        jobject_wrapper(T object, const jvm_env &env) : obj(object), releaser(nullptr) {
+        jobject_wrapper(T object, const jvm_env &env, bool localFree = true) : obj(object), releaser(nullptr) {
             obj = reinterpret_cast<T>(env->NewGlobalRef(object));
-            T obj_cpy = obj;
+            if (localFree) {
+                env->DeleteLocalRef(object);
+            }
 
+            T obj_cpy = obj;
             releaser = shared_releaser([obj_cpy, env] {
                 deleteRef(obj_cpy, env);
             });
@@ -53,11 +56,14 @@ namespace jni {
          * @param env the environment to work in
          */
         template<class = int, class = typename std::enable_if_t<std::negation_v<std::is_same<T, jobject>>, int>>
-        jobject_wrapper(jobject object, const jvm_env &env) : releaser(nullptr) {
+        jobject_wrapper(jobject object, const jvm_env &env, bool localFree = true) : releaser(nullptr) {
             // Cast object to T
             obj = reinterpret_cast<T>(env->NewGlobalRef(object));
-            T obj_cpy = obj;
+            if (localFree) {
+                env->DeleteLocalRef(object);
+            }
 
+            T obj_cpy = obj;
             releaser = shared_releaser([obj_cpy, env] {
                 deleteRef(obj_cpy, env);
             });

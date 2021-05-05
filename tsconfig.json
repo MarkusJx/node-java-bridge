@@ -1,0 +1,18 @@
+{
+  "include": [
+    "index.js",
+    "index.d.ts"
+  ],
+  "compilerOptions": {
+    "allowJs": true,
+    "target": "es6",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "lib": [
+      "ESNext"
+    ]
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}

@@ -97,6 +97,16 @@ namespace node_classes {
         Napi::Value appendToClasspathAsync(const Napi::CallbackInfo &info);
 
         /**
+         * Destroy the jvm instance.
+         * Will release the vm and make all calls to
+         * the jvm throw exceptions since the vm is dead now.
+         * Arguments: None
+         *
+         * @param info the callback info
+         */
+        static void destroyJVM(const Napi::CallbackInfo &info);
+
+        /**
          * Destroy the java object.
          * This will also unload the jvm.
          * See node_classes::jvm_container::~jvm_container

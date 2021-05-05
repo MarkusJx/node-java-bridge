@@ -62,7 +62,9 @@ Napi::Value java_instance_proxy::staticGetter(const Napi::CallbackInfo &info) {
     std::unique_lock lock(ptr->mtx);
     jni::java_field field = ptr->clazz->static_fields.at(toRetrieve);
 
-    return conversion_helper::static_java_field_to_object(field, ptr->clazz->clazz, info.Env());
+    jni::jobject_wrapper<jobject> tmp;
+    return conversion_helper::jvalue_to_napi_value(field.getStatic(ptr->clazz->clazz, tmp), field.signature,
+                                                   info.Env());
 }
 
 void java_instance_proxy::staticSetter(const Napi::CallbackInfo &info, const Napi::Value &value) {
@@ -71,7 +73,9 @@ void java_instance_proxy::staticSetter(const Napi::CallbackInfo &info, const Nap
     std::string toRetrieve(static_cast<const char *>(info.Data()));
 
     jni::java_field field = ptr->clazz->static_fields.at(toRetrieve);
-    field.setStatic(ptr->clazz->clazz, conversion_helper::value_to_jobject(info.Env(), value, field.signature));
+    std::vector<jni::jobject_wrapper<jobject>> tmp;
+    field.setStatic(ptr->clazz->clazz,
+                    conversion_helper::napi_value_to_jvalue(info.Env(), value, field.signature, tmp));
 }
 
 Napi::Value java_instance_proxy::callStaticFunction(const Napi::CallbackInfo &info) {
@@ -204,8 +208,9 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
     for (const auto &f : clazz->fields) {
         const auto getter = [f, this](const Napi::CallbackInfo &info) -> Napi::Value {
             TRY
-                return conversion_helper::jobject_to_value(info.Env(), f.second.get(object),
-                                                           f.second.signature);
+                jni::jobject_wrapper<jobject> tmp;
+                return conversion_helper::jvalue_to_napi_value(f.second.get(object, tmp), f.second.signature,
+                                                               info.Env());
             CATCH_EXCEPTIONS
         };
 
@@ -219,8 +224,9 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
                 }
 
                 TRY
+                    std::vector<jni::jobject_wrapper<jobject>> tmp;
                     f.second.set(object,
-                                 conversion_helper::value_to_jobject(info.Env(), info[0], f.second.signature));
+                                 conversion_helper::napi_value_to_jvalue(info.Env(), info[0], f.second.signature, tmp));
                 CATCH_EXCEPTIONS
             };
 
@@ -244,7 +250,7 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
             std::vector<jni::jobject_wrapper<jobject>> args;
             std::string error;
             std::vector<jvalue> values;
-            auto *func = conversion_helper::find_matching_function(info, f.second, args, error,values);
+            auto *func = conversion_helper::find_matching_function(info, f.second, args, error, values);
 
             return napi_tools::promises::promise<jvalue_converter>(info.Env(), [args, error, values, func, this] {
                 if (func == nullptr) {

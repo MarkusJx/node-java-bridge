@@ -451,18 +451,20 @@ namespace jni {
          * The field must be non-static for this to work.
          *
          * @param classInstance the class instance to get the value from
+         * @param data the jobject_wrapper to store a potential jobject in
          * @return the field's value
          */
-        jobject_wrapper<jobject> get(jobject classInstance) const;
+        jvalue get(jobject classInstance, jobject_wrapper<jobject> &data) const;
 
         /**
          * Get the field's value.
          * The field must be static for this to work.
          *
          * @param clazz the class to get the field value from
+         * @param data the jobject_wrapper to store a potential jobject in
          * @return the field's value
          */
-        jobject_wrapper<jobject> getStatic(jclass clazz) const;
+        jvalue getStatic(jclass clazz, jobject_wrapper<jobject> &data) const;
 
         /**
          * Set the field's value.
@@ -471,7 +473,7 @@ namespace jni {
          * @param classInstance the class instance
          * @param data the data to set
          */
-        void set(jobject classInstance, jobject data) const;
+        void set(jobject classInstance, jvalue data) const;
 
         /**
          * Set the field's value.
@@ -480,7 +482,7 @@ namespace jni {
          * @param clazz the class to set the field
          * @param data the data to set
          */
-        void setStatic(jclass clazz, jobject data) const;
+        void setStatic(jclass clazz, jvalue data) const;
 
         // The field's signature
         std::string signature;
