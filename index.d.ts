@@ -65,6 +65,14 @@ export class java_instance {
     public static getClass(classname: string): java_class_proxy;
 
     /**
+     * Get a class proxy. Async version
+     *
+     * @param classname the name of the class to search for
+     * @return the created java class proxy instance
+     */
+    public static getClassAsync(classname: string): Promise<java_class_proxy>;
+
+    /**
      * Destroy the jvm.
      * This will delete the java vm instance
      * and make all subsequent calls to the
@@ -203,6 +211,14 @@ declare namespace java {
      * @return the java_instance_proxy constructor
      */
     function importClass(classname: string): java_instance_proxy_constructor;
+
+    /**
+     * Import a class. Async version.
+     *
+     * @param classname the name of the class to resolve
+     * @return the java_instance_proxy constructor
+     */
+    function importClassAsync(classname: string): Promise<java_instance_proxy_constructor>;
 
     /**
      * Get the java class instance

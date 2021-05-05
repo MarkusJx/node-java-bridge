@@ -19,6 +19,7 @@ using namespace markusjx::logging;
 void java::init(Napi::Env env, Napi::Object &exports) {
     Napi::Function func = DefineClass(env, "java", {
             StaticMethod("getClass", &java::getClass, napi_enumerable),
+            StaticMethod("getClassAsync", &java::getClassAsync, napi_enumerable),
             StaticMethod("destroyJVM", &java::destroyJVM, napi_enumerable),
             InstanceMethod("appendToClasspath", &java::appendToClasspath, napi_enumerable),
             InstanceMethod("appendToClasspathAsync", &java::appendToClasspathAsync, napi_enumerable),
@@ -70,6 +71,13 @@ Napi::Value java::getClass(const Napi::CallbackInfo &info) {
     CHECK_ARGS(napi_tools::string);
     TRY
         return java_class_proxy::createInstance(info[0].ToString());
+    CATCH_EXCEPTIONS
+}
+
+Napi::Value java::getClassAsync(const Napi::CallbackInfo &info) {
+    CHECK_ARGS(napi_tools::string);
+    TRY
+        return java_class_proxy::createInstanceAsync(info[0].ToString().Utf8Value(), info.Env());
     CATCH_EXCEPTIONS
 }
 

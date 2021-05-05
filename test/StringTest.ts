@@ -16,6 +16,8 @@ declare class JString extends java_instance_proxy {
     equalsSync(other: JString): boolean;
 
     toCharArraySync(): string[];
+
+    toCharArray(): Promise<string[]>;
 }
 
 java.logging.setLogLevel(LogLevel.WARNING);
@@ -30,10 +32,16 @@ describe('StringTest', () => {
         JavaString = java.importClass('java.lang.String') as typeof JString;
     });
 
+    it('Async class resolve', async () => {
+        const JavaStringAsync = await java.importClassAsync('java.lang.String') as typeof JString;
+        const instance = await JavaStringAsync.newInstance('some text') as JString;
+
+        assert.strictEqual(await instance.toString(), "some text");
+    });
+
     let s1: JString;
     it('Create string instance', () => {
         s1 = new JavaString("some text");
-
         assert.strictEqual(s1.toStringSync(), "some text");
     });
 
@@ -66,6 +74,11 @@ describe('StringTest', () => {
         let arr = s1.toCharArraySync();
         assert.strictEqual(JSON.stringify(arr), JSON.stringify(s1.toStringSync().split("")));
     });
+
+    it('String to char array async', async () => {
+        let arr = await s1.toCharArray();
+        assert.strictEqual(JSON.stringify(arr), JSON.stringify(s1.toStringSync().split("")));
+    })
 
     it('Destroy the vm', () => {
         java.destroyJVM();

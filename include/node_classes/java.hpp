@@ -64,6 +64,17 @@ namespace node_classes {
         static Napi::Value getClass(const Napi::CallbackInfo &info);
 
         /**
+         * Create a new class proxy instance.
+         * Async version, may only be called from javascript.
+         * Arguments:
+         *      info[0] {string} the name of the class to resolve
+         *
+         * @param info the callback info
+         * @return the newly created promise
+         */
+        static Napi::Value getClassAsync(const Napi::CallbackInfo &info);
+
+        /**
          * Get a class (this can only be called from inside this module)
          *
          * @param env the environment to work in

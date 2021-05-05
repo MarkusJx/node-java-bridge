@@ -31,6 +31,16 @@ namespace node_classes {
         static Napi::Object createInstance(const Napi::String &classname);
 
         /**
+         * Create a new java_class_proxy instance.
+         * Async version.
+         *
+         * @param classname the name of the class to resolve
+         * @param env the environment to work in
+         * @return the newly created promise
+         */
+        static Napi::Value createInstanceAsync(const std::string &classname, const Napi::Env &env);
+
+        /**
          * Create a java class proxy.
          * This takes a string representing the class to fetch as its first argument.
          *
@@ -46,6 +56,14 @@ namespace node_classes {
          * @return
          */
         Napi::Value getClassConstructor(const Napi::CallbackInfo &info);
+
+        /**
+         * The java_class_proxy destructor.
+         * This will check if this was the last instance
+         * referencing the stored class and will delete
+         * the class instance from the cache if so.
+         */
+        ~java_class_proxy() override;
 
         // The jni::java_class instance
         std::shared_ptr<jni::java_class> clazz;
@@ -64,6 +82,10 @@ namespace node_classes {
 
         // The constructor pointer
         static Napi::FunctionReference *constructor;
+
+    private:
+        static std::mutex cache_mtx;
+        static std::map<std::string, std::shared_ptr<jni::java_class>> cached_classes;
     };
 }
 

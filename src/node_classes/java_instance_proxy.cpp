@@ -24,7 +24,7 @@ using namespace markusjx::logging;
  */
 class instance_def {
 public:
-    instance_def() : class_proxy() {}
+    instance_def() = default;
 
     instance_def(util::persistent_object class_proxy, jni::jobject_wrapper<jobject> object)
             : class_proxy(std::move(class_proxy)), object(std::move(object)) {}
@@ -43,7 +43,7 @@ private:
  */
 class jvalue_converter {
 public:
-    jvalue_converter() : value(), signature() {}
+    jvalue_converter() = default;
 
     jvalue_converter(jvalue value, std::string signature) : value(value), signature(std::move(signature)) {}
 
@@ -51,6 +51,7 @@ public:
         return conversion_helper::jvalue_to_napi_value(c.value, c.signature, env);
     }
 
+private:
     [[maybe_unused]] std::string signature;
     [[maybe_unused]] jvalue value;
 };

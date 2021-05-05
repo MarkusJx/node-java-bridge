@@ -64,6 +64,11 @@ module.exports = {
         ensureJVM();
         return native.java.getClass(classname).getClassConstructor();
     },
+    importClassAsync: async function(classname) {
+        ensureJVM();
+        const proxy = await native.java.getClassAsync(classname);
+        return proxy.getClassConstructor();
+    },
     getJavaInstance: function () {
         return java;
     },
