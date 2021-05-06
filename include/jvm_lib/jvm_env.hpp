@@ -71,7 +71,7 @@ namespace jni {
         // The java version used to create the vm
         jint version;
 
-    private:
+    protected:
         // The JNI environment pointer.
         // This value may differ on different
         // jvm_env instances as different instances

@@ -42,6 +42,18 @@ function ensureJVM(jvmPath = null, version = null) {
     }
 }
 
+let native_path;
+process.env.PATH += path.join(__dirname, 'build', 'Debug');
+if (fs.existsSync(path.join(__dirname, 'build', 'Debug', 'node_java_bridge.node'))) {
+    native_path = path.join(__dirname, 'build', 'Debug', 'node_java_bridge.node');
+} else if (fs.existsSync(path.join(__dirname, 'build', 'Release', 'node_java_bridge.node'))) {
+    native_path = path.join(__dirname, 'build', 'Release', 'node_java_bridge.node');
+} else {
+    throw new Error("Could not find the native binary");
+}
+
+native.setNativeLibraryPath(native_path, __dirname);
+
 let java = null;
 
 module.exports = {
@@ -82,5 +94,9 @@ module.exports = {
             native.setLoggerMode(level);
         },
         LogLevel: LogLevel
+    },
+    newProxy: function (name, obj) {
+        ensureJVM();
+        return new native.java_function_caller(name, obj);
     }
 };

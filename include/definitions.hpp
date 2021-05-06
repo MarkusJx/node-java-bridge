@@ -8,4 +8,12 @@
 #   undef JAVA_WINDOWS
 #endif
 
+#if __cplusplus >= 201603L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201603L)
+#   define JAVA_UNUSED [[maybe_unused]]
+#   define JAVA_NODISCARD [[nodiscard]]
+#else
+#   define JAVA_UNUSED
+#   define JAVA_NODISCARD
+#endif
+
 #endif //NODE_JAVA_BRIDGE_DEFINITIONS_HPP

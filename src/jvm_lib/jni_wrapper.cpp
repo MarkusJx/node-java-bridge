@@ -894,6 +894,10 @@ jvm_env &jni_wrapper::getEnv() {
     return env;
 }
 
+const jobject_wrapper<jobject> & jni_wrapper::getClassloader() const {
+    return classLoader;
+}
+
 jni_wrapper::operator jvm_env() const {
     return env;
 }

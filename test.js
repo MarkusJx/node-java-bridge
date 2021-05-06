@@ -1,10 +1,22 @@
 const java = require("./index");
 
-
+java.logging.setLogLevel(3);
 
 setTimeout(() => {
     java.ensureJVM();
     java.classpath.append("C:/Users/marku/CLionProjects/node-java-bridge/dbLib-1.0-SNAPSHOT.jar");
+    //return;
+
+    let proxy = java.newProxy('java.lang.Runnable', {
+        run: () => {
+            console.log("Run called");
+        }
+    });
+
+    let Thread = java.importClass('java.lang.Thread');
+    let thread = new Thread(proxy);
+    thread.startSync();
+
     //return;
 
     const cls = java.importClass("java.lang.String");

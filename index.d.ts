@@ -1,8 +1,15 @@
 /**
  * The native addon type
  */
+
 declare namespace native {
     const java: typeof java_instance;
+
+    const java_function_caller: typeof java_function_caller_class;
+
+    function setLoggerMode(mode: java.logging.LogLevel | number): void;
+
+    function setNativeLibraryPath(path: string, workingDir: string): void;
 }
 
 declare type basic_type = string | number | boolean;
@@ -163,6 +170,10 @@ export class java_instance_proxy extends java_object {
     public instanceOf(classname: string): boolean;
 }
 
+export class java_function_caller_class {
+    public constructor(name: string, functions: object);
+}
+
 /**
  * The main java namespace
  */
@@ -234,6 +245,8 @@ declare namespace java {
      * @return the java class instance
      */
     function getJavaInstance(): java_instance;
+
+    function newProxy(name: string, functions: object): java_function_caller_class;
 
     /**
      * Ensure that the jvm exists

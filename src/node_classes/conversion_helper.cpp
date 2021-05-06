@@ -1,4 +1,5 @@
 #include "node_classes/conversion_helper.hpp"
+#include "node_classes/java_function_caller.hpp"
 #include "node_classes/java_instance_proxy.hpp"
 #include "node_classes/jvm_container.hpp"
 #include "node_classes/java.hpp"
@@ -146,8 +147,12 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
             }
         } else {
             Napi::Object obj = value.ToObject();
-            auto *ptr = Napi::ObjectWrap<node_classes::java_instance_proxy>::Unwrap(obj);
-            TRY_RUN(return ptr->object)
+            if (node_classes::java_function_caller::instanceOf(obj)) {
+                return Napi::ObjectWrap<node_classes::java_function_caller>::Unwrap(obj)->proxy;
+            } else {
+                auto *ptr = Napi::ObjectWrap<node_classes::java_instance_proxy>::Unwrap(obj);
+                TRY_RUN(return ptr->object)
+            }
         }
     } else if (signature == "java.lang.Integer") {
         // Value is an integer
@@ -218,6 +223,10 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
         // Expecting a class instance
         CHECK_TYPE_MATCH(IsObject, object);
         Napi::Object obj = value.ToObject();
+        if (node_classes::java_function_caller::instanceOf(obj)) {
+            return Napi::ObjectWrap<node_classes::java_function_caller>::Unwrap(obj)->proxy;
+        }
+
         auto *ptr = Napi::ObjectWrap<node_classes::java_instance_proxy>::Unwrap(obj);
 
         try {
@@ -522,8 +531,15 @@ bool value_type_matches_signature(const Napi::Value &value, const std::string &s
             return false;
         }
     } else if (value.IsObject()) {
-        auto *ptr = Napi::ObjectWrap<node_classes::java_instance_proxy>::Unwrap(value.ToObject());
-        return j_env.class_is_assignable(ptr->classname, signature);
+        if (node_classes::java_function_caller::instanceOf(value.ToObject())) {
+            return !util::isPrimitive(signature) && signature != "java.lang.String" && signature != "java.lang.Byte" &&
+                   signature != "java.lang.Short" && signature != "java.lang.Integer" &&
+                   signature != "java.lang.Long" && signature != "java.lang.Float" && signature != "java.lang.Double" &&
+                   signature != "java.lang.Boolean";
+        } else {
+            auto *ptr = Napi::ObjectWrap<node_classes::java_instance_proxy>::Unwrap(value.ToObject());
+            return j_env.class_is_assignable(ptr->classname, signature);
+        }
     } else {
         return false;
     }
@@ -662,7 +678,7 @@ const jni::java_function *conversion_helper::find_matching_function(const Napi::
 
                 return &f;
             } else if ((generic == nullptr || get_num_objects(f.parameterTypes) < numObjects) &&
-                      args_match_java_types(args, f.parameterTypes, j_env, true)) {
+                       args_match_java_types(args, f.parameterTypes, j_env, true)) {
                 generic = &f;
                 numObjects = get_num_objects(f.parameterTypes);
             }

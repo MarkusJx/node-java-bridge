@@ -6,6 +6,7 @@
 #include <map>
 #include <jni.h>
 #include <util/shared_releaser.hpp>
+#include <definitions.hpp>
 
 #include "shared_library.hpp"
 #include "jobject_wrapper.hpp"
@@ -359,6 +360,13 @@ namespace jni {
          * @return a reference to the jvm_env instance
          */
         jvm_env &getEnv();
+
+        /**
+         * Get the class loader instance
+         *
+         * @return the class loader instance
+         */
+        JAVA_NODISCARD const jobject_wrapper<jobject> &getClassloader() const;
 
         /**
          * Get the jvm_env

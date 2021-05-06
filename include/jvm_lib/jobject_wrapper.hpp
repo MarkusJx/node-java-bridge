@@ -3,6 +3,7 @@
 
 #include <util/shared_releaser.hpp>
 
+#include "definitions.hpp"
 #include "jvm_env.hpp"
 
 namespace jni {
@@ -14,7 +15,7 @@ namespace jni {
      * @tparam T the java type. Must be a pointer and
      * either extend jobject or be equal to jobject
      */
-    template<class T>
+    template<class T = jobject>
     class jobject_wrapper {
     public:
         static_assert(std::is_pointer_v<T>, "T must be a pointer");
@@ -137,8 +138,12 @@ namespace jni {
          *
          * @return true if obj is not nullptr
          */
-        [[nodiscard]] bool ok() const {
+        JAVA_NODISCARD bool ok() const {
             return obj != nullptr && releaser;
+        }
+
+        JAVA_NODISCARD bool isNull() const {
+            return obj == nullptr;
         }
 
         // The stored value
@@ -157,6 +162,14 @@ namespace jni {
             if (object != nullptr && env.valid()) {
                 env.attach_env()->DeleteGlobalRef(object);
             }
+        }
+    };
+
+    template<class T = jobject>
+    class local_jobject : public jobject_wrapper<T> {
+    public:
+        explicit local_jobject(T object) : jobject_wrapper<T>() {
+            this->obj = reinterpret_cast<jobject>(object);
         }
     };
 }

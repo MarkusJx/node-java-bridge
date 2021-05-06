@@ -17,7 +17,7 @@ public:
     /**
      * Create a shared_releaser without setting a function
      */
-    shared_releaser(std::nullptr_t) noexcept: on_destroy(nullptr), use_count(new std::size_t(1)) {}
+    shared_releaser(std::nullptr_t) noexcept: on_destroy(nullptr), use_count(nullptr) {}
 
     /**
      * Create a shared_releaser
@@ -33,7 +33,7 @@ public:
      * @param rhs the other instance to copy from
      */
     shared_releaser(const shared_releaser &rhs) : use_count(rhs.use_count), on_destroy(rhs.on_destroy) {
-        ++*use_count;
+        if (use_count) ++*use_count;
     }
 
     /**
@@ -41,8 +41,8 @@ public:
      *
      * @param rhs the object to move
      */
-    shared_releaser(shared_releaser &&rhs) noexcept: use_count(rhs.use_count), on_destroy(rhs.on_destroy) {
-        rhs.use_count = new std::size_t(0);
+    shared_releaser(shared_releaser &&rhs) noexcept: use_count(rhs.use_count), on_destroy(std::move(rhs.on_destroy)) {
+        rhs.use_count = nullptr;
         rhs.on_destroy = nullptr;
     }
 
@@ -89,7 +89,7 @@ public:
         this->use_count = rhs.use_count;
         this->on_destroy = rhs.on_destroy;
 
-        ++*use_count;
+        if (use_count) ++*use_count;
     }
 
     /**
@@ -111,7 +111,7 @@ public:
         if (new_fn) {
             this->use_count = new std::size_t(1);
         } else {
-            this->use_count = new std::size_t(0);
+            this->use_count = nullptr;
         }
         this->on_destroy = new_fn;
     }
@@ -132,7 +132,7 @@ private:
      * The destruction function
      */
     void destructor() {
-        if (on_destroy && --*use_count <= 0) {
+        if (on_destroy && use_count && --*use_count <= 0) {
             on_destroy();
             delete use_count;
         } else if (!on_destroy) {

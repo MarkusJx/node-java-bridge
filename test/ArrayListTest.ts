@@ -32,9 +32,6 @@ describe('ArrayListTest', () => {
     it('Insert data', () => {
         list.addSync(123);
         assert.strictEqual(list.sizeSync(), 1);
-    });
-
-    it('Get data', () => {
         assert.strictEqual(list.getSync(0), 123);
     });
 });
