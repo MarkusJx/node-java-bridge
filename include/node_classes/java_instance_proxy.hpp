@@ -101,6 +101,16 @@ namespace node_classes {
          * @return the created class
          */
         static Napi::Value newInstance(const Napi::CallbackInfo &info);
+
+        /**
+         * Check if this is instance of another class
+         * Arguments:
+         *      info[0] {string} the name of the class to check if this is an instance of
+         *
+         * @param info the callback info
+         * @return true if this is instance of the other class
+         */
+        Napi::Value instanceOf(const Napi::CallbackInfo &info);
     };
 }
 

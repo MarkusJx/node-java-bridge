@@ -4,6 +4,7 @@
 #include "node_classes/java_instance_proxy.hpp"
 #include "node_classes/java_class_proxy.hpp"
 #include "node_classes/node_jobject_wrapper.hpp"
+#include "node_classes/jvm_container.hpp"
 #include "node_classes/java.hpp"
 #include "definitions.hpp"
 
@@ -153,6 +154,7 @@ java_instance_proxy::generateProperties(const Napi::Object &class_proxy, const N
     }
 
     properties.push_back(StaticMethod("newInstance", &java_instance_proxy::newInstance, napi_enumerable));
+    properties.push_back(InstanceMethod("instanceOf", &java_instance_proxy::instanceOf, napi_enumerable));
 
     return properties;
 }
@@ -179,6 +181,16 @@ Napi::Value java_instance_proxy::newInstance(const Napi::CallbackInfo &info) {
         jni::jobject_wrapper<jobject> j_object = constructor->newInstance(args);
         return instance_def(class_ref, j_object);
     });
+}
+
+Napi::Value java_instance_proxy::instanceOf(const Napi::CallbackInfo &info) {
+    CHECK_ARGS(napi_tools::string);
+
+    TRY
+        jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+        jclass j_clazz = j_env.getJClass(info[0].ToString().Utf8Value());
+        return Napi::Boolean::New(info.Env(), j_env->IsInstanceOf(object, j_clazz));
+    CATCH_EXCEPTIONS
 }
 
 Napi::Value java_instance_proxy::fromJObject(Napi::Env env, const jni::jobject_wrapper<jobject> &obj,

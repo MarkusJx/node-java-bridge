@@ -20,7 +20,7 @@ namespace conversion_helper {
      * @return the converted n-api value
      */
     Napi::Value jobject_to_value(const Napi::Env &env, const jni::jobject_wrapper<jobject> &obj,
-                                 const std::string &signature);
+                                 const std::string &signature, bool objects = true);
 
     /**
      * Convert a napi value to a jobject

@@ -153,6 +153,14 @@ export class java_instance_proxy extends java_object {
      * @param args the arguments to create the instance
      */
     public constructor(...args: any_type[]);
+
+    /**
+     * Check if this is an instance of another class
+     *
+     * @param classname the class to check if this is an instance of
+     * @return true if this is instance of classname
+     */
+    public instanceOf(classname: string): boolean;
 }
 
 /**

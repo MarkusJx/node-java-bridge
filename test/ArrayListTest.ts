@@ -1,18 +1,17 @@
 import java, {java_instance_proxy} from "../index";
 import assert = require("assert");
-import LogLevel = java.logging.LogLevel;
 
-declare class JArrayList extends java_instance_proxy {
+declare class JArrayList<T> extends java_instance_proxy {
     sizeSync(): number;
 
-    addSync(data: any): void;
+    addSync(data: T): void;
+
+    getSync(index: number): T;
 }
-
-
 
 describe('ArrayListTest', () => {
     let ArrayList: typeof JArrayList = null;
-    let list: JArrayList = null;
+    let list: JArrayList<number> = null;
 
     it('Create a new java instance', function () {
         java.ensureJVM();
@@ -32,5 +31,10 @@ describe('ArrayListTest', () => {
 
     it('Insert data', () => {
         list.addSync(123);
+        assert.strictEqual(list.sizeSync(), 1);
+    });
+
+    it('Get data', () => {
+        assert.strictEqual(list.getSync(0), 123);
     });
 });

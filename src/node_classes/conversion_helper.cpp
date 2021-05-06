@@ -12,10 +12,39 @@
                                 throw Napi::Error::New(env, e.what()); \
                             }
 
+std::string get_object_type(const jni::jni_wrapper &j_env, const std::string &signature,
+                            const jni::jobject_wrapper<jobject> &obj) {
+    if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Integer"))) {
+        return "java.lang.Integer";
+    } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Boolean"))) {
+        return "java.lang.Boolean";
+    } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Byte"))) {
+        return "java.lang.Byte";
+    } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Character"))) {
+        return "java.lang.Character";
+    } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Short"))) {
+        return "java.lang.Short";
+    } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Long"))) {
+        return "java.lang.Long";
+    } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Float"))) {
+        return "java.lang.Float";
+    } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Double"))) {
+        return "java.lang.Double";
+    } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.String"))) {
+        return "java.lang.String";
+    } else if (util::hasEnding(signature, "[]")) {
+        return get_object_type(j_env, signature.substr(0, signature.size() - 2), obj) + "[]";
+    } else {
+        return signature;
+    }
+}
+
 Napi::Value conversion_helper::jobject_to_value(const Napi::Env &env, const jni::jobject_wrapper<jobject> &obj,
-                                                const std::string &signature) {
+                                                const std::string &signature, bool objects) {
     jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
-    if (signature == "java.lang.Integer" || signature == "int") {
+    if (objects && signature == "java.lang.Object") {
+        TRY_RUN(return jobject_to_value(env, obj, get_object_type(j_env, signature, obj), false))
+    } else if (signature == "java.lang.Integer" || signature == "int") {
         // Value is an integer
         TRY_RUN(return Napi::Number::New(env, j_env.jobject_to_jint(obj)))
     } else if (signature == "java.lang.Boolean" || signature == "boolean") {
