@@ -57,6 +57,7 @@ module.exports = {
         }
     },
     createJVM: function (jvmPath = null, version = null) {
+        native.java.destroyJVM();
         java = null;
         ensureJVM(jvmPath, version);
     },
@@ -75,9 +76,6 @@ module.exports = {
     ensureJVM: ensureJVM,
     destroyJVM: function () {
         native.java.destroyJVM();
-    },
-    reset: function() {
-        java = null;
     },
     logging: {
         setLogLevel: function(level) {

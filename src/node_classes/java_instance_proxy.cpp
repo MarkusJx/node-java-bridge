@@ -43,7 +43,7 @@ private:
  */
 class jvalue_converter {
 public:
-    jvalue_converter() = default;
+    jvalue_converter() : value(), signature() {}
 
     jvalue_converter(jvalue value, std::string signature) : value(value), signature(std::move(signature)) {}
 
@@ -76,7 +76,7 @@ void java_instance_proxy::staticSetter(const Napi::CallbackInfo &info, const Nap
     jni::java_field field = ptr->clazz->static_fields.at(toRetrieve);
     std::vector<jni::jobject_wrapper<jobject>> tmp;
     field.setStatic(ptr->clazz->clazz,
-                    conversion_helper::napi_value_to_jvalue(info.Env(), value, field.signature, tmp));
+                    conversion_helper::napi_value_to_jvalue(info.Env(), value, field.signature, tmp, true));
 }
 
 Napi::Value java_instance_proxy::callStaticFunction(const Napi::CallbackInfo &info) {
@@ -227,7 +227,8 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
                 TRY
                     std::vector<jni::jobject_wrapper<jobject>> tmp;
                     f.second.set(object,
-                                 conversion_helper::napi_value_to_jvalue(info.Env(), info[0], f.second.signature, tmp));
+                                 conversion_helper::napi_value_to_jvalue(info.Env(), info[0], f.second.signature, tmp,
+                                                                         true));
                 CATCH_EXCEPTIONS
             };
 
@@ -274,6 +275,17 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
     } else {
         StaticLogger::debugStream << "Trying to find a matching constructor for the " << info.Length()
                                   << " provided arguments";
-        object = conversion_helper::match_constructor_arguments(info, clazz->constructors);
+        //object = conversion_helper::match_constructor_arguments(info, clazz->constructors);
+        std::vector<jni::jobject_wrapper<jobject>> outArgs;
+        std::string error;
+        const jni::java_constructor *constructor = conversion_helper::find_matching_constructor(info,
+                                                                                                clazz->constructors,
+                                                                                                outArgs, error);
+
+        if (constructor == nullptr) {
+            throw Napi::TypeError::New(info.Env(), error);
+        } else {
+            object = constructor->newInstance(outArgs);
+        }
     }
 }

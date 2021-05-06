@@ -10,7 +10,7 @@
     "build:dev": "cmake-js compile -D",
     "pretest:dev": "npm run build:dev",
     "test:dev": "node test.js --debug",
-    "postinstall": "node --unhandled-rejections=strict scripts/setJavaDllPath.js"
+    "postinstall": "node --unhandled-rejections=strict scripts/setJavaDllPath.js && npm run build"
   },
   "author": "MarkusJx",
   "license": "MIT",

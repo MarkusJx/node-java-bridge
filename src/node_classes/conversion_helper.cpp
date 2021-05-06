@@ -72,28 +72,66 @@ if (!value.check())                   \
     throw Napi::TypeError::New(env, "Expected type " #type " but got " + napi_valuetype_to_string(value.Type()))
 
 jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::Env &env, const Napi::Value &value,
-                                                                  const std::string &signature) {
+                                                                  const std::string &signature, bool objects) {
     if (value.IsNull()) {
         return jni::jobject_wrapper<jobject>();
     }
 
     jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
     markusjx::logging::StaticLogger::debugStream << "Converting value of type "
-                                                 << napi_valuetype_to_string(value.Type()) << " to java type "
+                                                 << napi_valuetype_to_string(value.Type()) << " to java object type "
                                                  << signature;
 
-    if (signature == "java.lang.Integer") {
+    if (objects && signature == "java.lang.Object") {
+        // If the function accepts objects, try to match the type by the passed js type
+        if (value.IsNumber()) {
+            if (is_integer(env, value.ToNumber())) {
+                TRY_RUN(return j_env.create_jint(value.ToNumber().Int32Value()))
+            } else {
+                TRY_RUN(return j_env.create_jdouble(value.ToNumber().DoubleValue()))
+            }
+        } else if (value.IsBigInt()) {
+            bool lossless;
+            TRY_RUN(return j_env.create_jlong(value.As<Napi::BigInt>().Int64Value(&lossless)))
+        } else if (value.IsBoolean()) {
+            TRY_RUN(return j_env.create_jboolean(value.ToBoolean().Value()))
+        } else if (value.IsString()) {
+            TRY_RUN(return j_env.string_to_jstring(value.ToString().Utf8Value()).as<jobject>())
+        } else if (value.IsArray()) {
+            auto array = value.As<Napi::Array>();
+            try {
+                jclass clazz = j_env.getJClass("java.lang.Object");
+                jint array_size = static_cast<jint>(array.Length());
+
+                jni::jobject_wrapper<jobjectArray> j_array(j_env->NewObjectArray(array_size, clazz, nullptr), j_env);
+                j_env.checkForError();
+
+                for (jint i = 0; i < array_size; i++) {
+                    j_env->SetObjectArrayElement(j_array, i, value_to_jobject(env, array.Get(i), signature, objects));
+                    j_env.checkForError();
+                }
+
+                return j_array.as<jobject>();
+            } catch (const std::exception &e) {
+                throw Napi::Error::New(env, e.what());
+            }
+        } else {
+            Napi::Object obj = value.ToObject();
+            auto *ptr = Napi::ObjectWrap<node_classes::java_instance_proxy>::Unwrap(obj);
+            TRY_RUN(return ptr->object)
+        }
+    } else if (signature == "java.lang.Integer") {
         // Value is an integer
         CHECK_TYPE_MATCH(IsNumber, number);
-        TRY_RUN(return j_env.create_jint(value.ToNumber().operator int()))
+        TRY_RUN(return j_env.create_jint(value.ToNumber().Int32Value()))
     } else if (signature == "java.lang.Boolean") {
         // Value is a boolean
         CHECK_TYPE_MATCH(IsBoolean, boolean);
-        TRY_RUN(return j_env.create_jboolean(value.ToBoolean()))
+        TRY_RUN(return j_env.create_jboolean(value.ToBoolean().Value()))
     } else if (signature == "java.lang.Byte") {
         // Value is a byte
         CHECK_TYPE_MATCH(IsNumber, number);
-        TRY_RUN(return j_env.create_jbyte((jbyte) value.ToNumber().operator int()))
+        TRY_RUN(return j_env.create_jbyte((jbyte) value.ToNumber().Int32Value()))
     } else if (signature == "java.lang.Character") {
         // Value is a char
         CHECK_TYPE_MATCH(IsString, string);
@@ -101,7 +139,7 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
     } else if (signature == "java.lang.Short") {
         // Value is a short
         CHECK_TYPE_MATCH(IsNumber, number);
-        TRY_RUN(return j_env.create_jshort((jshort) value.ToNumber().operator int()))
+        TRY_RUN(return j_env.create_jshort((jshort) value.ToNumber().Int32Value()))
     } else if (signature == "java.lang.Long") {
         // Value is a long
         if (!value.IsNumber() && !value.IsBigInt()) {
@@ -109,7 +147,7 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
         }
 
         if (value.IsNumber()) {
-            TRY_RUN(return j_env.create_jlong((jlong) value.ToNumber().operator long long()))
+            TRY_RUN(return j_env.create_jlong((jlong) value.ToNumber().Int64Value()))
         } else {
             bool lossless;
             TRY_RUN(return j_env.create_jlong(value.As<Napi::BigInt>().Int64Value(&lossless)))
@@ -117,11 +155,11 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
     } else if (signature == "java.lang.Float") {
         // Value is a float
         CHECK_TYPE_MATCH(IsNumber, number);
-        TRY_RUN(return j_env.create_jfloat(value.ToNumber().operator float()))
+        TRY_RUN(return j_env.create_jfloat(value.ToNumber().FloatValue()))
     } else if (signature == "java.lang.Double") {
         // Value is a double
         CHECK_TYPE_MATCH(IsNumber, number);
-        TRY_RUN(return j_env.create_jdouble(value.ToNumber().operator double()))
+        TRY_RUN(return j_env.create_jdouble(value.ToNumber().DoubleValue()))
     } else if (signature == "java.lang.String") {
         // Value is a string
         CHECK_TYPE_MATCH(IsString, string);
@@ -139,7 +177,7 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
             j_env.checkForError();
 
             for (jint i = 0; i < array_size; i++) {
-                j_env->SetObjectArrayElement(j_array, i, value_to_jobject(env, array.Get(i), classname));
+                j_env->SetObjectArrayElement(j_array, i, value_to_jobject(env, array.Get(i), classname, objects));
                 j_env.checkForError();
             }
 
@@ -170,25 +208,30 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
 
 jvalue conversion_helper::napi_value_to_jvalue(const Napi::Env &env, const Napi::Value &value,
                                                const std::string &signature,
-                                               std::vector<jni::jobject_wrapper<jobject>> &values) {
+                                               std::vector<jni::jobject_wrapper<jobject>> &values, bool objects) {
     jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
     markusjx::logging::StaticLogger::debugStream << "Converting value of type "
                                                  << conversion_helper::napi_valuetype_to_string(value.Type())
                                                  << " to java type " << signature;
 
     jvalue val;
-    if (signature == "int") {
+    if (objects && signature == "java.lang.Object") {
+        auto object = value_to_jobject(env, value, signature, objects);
+        values.push_back(object);
+        val.l = object;
+        return val;
+    } else if (signature == "int") {
         // Value is an integer
         CHECK_TYPE_MATCH(IsNumber, number);
         val.i = value.ToNumber().Int32Value();
     } else if (signature == "boolean") {
         // Value is a boolean
         CHECK_TYPE_MATCH(IsBoolean, boolean);
-        val.z = value.ToBoolean().operator bool();
+        val.z = value.ToBoolean().Value();
     } else if (signature == "byte") {
         // Value is a byte
         CHECK_TYPE_MATCH(IsNumber, number);
-        val.b = static_cast<jbyte>(value.ToNumber().operator unsigned int());
+        val.b = static_cast<jbyte>(value.ToNumber().Int32Value());
     } else if (signature == "char") {
         // Value is a char
         CHECK_TYPE_MATCH(IsString, string);
@@ -242,7 +285,8 @@ jvalue conversion_helper::napi_value_to_jvalue(const Napi::Env &env, const Napi:
         } else {
             auto array = value.As<Napi::Array>();
             try {
-                auto object = napi_array_to_jarray(env, j_env, signature.substr(0, signature.size() - 2), array);
+                auto object = napi_array_to_jarray(env, j_env, signature.substr(0, signature.size() - 2), array,
+                                                   objects);
                 values.push_back(object.as<jobject>());
                 val.l = object.obj;
             } catch (const std::exception &e) {
@@ -263,7 +307,7 @@ jvalue conversion_helper::napi_value_to_jvalue(const Napi::Env &env, const Napi:
             try {
                 ptr = Napi::ObjectWrap<node_classes::java_instance_proxy>::Unwrap(value.ToObject());
             } catch (...) {
-                auto object = value_to_jobject(env, value, signature);
+                auto object = value_to_jobject(env, value, signature, objects);
                 values.push_back(object);
                 val.l = object;
                 return val;
@@ -304,13 +348,13 @@ jvalue conversion_helper::napi_value_to_jvalue(const Napi::Env &env, const Napi:
 jni::jobject_wrapper<jarray> conversion_helper::napi_array_to_jarray(const Napi::Env &env,
                                                                      const jni::jni_wrapper &j_env,
                                                                      const std::string &signature,
-                                                                     const Napi::Array &array) {
+                                                                     const Napi::Array &array, bool objects) {
     if (signature == "int") {
         // Value is an integer
         POPULATE_ARRAY(jintArray, jint, NewIntArray, ToNumber().Int32Value(), SetIntArrayRegion);
     } else if (signature == "boolean") {
         // Value is a boolean
-        POPULATE_ARRAY(jbooleanArray, jboolean, NewBooleanArray, ToBoolean().operator bool(), SetBooleanArrayRegion);
+        POPULATE_ARRAY(jbooleanArray, jboolean, NewBooleanArray, ToBoolean().Value(), SetBooleanArrayRegion);
     } else if (signature == "byte") {
         // Value is a byte
         POPULATE_ARRAY(jbyteArray, jbyte, NewByteArray, ToNumber().Int32Value(), SetByteArrayRegion);
@@ -361,7 +405,7 @@ jni::jobject_wrapper<jarray> conversion_helper::napi_array_to_jarray(const Napi:
             } else {
                 j_env->SetObjectArrayElement((jobjectArray) res.obj, i,
                                              napi_array_to_jarray(env, j_env, signature.substr(0, signature.size() - 2),
-                                                                  array.Get(i).As<Napi::Array>()).obj);
+                                                                  array.Get(i).As<Napi::Array>(), objects).obj);
             }
 
             j_env.checkForError();
@@ -376,7 +420,7 @@ jni::jobject_wrapper<jarray> conversion_helper::napi_array_to_jarray(const Napi:
         std::vector<jni::jobject_wrapper<jobject>> tmp;
         for (jsize i = 0; i < arrLen; i++) {
             j_env->SetObjectArrayElement((jobjectArray) res.obj, i,
-                                         napi_value_to_jvalue(env, array.Get(i), signature, tmp).l);
+                                         napi_value_to_jvalue(env, array.Get(i), signature, tmp, objects).l);
             j_env.checkForError();
         }
 
@@ -414,8 +458,12 @@ std::string conversion_helper::napi_valuetype_to_string(napi_valuetype type) {
 }
 
 bool value_type_matches_signature(const Napi::Value &value, const std::string &signature,
-                                  const jni::jni_wrapper &j_env) {
-    if (value.IsNull()) {
+                                  const jni::jni_wrapper &j_env, bool objects) {
+    if (objects && signature == "java.lang.Object") {
+        // If passing anything as an object is allowed,
+        // and this takes an object as an argument, this matches
+        return true;
+    } else if (value.IsNull()) {
         return (!util::hasEnding(signature, "[]") && j_env.class_is_assignable("java.lang.String", signature)) ||
                util::hasEnding(signature, "[]") || !util::isPrimitive(signature);
     } else if (value.IsBoolean()) {
@@ -439,7 +487,7 @@ bool value_type_matches_signature(const Napi::Value &value, const std::string &s
             } else {
                 const uint32_t zero = 0;
                 return value_type_matches_signature(array.Get(zero), signature.substr(0, signature.size() - 2),
-                                                    j_env);
+                                                    j_env, objects);
             }
         } else {
             return false;
@@ -453,13 +501,13 @@ bool value_type_matches_signature(const Napi::Value &value, const std::string &s
 }
 
 bool args_match_java_types(const Napi::CallbackInfo &args, const std::vector<std::string> &parameterTypes,
-                           const jni::jni_wrapper &j_env) {
+                           const jni::jni_wrapper &j_env, bool objects) {
     if (args.Length() != parameterTypes.size()) {
         return false;
     }
 
     for (size_t i = 0; i < parameterTypes.size(); i++) {
-        if (!value_type_matches_signature(args[i], parameterTypes[i], j_env)) {
+        if (!value_type_matches_signature(args[i], parameterTypes[i], j_env, objects)) {
             return false;
         }
     }
@@ -469,36 +517,24 @@ bool args_match_java_types(const Napi::CallbackInfo &args, const std::vector<std
 
 std::vector<jvalue> args_to_java_arguments(const Napi::CallbackInfo &args,
                                            const std::vector<std::string> &parameterTypes,
-                                           std::vector<jni::jobject_wrapper<jobject>> &values) {
+                                           std::vector<jni::jobject_wrapper<jobject>> &values, bool objects) {
     std::vector<jvalue> arguments;
     for (size_t i = 0; i < args.Length(); i++) {
-        arguments.push_back(conversion_helper::napi_value_to_jvalue(args.Env(), args[i], parameterTypes[i], values));
+        arguments.push_back(conversion_helper::napi_value_to_jvalue(args.Env(), args[i], parameterTypes[i],
+                                                                    values, objects));
     }
 
     return arguments;
 }
 
-jni::jobject_wrapper<jobject> conversion_helper::match_constructor_arguments(const Napi::CallbackInfo &args,
-                                                                             const std::vector<jni::java_constructor> &constructors) {
-    jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
-    for (const auto &c : constructors) {
-        if (args_match_java_types(args, c.parameterTypes, j_env)) {
-            std::vector<jni::jobject_wrapper<jobject>> arguments;
-            for (size_t i = 0; i < args.Length(); i++) {
-                arguments.push_back(conversion_helper::value_to_jobject(args.Env(), args[i], c.parameterTypes[i]));
-            }
-
-            return c.newInstance(arguments);
-        }
-    }
-
-    std::stringstream ss;
-    ss << "Could not find an appropriate constructor. Options were:";
-    for (const auto &c : constructors) {
-        ss << std::endl << '\t' << c.to_string();
-    }
-
-    throw Napi::TypeError::New(args.Env(), ss.str());
+/**
+ * Check how many instances of 'java.lang.Object' a function takes
+ *
+ * @param parameterTypes the function parameter types
+ * @return the number of occurrences of java.lang.Object
+ */
+uint32_t get_num_objects(const std::vector<std::string> &parameterTypes) {
+    return std::count(parameterTypes.begin(), parameterTypes.end(), "java.lang.Object");
 }
 
 const jni::java_constructor *conversion_helper::find_matching_constructor(const Napi::CallbackInfo &args,
@@ -506,16 +542,38 @@ const jni::java_constructor *conversion_helper::find_matching_constructor(const 
                                                                           std::vector<jni::jobject_wrapper<jobject>> &outArgs,
                                                                           std::string &error) {
     jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+    const jni::java_constructor *generic_constructor = nullptr;
+    uint32_t numObjects = 0;
+
     for (const auto &c : constructors) {
-        if (args_match_java_types(args, c.parameterTypes, j_env)) {
+        if (args_match_java_types(args, c.parameterTypes, j_env, false)) {
             std::vector<jni::jobject_wrapper<jobject>> arguments;
             for (size_t i = 0; i < args.Length(); i++) {
-                arguments.push_back(conversion_helper::value_to_jobject(args.Env(), args[i], c.parameterTypes[i]));
+                arguments.push_back(
+                        conversion_helper::value_to_jobject(args.Env(), args[i], c.parameterTypes[i], false));
             }
 
             outArgs = arguments;
             return &c;
+        } else if ((generic_constructor == nullptr || get_num_objects(c.parameterTypes) < numObjects) &&
+                   args_match_java_types(args, c.parameterTypes, j_env, true)) {
+            generic_constructor = &c;
+            numObjects = get_num_objects(c.parameterTypes);
         }
+    }
+
+    // If we did not find a matching constructor but we
+    // did find a matching generic constructor using
+    // java.lang.Object, use that one
+    if (generic_constructor != nullptr) {
+        std::vector<jni::jobject_wrapper<jobject>> arguments;
+        for (size_t i = 0; i < args.Length(); i++) {
+            arguments.push_back(conversion_helper::value_to_jobject(args.Env(), args[i],
+                                                                    generic_constructor->parameterTypes[i], true));
+        }
+
+        outArgs = arguments;
+        return generic_constructor;
     }
 
     std::stringstream ss;
@@ -528,49 +586,35 @@ const jni::java_constructor *conversion_helper::find_matching_constructor(const 
     return nullptr;
 }
 
-
-Napi::TypeError throw_no_matching_fn(const Napi::Env &env, const std::vector<jni::java_function> &functions) {
-    std::stringstream ss;
-    ss << "Could not find a matching function. Options were:";
-    for (const auto &f : functions) {
-        ss << std::endl << '\t' << f.to_string();
-    }
-
-    return Napi::TypeError::New(env, ss.str());
-}
-
 Napi::Value conversion_helper::call_matching_function(const Napi::CallbackInfo &args,
                                                       const jni::jobject_wrapper<jobject> &classInstance,
                                                       const std::vector<jni::java_function> &functions) {
-    jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
-    for (const auto &f : functions) {
-        if (args_match_java_types(args, f.parameterTypes, j_env)) {
-            std::vector<jni::jobject_wrapper<jobject>> j_args;
-            std::vector<jvalue> values = args_to_java_arguments(args, f.parameterTypes, j_args);
+    std::vector<jni::jobject_wrapper<jobject>> outArgs;
+    std::string error;
+    std::vector<jvalue> values;
+    const jni::java_function *function = find_matching_function(args, functions, outArgs, error, values);
 
-            jvalue value = call_function(f, classInstance, values);
-            return jvalue_to_napi_value(value, f.returnType, args.Env());
-        }
+    if (function == nullptr) {
+        throw Napi::TypeError::New(args.Env(), error);
+    } else {
+        jvalue value = call_function(*function, classInstance, values);
+        return jvalue_to_napi_value(value, function->returnType, args.Env());
     }
-
-    throw throw_no_matching_fn(args.Env(), functions);
 }
 
 Napi::Value conversion_helper::call_matching_static_function(const Napi::CallbackInfo &args, jclass clazz,
                                                              const std::vector<jni::java_function> &functions) {
-    jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+    std::vector<jni::jobject_wrapper<jobject>> outArgs;
+    std::string error;
+    std::vector<jvalue> values;
+    const jni::java_function *function = find_matching_function(args, functions, outArgs, error, values);
 
-    for (const auto &f : functions) {
-        if (args_match_java_types(args, f.parameterTypes, j_env)) {
-            std::vector<jni::jobject_wrapper<jobject>> j_args;
-            std::vector<jvalue> values = args_to_java_arguments(args, f.parameterTypes, j_args);
-
-            jvalue value = call_static_function(f, clazz, values);
-            return jvalue_to_napi_value(value, f.returnType, args.Env());
-        }
+    if (function == nullptr) {
+        throw Napi::TypeError::New(args.Env(), error);
+    } else {
+        jvalue value = call_static_function(*function, clazz, values);
+        return jvalue_to_napi_value(value, function->returnType, args.Env());
     }
-
-    throw throw_no_matching_fn(args.Env(), functions);
 }
 
 const jni::java_function *conversion_helper::find_matching_function(const Napi::CallbackInfo &args,
@@ -580,12 +624,26 @@ const jni::java_function *conversion_helper::find_matching_function(const Napi::
                                                                     std::vector<jvalue> &outValues) {
     try {
         jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+        const jni::java_function *generic = nullptr;
+        uint32_t numObjects = 0;
+
         for (const auto &f : functions) {
-            if (args_match_java_types(args, f.parameterTypes, j_env)) {
-                outValues = args_to_java_arguments(args, f.parameterTypes, outArgs);
+            if (args_match_java_types(args, f.parameterTypes, j_env, false)) {
+                outValues = args_to_java_arguments(args, f.parameterTypes, outArgs, false);
 
                 return &f;
+            } else if ((generic == nullptr || get_num_objects(f.parameterTypes) < numObjects) &&
+                      args_match_java_types(args, f.parameterTypes, j_env, true)) {
+                generic = &f;
+                numObjects = get_num_objects(f.parameterTypes);
             }
+        }
+
+        // If we did find a function which takes java.lang.Object as types
+        // use that instead of throwing an exception
+        if (generic != nullptr) {
+            outValues = args_to_java_arguments(args, generic->parameterTypes, outArgs, true);
+            return generic;
         }
     } catch (const std::exception &e) {
         error = e.what();
@@ -843,4 +901,11 @@ conversion_helper::jvalue_to_napi_value(jvalue value, const std::string &signatu
         j_env->DeleteGlobalRef(value.l);
         return conversion_helper::jobject_to_value(env, obj, signature);
     }
+}
+
+bool conversion_helper::is_integer(const Napi::Env &env, const Napi::Number &num) {
+    return env.Global()
+            .Get("Number").As<Napi::Object>()
+            .Get("isInteger").As<Napi::Function>()
+            .Call({num}).ToBoolean().Value();
 }

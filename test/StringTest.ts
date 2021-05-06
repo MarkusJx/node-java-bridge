@@ -18,6 +18,10 @@ declare class JString extends java_instance_proxy {
     toCharArraySync(): string[];
 
     toCharArray(): Promise<string[]>;
+
+    getBytesSync(): number[];
+
+    splitSync(regex: string): string[];
 }
 
 java.logging.setLogLevel(LogLevel.WARNING);
@@ -31,6 +35,10 @@ describe('StringTest', () => {
     it('Import java.lang.String', () => {
         JavaString = java.importClass('java.lang.String') as typeof JString;
     });
+
+    it('Cached import', () => {
+        java.importClass('java.lang.String');
+    })
 
     it('Async class resolve', async () => {
         const JavaStringAsync = await java.importClassAsync('java.lang.String') as typeof JString;
@@ -79,6 +87,18 @@ describe('StringTest', () => {
         let arr = await s1.toCharArray();
         assert.strictEqual(JSON.stringify(arr), JSON.stringify(s1.toStringSync().split("")));
     })
+
+    it('String to byte array', async () => {
+        let arr = s1.getBytesSync();
+        let bytes = [...Buffer.from("some text")];
+
+        assert.strictEqual(JSON.stringify(arr), JSON.stringify(bytes));
+    });
+
+    it('String split', () => {
+        const split = s1.splitSync(" ");
+        assert.strictEqual(JSON.stringify(split), JSON.stringify(["some", "text"]));
+    });
 
     it('Destroy the vm', () => {
         java.destroyJVM();

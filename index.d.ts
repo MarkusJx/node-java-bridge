@@ -10,22 +10,6 @@ declare type basic_or_java = basic_type | java_object;
 declare type any_type = basic_or_java | basic_or_java[];
 
 /**
- * The supported java versions.
- * Your list of supported versions
- * may differ if you use a different
- * version of the jvm shared library.
- */
-export enum java_version {
-    VER_1_1 = "1.1",
-    VER_1_2 = "1.2",
-    VER_1_4 = "1.4",
-    VER_1_6 = "1.6",
-    VER_1_8 = "1.8",
-    VER_9 = "9",
-    VER_10 = "10"
-}
-
-/**
  * The java instance.
  * This holds the vm instance
  * and may only exist once in any context.
@@ -47,7 +31,7 @@ export class java_instance {
      * @param jvmPath the path to the jvm shared library (jvm.dll/.so/.dylib)
      * @param jvmVersion the jvm version to request
      */
-    public constructor(jvmPath: string, jvmVersion: java_version | string | null);
+    public constructor(jvmPath: string, jvmVersion: java.java_version | string | null);
 
     /**
      * Get the list of loaded jar files
@@ -193,6 +177,22 @@ declare namespace java {
          * @param path the path(s) to append to the class path
          */
         function appendAsync(path: string | string[]): Promise<void>;
+    }
+
+    /**
+     * The supported java versions.
+     * Your list of supported versions
+     * may differ if you use a different
+     * version of the jvm shared library.
+     */
+    enum java_version {
+        VER_1_1 = "1.1",
+        VER_1_2 = "1.2",
+        VER_1_4 = "1.4",
+        VER_1_6 = "1.6",
+        VER_1_8 = "1.8",
+        VER_9 = "9",
+        VER_10 = "10"
     }
 
     /**

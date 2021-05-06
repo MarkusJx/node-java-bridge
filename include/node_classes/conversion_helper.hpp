@@ -28,10 +28,11 @@ namespace conversion_helper {
      * @param env the environment to use
      * @param value the value to convert
      * @param signature the jobjects signature
+     * @param objects whether to convert values to java.lang.Object, if supplied
      * @return the converted jobject
      */
     jni::jobject_wrapper<jobject> value_to_jobject(const Napi::Env &env, const Napi::Value &value,
-                                                                  const std::string &signature);
+                                                   const std::string &signature, bool objects);
 
     /**
      * Convert a napi_valuetype to a string
@@ -40,16 +41,6 @@ namespace conversion_helper {
      * @return the type as a string
      */
     std::string napi_valuetype_to_string(napi_valuetype type);
-
-    /**
-     * Match a callbackInfo to constructor arguments
-     *
-     * @param args the arguments to match
-     * @param constructors the constructors to find an appropriate one from
-     * @return the created object
-     */
-    jni::jobject_wrapper<jobject> match_constructor_arguments(const Napi::CallbackInfo &args,
-                                                              const std::vector<jni::java_constructor> &constructors);
 
     /**
      * Find a matching constructor to n-api arguments
@@ -142,10 +133,11 @@ namespace conversion_helper {
      * @param value the value to convert
      * @param signature the java signature of the value
      * @param values the values. This is just here to keep jobjects alive
+     * @param objects whether to convert values to java.lang.Object, if supplied
      * @return the converted value
      */
     jvalue napi_value_to_jvalue(const Napi::Env &env, const Napi::Value &value, const std::string &signature,
-                                std::vector<jni::jobject_wrapper<jobject>> &values);
+                                std::vector<jni::jobject_wrapper<jobject>> &values, bool objects);
 
     /**
      * Convert a Napi::Array to a jarray
@@ -154,10 +146,22 @@ namespace conversion_helper {
      * @param j_env the java environment to work in
      * @param signature the signature of the java array
      * @param array the array to convert
+     * @param objects whether to convert values to java.lang.Object, if supplied
      * @return the converted array
      */
     jni::jobject_wrapper<jarray> napi_array_to_jarray(const Napi::Env &env, const jni::jni_wrapper &j_env,
-                                                      const std::string &signature, const Napi::Array &array);
+                                                      const std::string &signature, const Napi::Array &array,
+                                                      bool objects);
+
+    /**
+     * Check if a number is an integer value (not floating point).
+     * See: https://github.com/nodejs/node-addon-api/issues/265
+     *
+     * @param env the environment to work in
+     * @param num the number to check
+     * @return true if the value is not of type floating point
+     */
+    bool is_integer(const Napi::Env &env, const Napi::Number &num);
 }
 
 #endif //NODE_JAVA_BRIDGE_CONVERSION_HELPER_HPP

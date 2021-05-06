@@ -1,16 +1,18 @@
 {
   "include": [
     "index.js",
-    "index.d.ts"
+    "index.d.ts",
+    "test/**/*"
   ],
   "compilerOptions": {
     "allowJs": true,
-    "target": "es6",
+    "target": "es2020",
     "module": "commonjs",
     "esModuleInterop": true,
     "lib": [
       "ESNext"
-    ]
+    ],
+
   },
   "exclude": [
     "node_modules"
