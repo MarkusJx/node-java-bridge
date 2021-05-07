@@ -7,7 +7,7 @@ using namespace jni;
 java_exception::java_exception(const std::vector<std::string> &causes, const std::vector<std::string> &frames)
         : std::exception(), message(generateErrorMessage(causes, frames)) {}
 
-const char *java_exception::what() const {
+const char *java_exception::what() const noexcept {
     return message.c_str();
 }
 

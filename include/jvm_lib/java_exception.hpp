@@ -18,7 +18,7 @@ namespace jni {
          */
         java_exception(const std::vector<std::string> &causes, const std::vector<std::string> &frames);
 
-        [[nodiscard]] const char *what() const override;
+        [[nodiscard]] const char *what() const noexcept override;
 
     private:
         /**

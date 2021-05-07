@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include <utility>
+#include <sstream>
 
 #include "jvm_lib/jni_wrapper.hpp"
 #include "jvm_lib/java_exception.hpp"
