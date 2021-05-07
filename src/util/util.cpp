@@ -69,18 +69,30 @@ std::string util::string_replace(std::string val, char to_replace, char replacem
 jint util::string_to_java_version(const std::string &ver) {
     if (ver == "1.1") {
         return JNI_VERSION_1_1;
+#ifdef JNI_VERSION_1_2
     } else if (ver == "1.2") {
         return JNI_VERSION_1_2;
+#endif //JNI_VERSION_1_2
+#ifdef JNI_VERSION_1_4
     } else if (ver == "1.4") {
         return JNI_VERSION_1_4;
+#endif //JNI_VERSION_1_4
+#ifdef JNI_VERSION_1_6
     } else if (ver == "1.6") {
         return JNI_VERSION_1_6;
+#endif //JNI_VERSION_1_6
+#ifdef JNI_VERSION_1_8
     } else if (ver == "1.8") {
         return JNI_VERSION_1_8;
+#endif //JNI_VERSION_1_8
+#ifdef JNI_VERSION_9
     } else if (ver == "9") {
         return JNI_VERSION_9;
+#endif //JNI_VERSION_9
+#ifdef JNI_VERSION_10
     } else if (ver == "10") {
         return JNI_VERSION_10;
+#endif //JNI_VERSION_10
     } else {
         throw std::runtime_error("Invalid version string supplied: " + ver);
     }

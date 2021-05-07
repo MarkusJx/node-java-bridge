@@ -2,13 +2,15 @@
 A bridge between Node.js programs and Java APIs.
 
 The goal was to create a tool similar to [@joeferner/node-java](https://github.com/joeferner/node-java) since
-that API seems to be inactive.
+that API seems to be somewhat inactive.
 
 Key differences from [@joeferner/node-java](https://github.com/joeferner/node-java):
 * The java library is loaded dynamically, thus, the compiled binary is not bound to the specific jdk/jre it was compiled
   with, it can use basically any vm as long as the function definitions are equal to the ones from the jdk the binary
-  was compiled with.
+  was compiled with. See [notes](#library-paths) for further information.
 * Asynchronous function calls return actual Promises, rather than relying on callbacks
+* This module is actually context-aware (or at least, it should be), making it
+more compatible with electron
 
 ## Installation
 ```shell
@@ -84,40 +86,256 @@ Create the jvm instance if it does not exist.
 If the vm already exists, nothing is done, if it doesn't it will be created.
 Calling this is optional as the jvm will be created with every call to it if it doesn't already exist.
 
+See [notes](#library-paths) for further information on the jvmPath argument.
+
+See [notes](#jvm-versions) on jvm versions for further information on the version argument.
+
 **Arguments**
 * ``jvmPath?: string | null`` - The path to the jvm.(so|dylib|dll). Must include the library name.
-* ``version?: java_version | string | null`` - The version of the jvm to use
+* ``version?: java_version | string | null`` - The version of the jvm to use.
+May be something from [java_version](#enum-java_version).
 
-**Return type**
+**Returns**
 
 ``void``
+
+### createJVM
+Create the jvm instance. This will destroy the old instance
+and make all calls to it invalid.
+You may don't want to do this as the create call may fail.
+
+Calling this is optional as the jvm will be created with every
+call to it if it doesn't already exist.
+See [notes](#library-paths) for further information on the jvmPath argument.
+
+See [notes](#jvm-versions) on jvm versions for further information on the version argument.
+
+**Arguments**
+* ``jvmPath?: string | null`` - The path to the jvm.(so|dylib|dll). Must include the library name.
+* ``version?: java_version | string | null`` - The version of the jvm to use.
+May be something from [java_version](#enum-java_version).
+
+**Returns**
+
+``void``
+
+### destroyJVM
+Destroy the jvm instance and invalidate all calls to the vm.
+
+**Arguments**
+
+none
+
+**Returns**
+
+``void``
+
+### enum java_version
+An enum containing all supported java version, which is defined as:
+```ts
+enum java_version {
+    VER_1_1 = "1.1",
+    VER_1_2 = "1.2",
+    VER_1_4 = "1.4",
+    VER_1_6 = "1.6",
+    VER_1_8 = "1.8",
+    VER_9 = "9",
+    VER_10 = "10"
+}
+```
+
+For what versions are actually available view the notes on [JVM versions](#jvm-versions).
+
+### classpath
+Methods for altering the class path.
+
+#### append
+Append a single or multiple jar file(s) to the class path.
+The path should be a full path to the file.
+
+This won't actually modify the class path, for further information,
+take a look at the definition in [index.d.ts](index.d.ts) and
+[jni_wrapper.cpp](src/jvm_lib/jni_wrapper.cpp).
+
+**Arguments**
+
+* ``path: string | string[]`` - The path(s) of the file(s) to append
+
+**Returns**
+
+``void``
+
+#### appendAsync
+Append a single or multiple jar file(s) to the class path.
+The same as ``append`` but it's an async call.
+
+**Arguments**
+* ``path: string | string[]`` - The path(s) of the file(s) to append
+
+**Returns**
+
+``Promise<void>``
 
 ### importClass
 Import a java class.
 
-Since the class members and their signatures are resolved on import, this call may take some time.
+Since the class members and their signatures are resolved on import,
+this call may take some time.
 To use your time more efficiently, consider using the async version of this function.
-If a class of the same type is already imported (and not destroyed/garbage-collected), the class is
-retrieved from a cache. Therefore, no members need to be resolved, reducing the import time. The class
-is cached with the first import of the class and destroyed when the last ``java_class_proxy`` instance,
+If a class of the same type is already imported
+(and not destroyed/garbage-collected), the class is
+retrieved from a cache. Therefore, no members need to be resolved,
+reducing the import time. The class
+is cached with the first import of the class and destroyed when
+the last ``java_class_proxy`` instance,
 therefore the last imported instance, is garbage-collected.
 
 **Arguments**
 * ``classname: string`` - The class to import
 
-**Return type**
+**Returns**
 
 ``java_instance_proxy_constructor`` - The constructor function of the class
 
 ### importClassAsync
 Import a java class. Async version.
 
-The async call may be required in some cases as the class members and functions plus their signatures are resolved on
+The async call may be required in some cases as the class members
+and functions plus their signatures are resolved on
 import which may take a while. Optimizations apply.
 
 **Arguments**
 * ``classname: string`` - The class to import
 
-**Return type**
+**Returns**
 
-``Promise<java_instance_proxy_constructor>`` - The constructor function of the class wrapped in a Promise
+``Promise<java_instance_proxy_constructor>`` - The constructor function
+of the class wrapped in a Promise
+
+### getJavaInstance
+Get the ``java_instance`` instance.
+This class is the main instance which creates and destroys the jvm instances,
+plus it contains the definitions for many methods exported. Those shouldn't
+be called using the instance returned by this method, though.
+
+**Arguments**
+
+none
+
+**Returns**
+
+``java_instance``
+
+### newProxy
+Create a proxy class for implementing java interfaces in javascript.
+Be aware that any methods called from java will be run in the main thread
+as v8 doesn't really support multithreading.
+
+**Arguments**
+* ``name: string`` - The name of the interface to implement, e.g. ``java.lang.Runnable``.
+* ``functions: object`` - An object containing all methods to be overridden,
+must contain the name of the method as a key and the implementation as a value.
+
+**Returns**
+
+``java_function_caller_class`` - The created proxy
+
+### logging
+A namespace for managing logging output
+
+#### setLogLevel
+Set the log level for the java module
+
+**Arguments**
+* ``level: LogLevel | number`` - The log level to set
+
+**Returns**
+
+``void``
+
+#### LogLevel
+The supported log levels to set, which is defined as:
+```ts
+enum LogLevel {
+    // Show debug, warning and error messages
+    DEBUG = 0,
+    // Show warning and error messages
+    WARNING = 1,
+    // Only show error messages
+    ERROR = 2,
+    // Log nothing at all
+    NONE = 3
+}
+```
+
+## Notes
+### Library paths
+The module requires a jvm (which may be either a JDK or JRE)
+to be installed on the target machine
+and the java shared library must be found at runtime
+as it will be loaded dynamically by the module.
+
+Furthermore, a JDK needs to be installed and found at compile
+time as the headers are used for type definitions, but the native module
+is not linked against any libraries to not bind it to a specific java implementation. The JDK/JRE is found using [find-java-home](https://github.com/jsdevel/node-find-java-home), read the documentation, to see how it finds the
+JDK/JRE. At runtime, the shared library is loaded dynamically.
+
+The path to the ``jvm.(so|dylib|dll)`` is determined on
+``install`` and stored in ``module_path/jvmLibPath.json``.
+If you want to use another jvm than the pre-determined one,
+you may want to pass a path to ``java.ensureJVM`` or ``java.createJVM``
+before calling any java functions. If no path (or ``null``)
+is passed, the default path will be used.
+
+You may want to pass a path like this:
+```ts
+// A jvm.dll path on a windows system
+const jvm_path = "C:\\Program Files\\AdoptOpenJDK\\jdk-11.0.10.9-hotspot\\bin\\client\\jvm.dll";
+
+// The version argument is optional
+java.ensureJVM(jvm_path);
+
+// The same works for
+java.createJVM(jvm_path);
+```
+
+Again, passing no path will cause the module to use the path
+provided by ``module_path/jvmLibPath.json``:
+```ts
+// Use the default path
+java.ensureJVM(null);
+
+// The first argument is optional,
+// so you could just write:
+java.ensureJVM();
+```
+
+#### Notes on the independence of the module regarding the JDK/JRE
+> If the module was compiled using the x64 architecture (64bit),
+> it is impossible to load a x86 (32bit) jvm shared library.
+> The same applies for native modules compiled as a 32 bit library.
+> Therefore, it is important to always match the target architecture
+> for both @markusjx/java, the JDK it is compiled with and the JDK/JRE
+> it will use to create virtual machines.
+>
+> This also implies that the architecture of the jni headers
+> must match the target architecture of the module, as any
+> defined types and their lengths may not match the required lengths.
+
+### JVM versions
+If no version argument (or null) is passed to either ``java.ensureJVM``
+or ``java.createJVM``, a default version will be chosen,
+which is one of ``1.6`` or ``1.8``. Version ``1.8`` is chosen if the binary
+was compiled with a jvm supporting version ``1.8``, if it does not, version
+``1.6`` is chosen.
+
+If neither version was defined at compile time, version ``1.1`` is chosen.
+
+In general, if a version wasn't available at compile time (the found jvm, defined
+by ``JAVA_HOME`` had a lower version than that version, whatever it may be),
+this version won't be available until the module is compiled with never versions
+of the jvm library headers, which define this version.
+
+In general, compiling the module with newer versions of the headers and running
+it with any older java version may lead to unexpected results and requesting
+a newer version will fail (obviously).

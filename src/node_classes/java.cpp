@@ -9,8 +9,10 @@
 
 #ifdef JNI_VERSION_1_8
 #   define JNI_DEFAULT_VERSION JNI_VERSION_1_8
-#else
+#elif defined(JNI_VERSION_1_6)
 #   define JNI_DEFAULT_VERSION JNI_VERSION_1_6
+#else
+#   define JNI_DEFAULT_VERSION JNI_VERSION_1_1
 #endif
 
 using namespace node_classes;
