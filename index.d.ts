@@ -1,7 +1,8 @@
 /**
- * The native addon type
+ * The native addon type.
+ * Documentation for the implemented methods
+ * is provided in the native C++ code.
  */
-
 declare namespace native {
     const java: typeof java_instance;
 
@@ -170,7 +171,16 @@ export class java_instance_proxy extends java_object {
     public instanceOf(classname: string): boolean;
 }
 
+/**
+ * The class for implementing java interfaces
+ */
 export class java_function_caller_class {
+    /**
+     * Create a function_caller_class instance
+     *
+     * @param name the name if the interface to implement
+     * @param functions the functions to override
+     */
     public constructor(name: string, functions: object);
 }
 
@@ -246,6 +256,18 @@ declare namespace java {
      */
     function getJavaInstance(): java_instance;
 
+    /**
+     * Create a proxy for a java interface.
+     * The functions must be supplied in an object with the name
+     * of the function to override as a key and the function
+     * as a value. Any function called from java will be run
+     * in the node main thread (v8 doesn't really support multithreading),
+     * therefore a queue is used to call the functions, which may
+     * take a while, so keep that in mind.
+     *
+     * @param name the name of the interface to 'implement'
+     * @param functions the functions to implement
+     */
     function newProxy(name: string, functions: object): java_function_caller_class;
 
     /**

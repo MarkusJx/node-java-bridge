@@ -56,7 +56,7 @@ namespace jni {
          * @param object the object to wrap around
          * @param env the environment to work in
          */
-        template<class = int, class = typename std::enable_if_t<std::negation_v<std::is_same<T, jobject>>, int>>
+        template<class U = T, class = typename std::enable_if_t<std::negation_v<std::is_same<U, jobject>>, int>>
         jobject_wrapper(jobject object, const jvm_env &env, bool localFree = true) : releaser(nullptr) {
             // Cast object to T
             obj = reinterpret_cast<T>(env->NewGlobalRef(object));

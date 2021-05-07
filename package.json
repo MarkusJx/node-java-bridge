@@ -18,7 +18,7 @@
     "bindings": "^1.5.0"
   },
   "devDependencies": {
-    "@markusjx/n-api-tools": "^1.0.9",
+    "@markusjx/n-api-tools": "^1.1.0",
     "@types/bindings": "^1.5.0",
     "@types/mocha": "^8.2.2",
     "@types/node": "^15.0.2",

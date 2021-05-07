@@ -1,8 +1,7 @@
 #include <fstream>
 #include <iostream>
-#include <napi_tools.hpp>
-#include <node_classes/java_instance_proxy.hpp>
 
+#include "node_classes/java_instance_proxy.hpp"
 #include "node_classes/jvm_container.hpp"
 #include "node_classes/conversion_helper.hpp"
 #include "definitions.hpp"
@@ -12,58 +11,29 @@
 
 using namespace node_classes;
 
+const char *JAVA_CLASS_PATH = "/io/github/markusjx/bridge/JavaFunctionCaller.class";
+
 class node_classes::java_function_caller::value_converter {
 public:
     value_converter() = default;
 
-    JAVA_UNUSED static value_converter fromNapiValue(const Napi::Value &val) {
+    JAVA_UNUSED static value_converter fromNapiValue(const Napi::Env &env, const Napi::Value &val) {
         value_converter c;
-        c.object = convert_value(val);
+        try {
+            if (val.IsNull() || val.IsUndefined()) {
+                c.object = jni::jobject_wrapper();
+            } else {
+                c.object = conversion_helper::value_to_jobject(env, val, "java.lang.Object", true);
+            }
+        } catch (const std::exception &e) {
+            std::cerr << __FILE__ << ':' << __LINE__ << " " << e.what() << std::endl;
+            c.object = jni::jobject_wrapper();
+        }
 
         return c;
     }
 
     jni::jobject_wrapper<jobject> object;
-
-private:
-    static jni::jobject_wrapper<jobject> convert_value(const Napi::Value &value) {
-        jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
-
-        if (value.IsNull() || value.IsUndefined()) {
-            return jni::jobject_wrapper();
-        } else if (value.IsNumber()) {
-            return j_env.create_jint(value.ToNumber().Int32Value());
-        } else if (value.IsBigInt()) {
-            bool lossless;
-            return j_env.create_jlong(value.As<Napi::BigInt>().Int64Value(&lossless));
-        } else if (value.IsBoolean()) {
-            return j_env.create_jboolean(value.ToBoolean().Value());
-        } else if (value.IsString()) {
-            return j_env.string_to_jstring(value.ToString().Utf8Value()).as<jobject>();
-        } else if (value.IsArray()) {
-            auto array = value.As<Napi::Array>();
-            jclass clazz = j_env.getJClass("java.lang.Object");
-            jint array_size = static_cast<jint>(array.Length());
-
-            jni::jobject_wrapper<jobjectArray> j_array(j_env->NewObjectArray(array_size, clazz, nullptr), j_env);
-            j_env.checkForError();
-
-            for (jint i = 0; i < array_size; i++) {
-                j_env->SetObjectArrayElement(j_array, i, convert_value(array.Get(i)));
-                j_env.checkForError();
-            }
-
-            return j_array.as<jobject>();
-        } else {
-            Napi::Object obj = value.ToObject();
-            if (node_classes::java_function_caller::instanceOf(obj)) {
-                return Napi::ObjectWrap<node_classes::java_function_caller>::Unwrap(obj)->proxy;
-            } else {
-                auto *ptr = Napi::ObjectWrap<node_classes::java_instance_proxy>::Unwrap(obj);
-                return ptr->object;
-            }
-        }
-    }
 };
 
 JAVA_UNUSED jobject
@@ -72,16 +42,7 @@ Java_io_github_markusjx_bridge_JavaFunctionCaller_callNodeFunction(JNIEnv *env, 
     try {
         const auto caller = (java_function_caller *) ptr;
 
-        std::vector<napi_value> values;
-        if (args != nullptr) {
-            const jsize numArgs = env->GetArrayLength(args);
-            values.resize(numArgs);
-            for (jsize i = 0; i < numArgs; i++) {
-                jni::local_jobject obj(env->GetObjectArrayElement(args, i));
-                values[i] = conversion_helper::jobject_to_value(caller->Env(), obj, "java.lang.Object");
-            }
-        }
-
+        // Get the name of the method to invoke
         jclass Method = env->GetObjectClass(method);
         jmethodID getName = env->GetMethodID(Method, "getName", "()Ljava/lang/String;");
 
@@ -91,7 +52,8 @@ Java_io_github_markusjx_bridge_JavaFunctionCaller_callNodeFunction(JNIEnv *env, 
         std::string name(chars);
         env->ReleaseStringUTFChars(j_name, chars);
 
-        java_function_caller::value_converter res = caller->functions.at(name).callSync(args);
+        // Call the js function and await the result
+        java_function_caller::value_converter res = caller->functions.at(name).callSync(args, env);
         if (res.object.isNull()) {
             return nullptr;
         } else {
@@ -103,7 +65,32 @@ Java_io_github_markusjx_bridge_JavaFunctionCaller_callNodeFunction(JNIEnv *env, 
     }
 }
 
-const char *JAVA_CLASS_PATH = "/io/github/markusjx/bridge/JavaFunctionCaller.class";
+/**
+ * Convert a java argument array to a vector of napi_values
+ *
+ * @param env the n-api environment to use
+ * @param args the arguments to convert
+ * @param jniEnv the jni environment to use
+ * @return the converted values
+ */
+std::vector<napi_value> convert_object(const Napi::Env &env, jobjectArray args, JNIEnv *jniEnv) {
+    try {
+        std::vector<napi_value> values;
+        if (args != nullptr) {
+            const jsize numArgs = jniEnv->GetArrayLength(args);
+            values.resize(numArgs);
+            for (jsize i = 0; i < numArgs; i++) {
+                jni::local_jobject obj(jniEnv->GetObjectArrayElement(args, i));
+                values[i] = conversion_helper::jobject_to_value(env, obj, "java.lang.Object");
+            }
+        }
+
+        return values;
+    } catch (const std::exception &e) {
+        jniEnv->ThrowNew(jniEnv->FindClass("java/lang/Exception"), e.what());
+        return std::vector<napi_value>();
+    }
+}
 
 void java_function_caller::setLibraryPath(const std::string &path, const std::string &workingDir) {
     nativeLibPath = path;
@@ -129,7 +116,7 @@ bool java_function_caller::instanceOf(const Napi::Object &object) {
     }
 }
 
-void java_function_caller::init(Napi::Env env, Napi::Object &exports) {
+void java_function_caller::init(Napi::Env &env, Napi::Object &exports) {
     Napi::Function func = DefineClass(env, "java_function_caller", {});
 
     constructor = new Napi::FunctionReference();
@@ -155,14 +142,10 @@ java_function_caller::java_function_caller(const Napi::CallbackInfo &info) : Obj
         jobjectArray arr = jvm->NewObjectArray((jsize) names.Length(), jvm->FindClass("java/lang/String"), nullptr);
         jvm.checkForError();
 
-        const auto converter = [](const Napi::Env &env, jobjectArray args) -> std::vector<napi_value> {
-            return {};
-        };
-
         for (uint32_t i = 0; i < names.Length(); i++) {
             Napi::String name = names.Get(i).ToString();
             if (obj.Get(name).IsFunction()) {
-                callback c(info.Env(), obj.Get(name).As<Napi::Function>(), converter);
+                callback c(info.Env(), obj.Get(name).As<Napi::Function>(), convert_object);
                 functions.insert(std::pair<std::string, callback>(name.Utf8Value(), c));
                 jvm->SetObjectArrayElement(arr, (jsize) i, jvm.string_to_jstring(name.Utf8Value()));
             } else {
