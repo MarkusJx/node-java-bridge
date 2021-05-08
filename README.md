@@ -5,6 +5,8 @@ A bridge between Node.js programs and Java APIs.
 The goal was to create a tool similar to [@joeferner/node-java](https://github.com/joeferner/node-java) since that API
 seems to be somewhat inactive.
 
+**This project is still under development, thus, bugs may occur.** Feel free to submit them.
+
 Key differences from [@joeferner/node-java](https://github.com/joeferner/node-java):
 
 * The java library is loaded dynamically, thus, the compiled binary is not bound to the specific jdk/jre it was compiled
