@@ -928,10 +928,10 @@ conversion_helper::jvalue_to_napi_value(jvalue value, const std::string &signatu
         return Napi::String::New(env, std::string({static_cast<char>(value.c)}));
     } else if (signature == "short") {
         // Value is a short
-        return Napi::Number::From(env, int64_t(value.s));
+        return Napi::Number::From(env, value.s);
     } else if (signature == "long") {
         // Value is a long
-        return Napi::BigInt::New(env, value.j);
+        return Napi::BigInt::New(env, int64_t(value.j));
     } else if (signature == "float") {
         // Value is a float
         return Napi::Number::From(env, value.f);
