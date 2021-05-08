@@ -13,9 +13,14 @@ declare namespace native {
     function setNativeLibraryPath(path: string, workingDir: string): void;
 }
 
-declare type basic_type = string | number | boolean;
+declare type basic_type = string | number | boolean | BigInt;
 declare type basic_or_java = basic_type | java_object;
 declare type any_type = basic_or_java | basic_or_java[];
+
+/**
+ * All types accepted by java
+ */
+export type java_type = any_type;
 
 /**
  * The java instance.
@@ -109,7 +114,7 @@ export abstract class java_object {
  * {@link java_class_proxy.getClassConstructor()}
  * function.
  */
-declare class java_class_proxy extends java_object {
+declare class java_class_proxy {
     /**
      * The class name
      */
@@ -169,12 +174,25 @@ export class java_instance_proxy extends java_object {
      * @return true if this is instance of classname
      */
     public instanceOf(classname: string): boolean;
+
+    /**
+     * Any function imported
+     */
+    [key: string]: (...args: any) => any;
+}
+
+/**
+ * An interface defining the proxy function object layout.
+ * See: https://stackoverflow.com/a/56217448
+ */
+interface ProxyFunctions {
+    [key: string]: (...args: any) => any;
 }
 
 /**
  * The class for implementing java interfaces
  */
-export class java_function_caller_class {
+export class java_function_caller_class extends java_object {
     /**
      * Create a function_caller_class instance
      *
@@ -268,7 +286,7 @@ declare namespace java {
      * @param name the name of the interface to 'implement'
      * @param functions the functions to implement
      */
-    function newProxy(name: string, functions: object): java_function_caller_class;
+    function newProxy(name: string, functions: ProxyFunctions): java_function_caller_class;
 
     /**
      * Ensure that the jvm exists

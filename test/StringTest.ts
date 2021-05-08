@@ -27,7 +27,7 @@ declare class JString extends java_instance_proxy {
 java.logging.setLogLevel(LogLevel.WARNING);
 
 describe('StringTest', () => {
-    it('Create vm', function () {
+    it('Ensure jvm', () => {
         java.ensureJVM();
     });
 
@@ -98,9 +98,5 @@ describe('StringTest', () => {
     it('String split', () => {
         const split = s1.splitSync(" ");
         assert.strictEqual(JSON.stringify(split), JSON.stringify(["some", "text"]));
-    });
-
-    it('Destroy the vm', () => {
-        java.destroyJVM();
     });
 });

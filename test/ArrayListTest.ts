@@ -1,37 +1,158 @@
-import java, {java_instance_proxy} from "../index";
+import java, {java_instance_proxy, java_type} from "../index";
 import assert = require("assert");
+import {it} from "mocha";
 
-declare class JArrayList<T> extends java_instance_proxy {
+declare class List<T extends java_type> extends java_instance_proxy {
+    size(): Promise<number>;
+
     sizeSync(): number;
+
+    add(data: T): Promise<void>;
 
     addSync(data: T): void;
 
+    get(index: number): Promise<T>;
+
     getSync(index: number): T;
+
+    toArray(): Promise<T[]>;
+
+    toArraySync(): T[];
+
+    isEmpty(): Promise<boolean>;
+
+    isEmptySync(): boolean;
+
+    contains(value: T): Promise<boolean>;
+
+    containsSync(value: T): boolean;
+
+    clear(): Promise<void>;
+
+    clearSync(): void;
+
+    lastIndexOf(value: T): Promise<number>;
+
+    lastIndexOfSync(value: T): number;
+
+    remove(index: number): Promise<T>;
+
+    removeSync(index: number): T;
 }
 
 describe('ArrayListTest', () => {
-    let ArrayList: typeof JArrayList = null;
-    let list: JArrayList<number> = null;
+    let ArrayList: typeof List = null;
+    let list: List<java_type> = null;
 
-    it('Create a new java instance', function () {
+    it('Ensure jvm', () => {
         java.ensureJVM();
     });
 
     it('Import java.util.ArrayList', () => {
-        ArrayList = java.importClass('java.util.ArrayList') as typeof JArrayList;
+        ArrayList = java.importClass('java.util.ArrayList') as typeof List;
     })
 
     it('Create a new ArrayList', () => {
         list = new ArrayList();
+        assert.notStrictEqual(list, null);
+        assert.strictEqual(list.isEmptySync(), true);
     });
 
     it('Get the list size', () => {
         assert.strictEqual(list.sizeSync(), 0);
     });
 
-    it('Insert data', () => {
+    const elements = [];
+
+    it('Insert int', () => {
         list.addSync(123);
+        elements.push(123);
+
+        assert.strictEqual(list.containsSync(123), true);
         assert.strictEqual(list.sizeSync(), 1);
         assert.strictEqual(list.getSync(0), 123);
+    });
+
+    it('Insert string', () => {
+        const val = "Some string";
+        list.addSync(val);
+        elements.push(val);
+
+        assert.strictEqual(list.lastIndexOfSync(val), 1);
+        assert.strictEqual(list.sizeSync(), 2);
+        assert.strictEqual(list.getSync(1), val);
+    });
+
+    it('Insert long', () => {
+        let long = BigInt(2313213213);
+        list.addSync(long);
+        elements.push(long);
+
+        assert.strictEqual(list.sizeSync(), 3);
+        assert.strictEqual(list.getSync(2), long);
+    });
+
+    it('Insert double async', async () => {
+        const double = 12.21341;
+        await list.add(double);
+        elements.push(double);
+
+        assert.strictEqual(await list.lastIndexOf(double), 3);
+        assert.strictEqual(await list.contains(double), true);
+        assert.strictEqual(await list.isEmpty(), false);
+        assert.strictEqual(await list.size(), 4);
+        assert.strictEqual(await list.get(3), double);
+    });
+
+    it('Insert Float', () => {
+        const Float = java.importClass('java.lang.Float');
+        const val = new Float(1232.248);
+
+        list.addSync(val);
+        elements.push(val.doubleValueSync());
+    });
+
+    it('toArray', () => {
+        // Create a conversion helper as json
+        // doesn't know how to serialize a BigInt
+        const converter = (key, value) => {
+            if (typeof value === 'bigint') {
+                return value.toString();
+            } else {
+                return value;
+            }
+        }
+
+        assert.strictEqual(JSON.stringify(list.toArraySync(), converter), JSON.stringify(elements, converter));
+    });
+
+    it('List remove', () => {
+        assert.strictEqual(list.removeSync(0), 123);
+        assert.strictEqual(list.sizeSync(), 4);
+    });
+
+    it('List remove async', async () => {
+        assert.strictEqual(await list.remove(0), "Some string");
+        assert.strictEqual(await list.size(), 3);
+    });
+
+    let list_cpy: List<java_type> = null;
+
+    it('List copy', () => {
+        list_cpy = new ArrayList(list);
+
+        assert.strictEqual(list.sizeSync(), list_cpy.sizeSync());
+    });
+
+    it('List clear', () => {
+        list.clearSync();
+        assert.strictEqual(list.isEmptySync(), true);
+        assert.strictEqual(list.sizeSync(), 0);
+    });
+
+    it('List clear async', async () => {
+        await list_cpy.clear();
+        assert.strictEqual(await list_cpy.isEmpty(), true);
+        assert.strictEqual(await list_cpy.size(), 0);
     });
 });

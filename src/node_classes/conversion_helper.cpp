@@ -62,7 +62,7 @@ Napi::Value conversion_helper::jobject_to_value(const Napi::Env &env, const jni:
         TRY_RUN(return Napi::Number::New(env, j_env.jobject_to_jshort(obj)))
     } else if (signature == "java.lang.Long" || signature == "long") {
         // Value is a long
-        TRY_RUN(return Napi::BigInt::New(env, j_env.jobject_to_jlong(obj)))
+        TRY_RUN(return Napi::BigInt::New(env, int64_t(j_env.jobject_to_jlong(obj))))
     } else if (signature == "java.lang.Float" || signature == "float") {
         // Value is a float
         TRY_RUN(return Napi::Number::New(env, j_env.jobject_to_jfloat(obj)))
@@ -99,7 +99,8 @@ Napi::Value conversion_helper::jobject_to_value(const Napi::Env &env, const jni:
 
 #define CHECK_TYPE_MATCH(check, type) \
 if (!value.check())                   \
-    throw Napi::TypeError::New(env, "Expected type " #type " but got " + napi_valuetype_to_string(value.Type()))
+    throw Napi::TypeError::New(env, __FILE__ ":" + std::to_string(__LINE__) + " Expected type " #type " but got " + \
+                                napi_valuetype_to_string(value.Type()))
 
 jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::Env &env, const Napi::Value &value,
                                                                   const std::string &signature, bool objects) {
@@ -154,27 +155,27 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
                 TRY_RUN(return ptr->object)
             }
         }
-    } else if (signature == "java.lang.Integer") {
+    } else if (signature == "java.lang.Integer" || signature == "int") {
         // Value is an integer
         CHECK_TYPE_MATCH(IsNumber, number);
         TRY_RUN(return j_env.create_jint(value.ToNumber().Int32Value()))
-    } else if (signature == "java.lang.Boolean") {
+    } else if (signature == "java.lang.Boolean" || signature == "boolean") {
         // Value is a boolean
         CHECK_TYPE_MATCH(IsBoolean, boolean);
         TRY_RUN(return j_env.create_jboolean(value.ToBoolean().Value()))
-    } else if (signature == "java.lang.Byte") {
+    } else if (signature == "java.lang.Byte" || signature == "byte") {
         // Value is a byte
         CHECK_TYPE_MATCH(IsNumber, number);
         TRY_RUN(return j_env.create_jbyte((jbyte) value.ToNumber().Int32Value()))
-    } else if (signature == "java.lang.Character") {
+    } else if (signature == "java.lang.Character" || signature == "char") {
         // Value is a char
         CHECK_TYPE_MATCH(IsString, string);
         TRY_RUN(return j_env.create_jchar(value.ToString().Utf16Value()[0]))
-    } else if (signature == "java.lang.Short") {
+    } else if (signature == "java.lang.Short" || signature == "short") {
         // Value is a short
         CHECK_TYPE_MATCH(IsNumber, number);
         TRY_RUN(return j_env.create_jshort((jshort) value.ToNumber().Int32Value()))
-    } else if (signature == "java.lang.Long") {
+    } else if (signature == "java.lang.Long" || signature == "long") {
         // Value is a long
         if (!value.IsNumber() && !value.IsBigInt()) {
             throw Napi::TypeError::New(env, "Expected type number but got " + napi_valuetype_to_string(value.Type()));
@@ -186,11 +187,11 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
             bool lossless;
             TRY_RUN(return j_env.create_jlong(value.As<Napi::BigInt>().Int64Value(&lossless)))
         }
-    } else if (signature == "java.lang.Float") {
+    } else if (signature == "java.lang.Float" || signature == "float") {
         // Value is a float
         CHECK_TYPE_MATCH(IsNumber, number);
         TRY_RUN(return j_env.create_jfloat(value.ToNumber().FloatValue()))
-    } else if (signature == "java.lang.Double") {
+    } else if (signature == "java.lang.Double" || signature == "double") {
         // Value is a double
         CHECK_TYPE_MATCH(IsNumber, number);
         TRY_RUN(return j_env.create_jdouble(value.ToNumber().DoubleValue()))
@@ -281,7 +282,8 @@ jvalue conversion_helper::napi_value_to_jvalue(const Napi::Env &env, const Napi:
     } else if (signature == "long") {
         // Value is a long
         if (!value.IsNumber() && !value.IsBigInt())
-            throw Napi::TypeError::New(env, "Expected type number but got " + napi_valuetype_to_string(value.Type()));
+            throw Napi::TypeError::New(env, __FILE__ ":" + std::to_string(__LINE__) +
+                                            "Expected type number but got " + napi_valuetype_to_string(value.Type()));
 
         if (value.IsNumber()) {
             val.j = static_cast<jlong>(value.ToNumber().Int64Value());
@@ -300,8 +302,8 @@ jvalue conversion_helper::napi_value_to_jvalue(const Napi::Env &env, const Napi:
     } else if (signature == "java.lang.String") {
         // Value is a string
         if (!value.IsString() && !value.IsNull()) {
-            throw Napi::TypeError::New(env, "Expected type string but got " +
-                                            napi_valuetype_to_string(value.Type()));
+            throw Napi::TypeError::New(env, __FILE__ ":" + std::to_string(__LINE__) +
+                                            " Expected type string but got " + napi_valuetype_to_string(value.Type()));
         }
 
         if (value.IsNull()) {
@@ -314,8 +316,8 @@ jvalue conversion_helper::napi_value_to_jvalue(const Napi::Env &env, const Napi:
     } else if (util::hasEnding(signature, "[]")) {
         // Expecting an array
         if (!value.IsArray() && !value.IsNull()) {
-            throw Napi::TypeError::New(env, "Expected type array but got " +
-                                            napi_valuetype_to_string(value.Type()));
+            throw Napi::TypeError::New(env, __FILE__ ":" + std::to_string(__LINE__) +
+                                            " Expected type array but got " + napi_valuetype_to_string(value.Type()));
         }
 
         if (value.IsNull()) {
@@ -334,8 +336,8 @@ jvalue conversion_helper::napi_value_to_jvalue(const Napi::Env &env, const Napi:
     } else {
         // Expecting a class instance
         if (!value.IsObject() && !value.IsNull()) {
-            throw Napi::TypeError::New(env, "Expected type object but got " +
-                                            napi_valuetype_to_string(value.Type()));
+            throw Napi::TypeError::New(env, __FILE__ ":" + std::to_string(__LINE__) +
+                                            " Expected type object but got " + napi_valuetype_to_string(value.Type()));
         }
 
         if (value.IsNull()) {
@@ -514,9 +516,10 @@ bool value_type_matches_signature(const Napi::Value &value, const std::string &s
     } else if (value.IsBigInt()) {
         return signature == "java.lang.Long" || signature == "long";
     } else if (value.IsString()) {
-        return (!util::hasEnding(signature, "[]") && j_env.class_is_assignable("java.lang.String", signature)) ||
-               (value.ToString().Utf8Value().size() == 1 &&
-                (signature == "java.lang.Character" || signature == "char"));
+        return (!util::hasEnding(signature, "[]") && signature != "java.lang.Object" &&
+                j_env.class_is_assignable("java.lang.String", signature)) ||
+               (value.ToString().Utf8Value().size() == 1 && signature != "java.lang.Object" &&
+                (j_env.class_is_assignable("java.lang.Character", signature) || signature == "char"));
     } else if (value.IsArray()) {
         if (util::hasEnding(signature, "[]")) {
             const auto array = value.As<Napi::Array>();
@@ -868,7 +871,7 @@ Napi::Value jarray_to_napi_value(jarray array, const std::string &signature, con
         // Value is a long
         jlong *elements = j_env->GetLongArrayElements((jlongArray) array, nullptr);
         for (uint32_t i = 0; i < length; i++) {
-            res.Set(i, Napi::BigInt::New(env, elements[i]));
+            res.Set(i, Napi::BigInt::New(env, int64_t(elements[i])));
         }
 
         j_env->ReleaseLongArrayElements((jlongArray) array, elements, 0);
@@ -925,7 +928,7 @@ conversion_helper::jvalue_to_napi_value(jvalue value, const std::string &signatu
         return Napi::String::New(env, std::string({static_cast<char>(value.c)}));
     } else if (signature == "short") {
         // Value is a short
-        return Napi::Number::From(env, value.s);
+        return Napi::Number::From(env, int64_t(value.s));
     } else if (signature == "long") {
         // Value is a long
         return Napi::BigInt::New(env, value.j);

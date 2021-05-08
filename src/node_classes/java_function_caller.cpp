@@ -128,9 +128,9 @@ void java_function_caller::init(Napi::Env &env, Napi::Object &exports) {
 
 java_function_caller::java_function_caller(const Napi::CallbackInfo &info) : ObjectWrap(info), functions() {
     CHECK_ARGS(napi_tools::string, napi_tools::object);
-    jni::jni_wrapper jvm = node_classes::jvm_container::attachJvm();
 
     TRY
+        jni::jni_wrapper jvm = node_classes::jvm_container::attachJvm();
         clazz = jvm->DefineClass("io/github/markusjx/bridge/JavaFunctionCaller", nullptr,
                                  reinterpret_cast<const jbyte *>(classData.data()),
                                  static_cast<jsize>(classData.size()));
