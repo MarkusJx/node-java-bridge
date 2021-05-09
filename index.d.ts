@@ -13,14 +13,14 @@ declare namespace native {
     function setNativeLibraryPath(path: string, workingDir: string): void;
 }
 
-declare type basic_type = string | number | boolean | BigInt;
-declare type basic_or_java = basic_type | java_object;
+declare type basic_type = string | number | boolean | BigInt | null;
+declare type basic_or_java = basic_type | java_object | JavaConstructor;
 declare type any_type = basic_or_java | basic_or_java[];
 
 /**
  * All types accepted by java
  */
-export type java_type = any_type;
+export type JavaType = any_type;
 
 /**
  * The java instance.
@@ -128,10 +128,35 @@ declare class java_class_proxy {
     public getClassConstructor(): java_instance_proxy_constructor;
 }
 
+type JavaClassType = typeof JavaClass;
+
 /**
  * A java class's constructor
  */
-declare type java_instance_proxy_constructor = typeof java_instance_proxy;
+declare type java_instance_proxy_constructor<T extends JavaClassType = JavaClassType> = T & ImportedMembers;
+
+/**
+ * A java class's constructor
+ */
+export type JavaConstructor<T extends JavaClassType = JavaClassType> = java_instance_proxy_constructor<T>;
+
+/**
+ * A java class instance
+ */
+export class JavaClass extends java_instance_proxy {
+}
+
+/**
+ * Any class member imported from java
+ */
+export interface ImportedMembers {
+    /**
+     * Any class member imported.
+     * We'll need to use 'any' as any is callable.
+     * The actual type would be JavaType | ((...args: JavaType[]) => JavaType | Promise<JavaType>)
+     */
+    [member: string]: any;
+}
 
 /**
  * The java instance proxy class.
@@ -144,7 +169,7 @@ declare type java_instance_proxy_constructor = typeof java_instance_proxy;
  * the actual java instance (that thing isn't visible though)
  * and all (visible) non-static class member methods and properties.
  */
-export class java_instance_proxy extends java_object {
+export class java_instance_proxy extends java_object implements ImportedMembers {
     /**
      * The class proxy class instance
      */
@@ -176,31 +201,38 @@ export class java_instance_proxy extends java_object {
     public instanceOf(classname: string): boolean;
 
     /**
-     * Any function imported
+     * Any class member imported.
+     * We'll need to use 'any' as any is callable.
+     * The actual type would be JavaType | ((...args: JavaType[]) => JavaType | Promise<JavaType>)
      */
-    [key: string]: (...args: any) => any;
+    [member: string]: any;
 }
 
 /**
  * An interface defining the proxy function object layout.
  * See: https://stackoverflow.com/a/56217448
  */
-interface ProxyFunctions {
-    [key: string]: (...args: any) => any;
+interface ProxyMethods {
+    [key: string]: (...args: JavaType[]) => JavaType | void;
 }
 
 /**
  * The class for implementing java interfaces
  */
-export class java_function_caller_class extends java_object {
+declare class java_function_caller_class extends java_object {
     /**
      * Create a function_caller_class instance
      *
      * @param name the name if the interface to implement
-     * @param functions the functions to override
+     * @param methods the methods to override
      */
-    public constructor(name: string, functions: object);
+    public constructor(name: string, methods: ProxyMethods);
 }
+
+/**
+ * The class for implementing java interfaces
+ */
+export type JavaInterfaceProxy = java_function_caller_class;
 
 /**
  * The main java namespace
@@ -257,7 +289,7 @@ declare namespace java {
      * @param classname the name of the class to resolve
      * @return the java_instance_proxy constructor
      */
-    function importClass(classname: string): java_instance_proxy_constructor;
+    function importClass<T extends JavaClassType = JavaClassType>(classname: string): JavaConstructor<T>;
 
     /**
      * Import a class. Async version.
@@ -265,7 +297,7 @@ declare namespace java {
      * @param classname the name of the class to resolve
      * @return the java_instance_proxy constructor
      */
-    function importClassAsync(classname: string): Promise<java_instance_proxy_constructor>;
+    function importClassAsync<T extends JavaClassType = JavaClassType>(classname: string): Promise<JavaConstructor<T>>;
 
     /**
      * Get the java class instance
@@ -284,9 +316,9 @@ declare namespace java {
      * take a while, so keep that in mind.
      *
      * @param name the name of the interface to 'implement'
-     * @param functions the functions to implement
+     * @param methods the methods to implement
      */
-    function newProxy(name: string, functions: ProxyFunctions): java_function_caller_class;
+    function newProxy(name: string, methods: ProxyMethods): JavaInterfaceProxy;
 
     /**
      * Ensure that the jvm exists

@@ -75,7 +75,7 @@ namespace jni {
          * @param str the string to convert
          * @return the converted and wrapped java string
          */
-        [[nodiscard]] jobject_wrapper<jstring> string_to_jstring(const std::string &str) const;
+        JAVA_NODISCARD jobject_wrapper<jstring> string_to_jstring(const std::string &str) const;
 
         /**
          * Convert a java string to a C++ string
@@ -85,7 +85,7 @@ namespace jni {
          *                      and throw them as java errors or throw C++ errors
          * @return the converted string
          */
-        [[nodiscard]] std::string jstring_to_string(jstring str, bool convertErrors = true) const;
+        JAVA_NODISCARD std::string jstring_to_string(jstring str, bool convertErrors = true) const;
 
         /**
          * Get all constructors for a class
@@ -93,14 +93,14 @@ namespace jni {
          * @param className the name of the class to get the constructors from
          * @return the list of constructors for that class
          */
-        [[nodiscard]] std::vector<java_constructor> getClassConstructors(const std::string &className) const;
+        JAVA_NODISCARD std::vector<java_constructor> getClassConstructors(const std::string &className) const;
 
         /**
          * Get java.lang.Class
          *
          * @return the java.lang.Class jclass
          */
-        [[nodiscard]] jclass getJavaLangClass() const;
+        JAVA_NODISCARD jclass getJavaLangClass() const;
 
         /**
          * Get a class by its name
@@ -108,7 +108,7 @@ namespace jni {
          * @param className the name of the class to resolve
          * @return the java.lang.Class object. Can be casted to jclass.
          */
-        [[nodiscard]] jobject_wrapper<jobject> getClassByName(const std::string &className) const;
+        JAVA_NODISCARD jobject_wrapper<jobject> getClassByName(const std::string &className) const;
 
         /**
          * Get the class's fields
@@ -117,7 +117,7 @@ namespace jni {
          * @param onlyStatic whether to return only static or only non-static fields
          * @return the list of class member fields
          */
-        [[nodiscard]] std::vector<java_field> getClassFields(const std::string &className, bool onlyStatic) const;
+        JAVA_NODISCARD std::vector<java_field> getClassFields(const std::string &className, bool onlyStatic) const;
 
         /**
          * Get a class's declared methods
@@ -126,7 +126,7 @@ namespace jni {
          * @param onlyStatic whether to return only static or only non-static methods
          * @return the list of class member functions
          */
-        [[nodiscard]] std::vector<java_function> getClassFunctions(const std::string &className, bool onlyStatic) const;
+        JAVA_NODISCARD std::vector<java_function> getClassFunctions(const std::string &className, bool onlyStatic) const;
 
         /**
          * Get a java class instance.
@@ -137,7 +137,7 @@ namespace jni {
          * @param className the name of the class to resolve
          * @return the created java_class instance
          */
-        [[nodiscard]] java_class getClass(const std::string &className) const;
+        JAVA_NODISCARD java_class getClass(const std::string &className) const;
 
         /**
          * Get the jclass to a class name.
@@ -149,7 +149,7 @@ namespace jni {
          * @param className the name of the class to resolve
          * @return the resolved jclass
          */
-        [[nodiscard]] jclass getJClass(const std::string &className) const;
+        JAVA_NODISCARD jclass getJClass(const std::string &className) const;
 
         /**
          * Throw the last exception
@@ -189,16 +189,16 @@ namespace jni {
          * @param sup the parent class to check
          * @return true if sub is assignable to sup
          */
-        [[nodiscard]] bool class_is_assignable(const std::string &sub, const std::string &sup) const;
+        JAVA_NODISCARD bool class_is_assignable(const std::string &sub, const std::string &sup) const;
 
         /**
          * Get the class name of a jobject.
-         * Mainly exists for testing purposes.
+         * This we can use to convert a java.lang.Object to its original type.
          *
          * @param obj the object to get the class's name from
          * @return the objects class name
          */
-        [[nodiscard]] std::string get_object_class_name(jobject obj) const;
+        JAVA_NODISCARD std::string getObjectClassName(jobject obj) const;
 
         /**
          * Convert a jobject to a jint-
@@ -207,7 +207,7 @@ namespace jni {
          * @param obj the object to convert
          * @return the converted jint
          */
-        [[nodiscard]] jint jobject_to_jint(jobject obj) const;
+        JAVA_NODISCARD jint jobject_to_jint(jobject obj) const;
 
         /**
          * Convert a jobject to a jboolean.
@@ -216,7 +216,7 @@ namespace jni {
          * @param obj the object to convert
          * @return the converted jboolean
          */
-        [[nodiscard]] jboolean jobject_to_jboolean(jobject obj) const;
+        JAVA_NODISCARD jboolean jobject_to_jboolean(jobject obj) const;
 
         /**
          * Convert a jobject to a jbyte.
@@ -225,7 +225,7 @@ namespace jni {
          * @param obj the object to convert
          * @return the converted jbyte
          */
-        [[nodiscard]] jbyte jobject_to_jbyte(jobject obj) const;
+        JAVA_NODISCARD jbyte jobject_to_jbyte(jobject obj) const;
 
         /**
          * Convert a jobject to a jchar.
@@ -234,7 +234,7 @@ namespace jni {
          * @param obj the object to convert
          * @return the converted jchar
          */
-        [[nodiscard]] jchar jobject_to_jchar(jobject obj) const;
+        JAVA_NODISCARD jchar jobject_to_jchar(jobject obj) const;
 
         /**
          * Convert a jobject to a jshort.
@@ -243,7 +243,7 @@ namespace jni {
          * @param obj the object to convert
          * @return the converted jshort
          */
-        [[nodiscard]] jshort jobject_to_jshort(jobject obj) const;
+        JAVA_NODISCARD jshort jobject_to_jshort(jobject obj) const;
 
         /**
          * Convert a jobject to a jlong.
@@ -252,7 +252,7 @@ namespace jni {
          * @param obj the object to convert
          * @return the converted jlong
          */
-        [[nodiscard]] jlong jobject_to_jlong(jobject obj) const;
+        JAVA_NODISCARD jlong jobject_to_jlong(jobject obj) const;
 
         /**
          * Convert a jobject to a jfloat.
@@ -261,7 +261,7 @@ namespace jni {
          * @param obj the object to convert
          * @return the converted jfloat
          */
-        [[nodiscard]] jfloat jobject_to_jfloat(jobject obj) const;
+        JAVA_NODISCARD jfloat jobject_to_jfloat(jobject obj) const;
 
         /**
          * Convert a jobject to a jdouble.
@@ -270,7 +270,7 @@ namespace jni {
          * @param obj the object to convert
          * @return the converted jdouble
          */
-        [[nodiscard]] jdouble jobject_to_jdouble(jobject obj) const;
+        JAVA_NODISCARD jdouble jobject_to_jdouble(jobject obj) const;
 
         /**
          * Convert a jint to a jobject
@@ -278,7 +278,7 @@ namespace jni {
          * @param e the jint to convert
          * @return the converted jobject
          */
-        [[nodiscard]] jobject_wrapper<jobject> create_jint(jint e) const;
+        JAVA_NODISCARD jobject_wrapper<jobject> create_jint(jint e) const;
 
         /**
          * Convert a jshort to a jobject
@@ -286,7 +286,7 @@ namespace jni {
          * @param e the jshort to convert
          * @return the converted jobject
          */
-        [[nodiscard]] jobject_wrapper<jobject> create_jshort(jshort e) const;
+        JAVA_NODISCARD jobject_wrapper<jobject> create_jshort(jshort e) const;
 
         /**
          * Convert a jdouble to a jobject
@@ -294,7 +294,7 @@ namespace jni {
          * @param e the jdouble to convert
          * @return the converted jobject
          */
-        [[nodiscard]] jobject_wrapper<jobject> create_jdouble(jdouble e) const;
+        JAVA_NODISCARD jobject_wrapper<jobject> create_jdouble(jdouble e) const;
 
         /**
          * Convert a jfloat to a jobject
@@ -302,7 +302,7 @@ namespace jni {
          * @param e the jfloat to convert
          * @return the converted jobject
          */
-        [[nodiscard]] jobject_wrapper<jobject> create_jfloat(jfloat e) const;
+        JAVA_NODISCARD jobject_wrapper<jobject> create_jfloat(jfloat e) const;
 
         /**
          * Convert a jlong to a jobject
@@ -310,7 +310,7 @@ namespace jni {
          * @param e the jlong to convert
          * @return the converted jobject
          */
-        [[nodiscard]] jobject_wrapper<jobject> create_jlong(jlong e) const;
+        JAVA_NODISCARD jobject_wrapper<jobject> create_jlong(jlong e) const;
 
         /**
          * Convert a jint to a jobject
@@ -318,7 +318,7 @@ namespace jni {
          * @param e the jint to convert
          * @return the converted jobject
          */
-        [[nodiscard]] jobject_wrapper<jobject> create_jbyte(jbyte e) const;
+        JAVA_NODISCARD jobject_wrapper<jobject> create_jbyte(jbyte e) const;
 
         /**
          * Convert a jchar to a jobject
@@ -326,7 +326,7 @@ namespace jni {
          * @param e the jchar to convert
          * @return the converted jobject
          */
-        [[nodiscard]] jobject_wrapper<jobject> create_jchar(jchar e) const;
+        JAVA_NODISCARD jobject_wrapper<jobject> create_jchar(jchar e) const;
 
         /**
          * Convert a jboolean to a jobject
@@ -334,7 +334,7 @@ namespace jni {
          * @param e the jboolean to convert
          * @return the converted jobject
          */
-        [[nodiscard]] jobject_wrapper<jobject> create_jboolean(jboolean e) const;
+        JAVA_NODISCARD jobject_wrapper<jobject> create_jboolean(jboolean e) const;
 
         /**
          * Attach a java environment to the current
@@ -345,14 +345,14 @@ namespace jni {
          *
          * @return the created jni_wrapper in the new thread
          */
-        [[nodiscard]] jni_wrapper attachEnv() const;
+        JAVA_NODISCARD jni_wrapper attachEnv() const;
 
         /**
          * Operator-> for conveniently calling jni functions
          *
          * @return the jni env pointer
          */
-        [[nodiscard]] JNIEnv *operator->() const;
+        JAVA_NODISCARD JNIEnv *operator->() const;
 
         /**
          * Get the jvm_env instance
@@ -530,7 +530,7 @@ namespace jni {
          *
          * @return the function as a human-readable string
          */
-        [[nodiscard]] std::string to_string() const;
+        JAVA_NODISCARD std::string to_string() const;
 
         // The function's parameter types
         std::vector<std::string> parameterTypes;
@@ -563,14 +563,14 @@ namespace jni {
          * @param args the instance arguments
          * @return the created class instance
          */
-        [[nodiscard]] jobject_wrapper<jobject> newInstance(const std::vector<jobject_wrapper<jobject>> &args) const;
+        JAVA_NODISCARD jobject_wrapper<jobject> newInstance(const std::vector<jobject_wrapper<jobject>> &args) const;
 
         /**
          * Convert this constructor to a string
          *
          * @return the constructor as a human-readable string
          */
-        [[nodiscard]] std::string to_string() const;
+        JAVA_NODISCARD std::string to_string() const;
 
         // The constructor's parameter types
         std::vector<std::string> parameterTypes;

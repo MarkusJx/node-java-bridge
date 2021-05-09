@@ -1,6 +1,6 @@
 {
   "name": "@markusjx/java",
-  "version": "0.0.1",
+  "version": "0.0.5",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -15,17 +15,17 @@
   "author": "MarkusJx",
   "license": "MIT",
   "dependencies": {
-    "bindings": "^1.5.0"
+    "@markusjx/n-api-tools": "^1.1.0",
+    "bindings": "^1.5.0",
+    "cmake-js": "^6.1.0",
+    "find-java-home": "^1.2.0",
+    "node-addon-api": "^3.1.0"
   },
   "devDependencies": {
-    "@markusjx/n-api-tools": "^1.1.0",
     "@types/bindings": "^1.5.0",
     "@types/mocha": "^8.2.2",
     "@types/node": "^15.0.2",
-    "cmake-js": "^6.1.0",
-    "find-java-home": "^1.2.0",
     "mocha": "^8.3.2",
-    "node-addon-api": "^3.1.0",
     "ts-node": "^9.1.1",
     "typescript": "^4.2.4"
   },

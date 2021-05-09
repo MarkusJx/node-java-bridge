@@ -637,7 +637,7 @@ void jni_wrapper::throwLastException(int line) const {
     throw java_exception(causes, stackFrames);
 }
 
-std::string jni_wrapper::get_object_class_name(jobject obj) const {
+std::string jni_wrapper::getObjectClassName(jobject obj) const {
     jclass Object = env->FindClass("java/lang/Object");
     CHECK_EXCEPTION();
 

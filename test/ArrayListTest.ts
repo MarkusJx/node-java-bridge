@@ -1,8 +1,8 @@
-import java, {java_instance_proxy, java_type} from "../index";
+import java, {java_instance_proxy, JavaType} from "../index";
 import assert = require("assert");
 import {it} from "mocha";
 
-declare class List<T extends java_type> extends java_instance_proxy {
+declare class List<T extends JavaType> extends java_instance_proxy {
     size(): Promise<number>;
 
     sizeSync(): number;
@@ -42,7 +42,7 @@ declare class List<T extends java_type> extends java_instance_proxy {
 
 describe('ArrayListTest', () => {
     let ArrayList: typeof List = null;
-    let list: List<java_type> = null;
+    let list: List<JavaType> = null;
 
     it('Ensure jvm', () => {
         java.ensureJVM();
@@ -136,7 +136,7 @@ describe('ArrayListTest', () => {
         assert.strictEqual(await list.size(), 3);
     });
 
-    let list_cpy: List<java_type> = null;
+    let list_cpy: List<JavaType> = null;
 
     it('List copy', () => {
         list_cpy = new ArrayList(list);

@@ -1,7 +1,7 @@
-import java, {java_function_caller_class, java_instance_proxy} from "../index";
+import java, {JavaClass, JavaInterfaceProxy} from "../index";
 
-declare class JThread extends java_instance_proxy {
-    public constructor(proxy: java_function_caller_class);
+declare class JThread extends JavaClass {
+    public constructor(proxy: JavaInterfaceProxy);
 
     public startSync(): void;
 

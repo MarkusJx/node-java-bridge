@@ -35,6 +35,8 @@ std::string get_object_type(const jni::jni_wrapper &j_env, const std::string &si
         return "java.lang.String";
     } else if (util::hasEnding(signature, "[]")) {
         return get_object_type(j_env, signature.substr(0, signature.size() - 2), obj) + "[]";
+    } else if (signature == "java.lang.Object") {
+        return j_env.getObjectClassName(obj);
     } else {
         return signature;
     }
@@ -195,7 +197,7 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
         // Value is a double
         CHECK_TYPE_MATCH(IsNumber, number);
         TRY_RUN(return j_env.create_jdouble(value.ToNumber().DoubleValue()))
-    } else if (signature == "java.lang.String") {
+    } else if (j_env.class_is_assignable("java.lang.String", signature) && signature != "java.lang.Object") {
         // Value is a string
         CHECK_TYPE_MATCH(IsString, string);
         TRY_RUN(return j_env.string_to_jstring(value.ToString().Utf8Value()).as<jobject>())
@@ -299,7 +301,7 @@ jvalue conversion_helper::napi_value_to_jvalue(const Napi::Env &env, const Napi:
         // Value is a double
         CHECK_TYPE_MATCH(IsNumber, number);
         val.d = static_cast<jdouble>(value.ToNumber().DoubleValue());
-    } else if (signature == "java.lang.String") {
+    } else if (j_env.class_is_assignable("java.lang.String", signature) && signature != "java.lang.Object") {
         // Value is a string
         if (!value.IsString() && !value.IsNull()) {
             throw Napi::TypeError::New(env, __FILE__ ":" + std::to_string(__LINE__) +
@@ -419,7 +421,7 @@ jni::jobject_wrapper<jarray> conversion_helper::napi_array_to_jarray(const Napi:
     } else if (signature == "double") {
         // Value is a double
         POPULATE_ARRAY(jdoubleArray, jdouble, NewDoubleArray, ToNumber().DoubleValue(), SetDoubleArrayRegion);
-    } else if (signature == "java.lang.String") {
+    } else if (j_env.class_is_assignable("java.lang.String", signature) && signature != "java.lang.Object") {
         // Value is a string
         const auto arrLen = static_cast<jsize>(array.Length());
         auto clazz = j_env.getJClass(signature);
@@ -516,8 +518,7 @@ bool value_type_matches_signature(const Napi::Value &value, const std::string &s
     } else if (value.IsBigInt()) {
         return signature == "java.lang.Long" || signature == "long";
     } else if (value.IsString()) {
-        return (!util::hasEnding(signature, "[]") && signature != "java.lang.Object" &&
-                j_env.class_is_assignable("java.lang.String", signature)) ||
+        return (signature != "java.lang.Object" && j_env.class_is_assignable("java.lang.String", signature)) ||
                (value.ToString().Utf8Value().size() == 1 && signature != "java.lang.Object" &&
                 (j_env.class_is_assignable("java.lang.Character", signature) || signature == "char"));
     } else if (value.IsArray()) {
