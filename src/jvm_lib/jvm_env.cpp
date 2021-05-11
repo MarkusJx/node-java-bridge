@@ -1,6 +1,9 @@
 #include <stdexcept>
 #include <util/util.hpp>
-#include <logger.hpp>
+
+#ifdef ENABLE_LOGGING
+#   include <logger.hpp>
+#endif //ENABLE_LOGGING
 
 #include "jvm_lib/jvm_env.hpp"
 
@@ -68,6 +71,8 @@ void jvm_env::forceReset() {
     try {
         jvm->forceReset();
     } catch (const std::exception &e) {
+#ifdef ENABLE_LOGGING
         markusjx::logging::StaticLogger::errorStream << "Could not reset the jvm: " << e.what();
+#endif //ENABLE_LOGGING
     }
 }

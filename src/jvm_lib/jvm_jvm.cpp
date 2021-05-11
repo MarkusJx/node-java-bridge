@@ -1,6 +1,8 @@
 #include <jni.h>
 #include <stdexcept>
-#include <logger.hpp>
+#ifdef ENABLE_LOGGING
+#   include <logger.hpp>
+#endif //ENABLE_LOGGING
 
 #include "jvm_lib/jvm_jvm.hpp"
 
@@ -49,7 +51,9 @@ bool jvm_jvm::valid() {
 jvm_jvm::~jvm_jvm() {
     if (valid()) {
         std::unique_lock<std::mutex> lock(mtx);
+#ifdef ENABLE_LOGGING
         markusjx::logging::StaticLogger::debug("Destroying the java vm");
+#endif //ENABLE_LOGGING
         jvm->DestroyJavaVM();
     }
 }

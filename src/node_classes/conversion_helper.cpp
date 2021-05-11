@@ -5,7 +5,9 @@
 #include "node_classes/java.hpp"
 #include "util/util.hpp"
 
-#include <logger.hpp>
+#ifdef ENABLE_LOGGING
+#   include <logger.hpp>
+#endif //ENABLE_LOGGING
 
 #define TRY_RUN(statement) try { \
                                 statement;\
@@ -119,9 +121,11 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
     }
 
     jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+#ifdef ENABLE_LOGGING
     markusjx::logging::StaticLogger::debugStream << "Converting value of type "
                                                  << napi_valuetype_to_string(value.Type()) << " to java object type "
                                                  << signature;
+#endif //ENABLE_LOGGING
 
     if (objects && signature == "java.lang.Object") {
         // If the function accepts objects, try to match the type by the passed js type
@@ -259,9 +263,11 @@ jvalue conversion_helper::napi_value_to_jvalue(const Napi::Env &env, const Napi:
                                                const std::string &signature,
                                                std::vector<jni::jobject_wrapper<jobject>> &values, bool objects) {
     jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+#ifdef ENABLE_LOGGING
     markusjx::logging::StaticLogger::debugStream << "Converting value of type "
                                                  << conversion_helper::napi_valuetype_to_string(value.Type())
                                                  << " to java type " << signature;
+#endif //ENABLE_LOGGING
 
     jvalue val;
     if (objects && signature == "java.lang.Object") {

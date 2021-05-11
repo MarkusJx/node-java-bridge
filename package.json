@@ -7,7 +7,7 @@
     "test": "mocha -r ts-node/register test/**/*.ts",
     "pretest": "npm run build",
     "build": "cmake-js compile",
-    "build:dev": "cmake-js compile -D",
+    "build:dev": "cmake-js compile -D --CDLOGGING=ON",
     "pretest:dev": "npm run build:dev",
     "test:dev": "node test.js --debug",
     "postinstall": "node --unhandled-rejections=strict scripts/setJavaDllPath.js && npm run build"

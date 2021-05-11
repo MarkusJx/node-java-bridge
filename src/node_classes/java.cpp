@@ -1,6 +1,9 @@
 #include <jni.h>
 #include <napi_tools.hpp>
-#include <logger.hpp>
+
+#ifdef ENABLE_LOGGING
+#   include <logger.hpp>
+#endif //ENABLE_LOGGING
 
 #include "node_classes/java_class_proxy.hpp"
 #include "node_classes/jvm_container.hpp"
@@ -16,7 +19,9 @@
 #endif
 
 using namespace node_classes;
+#ifdef ENABLE_LOGGING
 using namespace markusjx::logging;
+#endif //ENABLE_LOGGING
 
 void java::init(Napi::Env env, Napi::Object &exports) {
     Napi::Function func = DefineClass(env, "java", {
@@ -39,7 +44,9 @@ void java::init(Napi::Env env, Napi::Object &exports) {
 java::java(const Napi::CallbackInfo &info) : ObjectWrap(info), loaded_jars() {
     CHECK_ARGS(napi_tools::string, napi_tools::null | napi_tools::string);
 
+#ifdef ENABLE_LOGGING
     StaticLogger::debug("Creating a new java instance");
+#endif //ENABLE_LOGGING
     // Uncomment to add timeout to attach debugger
     //std::this_thread::sleep_for(std::chrono::seconds(10));
 
@@ -54,7 +61,9 @@ java::java(const Napi::CallbackInfo &info) : ObjectWrap(info), loaded_jars() {
             version = JNI_DEFAULT_VERSION;
         }
 
+#ifdef ENABLE_LOGGING
         StaticLogger::debugStream << "Creating a java instance with version " << info[1].ToString().Utf8Value();
+#endif //ENABLE_LOGGING
         jvm_container::createInstance(lib_path, version);
 
         Value().DefineProperty(Napi::PropertyDescriptor::Value("version",
@@ -95,7 +104,9 @@ void java::appendToClasspath(const Napi::CallbackInfo &info) {
         if (info[0].IsString()) {
             const std::string toAppend = info[0].ToString().Utf8Value();
             loaded_jars.push_back(toAppend);
+#ifdef ENABLE_LOGGING
             StaticLogger::debugStream << "Appending to classpath: " << toAppend;
+#endif //ENABLE_LOGGING
             jvm_container::getJvm().appendClasspath(toAppend);
         } else {
             auto arr = info[0].As<Napi::Array>();
@@ -118,7 +129,9 @@ Napi::Value java::appendToClasspathAsync(const Napi::CallbackInfo &info) {
 
         return napi_tools::promises::promise<void>(info.Env(), [this, toAppend] {
             loaded_jars.push_back(toAppend);
+#ifdef ENABLE_LOGGING
             StaticLogger::debugStream << "Appending to classpath: " << toAppend;
+#endif //ENABLE_LOGGING
             jvm_container::getJvm().attachEnv().appendClasspath(toAppend);
         });
     } else {

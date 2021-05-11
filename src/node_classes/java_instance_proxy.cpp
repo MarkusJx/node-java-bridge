@@ -8,7 +8,9 @@
 #include "node_classes/java.hpp"
 #include "definitions.hpp"
 
-#include <logger.hpp>
+#ifdef ENABLE_LOGGING
+#   include <logger.hpp>
+#endif //ENABLE_LOGGING
 #include <utility>
 
 #ifdef JAVA_WINDOWS
@@ -18,7 +20,9 @@
 #endif //JAVA_WINDOWS
 
 using namespace node_classes;
+#ifdef ENABLE_LOGGING
 using namespace markusjx::logging;
+#endif //ENABLE_LOGGING
 
 /**
  * A helper which will create the class instance
@@ -82,8 +86,10 @@ void java_instance_proxy::staticSetter(const Napi::CallbackInfo &info, const Nap
 
 Napi::Value java_instance_proxy::callStaticFunction(const Napi::CallbackInfo &info) {
     const std::string functionName(static_cast<const char *>(info.Data()));
+#ifdef ENABLE_LOGGING
     StaticLogger::debugStream << "Calling static method '" << functionName << "' with " << info.Length()
                               << " argument(s)";
+#endif //ENABLE_LOGGING
     Napi::Object class_proxy_instance = info.This().ToObject().Get("class.proxy.instance").ToObject();
     auto *ptr = Napi::ObjectWrap<java_class_proxy>::Unwrap(class_proxy_instance);
 
@@ -95,8 +101,10 @@ Napi::Value java_instance_proxy::callStaticFunction(const Napi::CallbackInfo &in
 
 Napi::Value java_instance_proxy::callStaticFunctionAsync(const Napi::CallbackInfo &info) {
     const std::string functionName(static_cast<const char *>(info.Data()));
+#ifdef ENABLE_LOGGING
     StaticLogger::debugStream << "Calling static method '" << functionName << "' with " << info.Length()
                               << " argument(s) (async)";
+#endif //ENABLE_LOGGING
     Napi::Object class_proxy_instance = info.This().ToObject().Get("class.proxy.instance").ToObject();
     auto *ptr = Napi::ObjectWrap<java_class_proxy>::Unwrap(class_proxy_instance);
 
@@ -119,16 +127,22 @@ Napi::Value java_instance_proxy::callStaticFunctionAsync(const Napi::CallbackInf
 
 std::vector<Napi::ObjectWrap<java_instance_proxy>::PropertyDescriptor>
 java_instance_proxy::generateProperties(const Napi::Object &class_proxy, const Napi::Env &env) {
+#ifdef ENABLE_LOGGING
     StaticLogger::debug("Unwrapping the class proxy");
+#endif //ENABLE_LOGGING
     std::vector<Napi::ObjectWrap<java_instance_proxy>::PropertyDescriptor> properties;
     java_class_proxy *cls = Napi::ObjectWrap<java_class_proxy>::Unwrap(class_proxy);
 
+#ifdef ENABLE_LOGGING
     StaticLogger::debugStream << "Creating a constructor for java class '" << cls->classname << "'";
+#endif //ENABLE_LOGGING
 
     properties.push_back(StaticValue("class.proxy.instance", class_proxy, napi_enumerable));
 
+#ifdef ENABLE_LOGGING
     StaticLogger::debugStream << "Setting getters and setters for " << cls->clazz->static_fields.size()
                               << " static fields";
+#endif //ENABLE_LOGGING
     for (const auto &f : cls->clazz->static_fields) {
         if (f.second.isFinal) {
             properties.push_back(StaticAccessor(f.first.c_str(), &java_instance_proxy::staticGetter, nullptr,
@@ -140,8 +154,10 @@ java_instance_proxy::generateProperties(const Napi::Object &class_proxy, const N
         }
     }
 
+#ifdef ENABLE_LOGGING
     StaticLogger::debugStream << "Setting functions for " << cls->clazz->static_functions.size()
                               << " static functions";
+#endif //ENABLE_LOGGING
     for (const auto &f : cls->clazz->static_functions) {
         char *name = STRDUP((f.first + "Sync").c_str());
         cls->additionalData.emplace_back(name, free);
@@ -195,11 +211,15 @@ Napi::Value java_instance_proxy::instanceOf(const Napi::CallbackInfo &info) {
 
 Napi::Value java_instance_proxy::fromJObject(Napi::Env env, const jni::jobject_wrapper<jobject> &obj,
                                              const Napi::Object &class_proxy) {
+#ifdef ENABLE_LOGGING
     StaticLogger::debug("Creating a class instance proxy from an existing jobject");
+#endif //ENABLE_LOGGING
 
     Napi::Object jobject_wrapper = node_jobject_wrapper::createInstance();
     Napi::ObjectWrap<node_jobject_wrapper>::Unwrap(jobject_wrapper)->setData(obj);
+#ifdef ENABLE_LOGGING
     StaticLogger::debug("Done setting the data");
+#endif //ENABLE_LOGGING
 
     Napi::Function constructor = getConstructor(env, class_proxy);
     return constructor.New({jobject_wrapper});
@@ -209,7 +229,9 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
     Napi::Object class_proxy_instance = info.NewTarget().ToObject().Get("class.proxy.instance").ToObject();
     java_class_proxy *class_ptr = Napi::ObjectWrap<java_class_proxy>::Unwrap(class_proxy_instance);
 
+#ifdef ENABLE_LOGGING
     StaticLogger::debugStream << "Creating a new '" << class_ptr->classname << "' instance";
+#endif //ENABLE_LOGGING
     classname = class_ptr->classname;
 
     {
@@ -217,7 +239,9 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
         clazz = class_ptr->clazz;
     }
 
+#ifdef ENABLE_LOGGING
     StaticLogger::debugStream << "Setting getters and setters for " << clazz->fields.size() << " fields";
+#endif //ENABLE_LOGGING
     for (const auto &f : clazz->fields) {
         const auto getter = [f, this](const Napi::CallbackInfo &info) -> Napi::Value {
             TRY
@@ -248,19 +272,25 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
         }
     }
 
+#ifdef ENABLE_LOGGING
     StaticLogger::debugStream << "Setting functions for " << clazz->functions.size() << " java functions";
+#endif //ENABLE_LOGGING
     for (const auto &f : clazz->functions) {
         const auto function = [f, this](const Napi::CallbackInfo &info) -> Napi::Value {
+#ifdef ENABLE_LOGGING
             StaticLogger::debugStream << "Calling instance method '" << f.first << "' with " << info.Length()
                                       << " argument(s)";
+#endif //ENABLE_LOGGING
             TRY
                 return conversion_helper::call_matching_function(info, object, f.second);
             CATCH_EXCEPTIONS
         };
 
         const auto asyncFunction = [f, this](const Napi::CallbackInfo &info) -> Napi::Value {
+#ifdef ENABLE_LOGGING
             StaticLogger::debugStream << "Calling instance method '" << f.first << "' with " << info.Length()
                                       << " argument(s) (async)";
+#endif //ENABLE_LOGGING
             std::vector<jni::jobject_wrapper<jobject>> args;
             std::string error;
             std::vector<jvalue> values;
@@ -281,13 +311,16 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
     }
 
     if (info.Length() == 1 && info[0].IsObject() && node_jobject_wrapper::instanceOf(info[0].ToObject())) {
+#ifdef ENABLE_LOGGING
         StaticLogger::debug("The class constructor was called with a node_jobject_wrapper as first argument, "
                             "creating the class using that information");
+#endif //ENABLE_LOGGING
         object = Napi::ObjectWrap<node_jobject_wrapper>::Unwrap(info[0].ToObject())->getObject();
     } else {
+#ifdef ENABLE_LOGGING
         StaticLogger::debugStream << "Trying to find a matching constructor for the " << info.Length()
                                   << " provided arguments";
-        //object = conversion_helper::match_constructor_arguments(info, clazz->constructors);
+#endif //ENABLE_LOGGING
         std::vector<jni::jobject_wrapper<jobject>> outArgs;
         std::string error;
         const jni::java_constructor *constructor = conversion_helper::find_matching_constructor(info,

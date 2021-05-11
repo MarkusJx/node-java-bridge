@@ -7,21 +7,29 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Fis for string streams
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-# Get the ExternalProject module
-include(ExternalProject)
+option(LOGGING "Enable logging support" OFF)
 
-# Download and build the logger
-ExternalProject_Add(logger_project
-        GIT_REPOSITORY https://github.com/MarkusJx/logger
-        PREFIX ${CMAKE_CURRENT_BINARY_DIR}/logger
-        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY})
+if (LOGGING)
+    # Get the ExternalProject module
+    include(ExternalProject)
 
-# Get the install directory path
-ExternalProject_Get_Property(logger_project install_dir)
-set(logger_dir ${install_dir})
+    # Download and build the logger
+    ExternalProject_Add(logger_project
+            GIT_REPOSITORY https://github.com/MarkusJx/logger
+            PREFIX ${CMAKE_CURRENT_BINARY_DIR}/logger
+            CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY})
 
-# Include all logger directories
-link_directories(${logger_dir}/lib)
+    # Get the install directory path
+    ExternalProject_Get_Property(logger_project install_dir)
+    set(logger_dir ${install_dir})
+
+    # Include all logger directories
+    link_directories(${logger_dir}/lib)
+
+    add_compile_definitions(ENABLE_LOGGING)
+
+    message(STATUS "Building with logging enabled")
+endif (LOGGING)
 
 # Get the n-api-tools include directory
 execute_process(COMMAND node -p "require('@markusjx/n-api-tools').include"
@@ -38,7 +46,7 @@ execute_process(COMMAND node --unhandled-rejections=strict scripts/printJavaHome
 # Exit with an error if the jdk could not be found
 if (NOT FIND_JAVA_HOME_EXIT_CODE EQUAL "0")
     message(FATAL_ERROR "printJavaHome.js failed with error: ${JAVA_HOME_ERROR}")
-endif()
+endif ()
 
 # Print the java include directories
 message(STATUS "Java include directories: ${JAVA_INCLUDE_DIRS}")
@@ -67,14 +75,26 @@ endif ()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
 
-if (NOT WIN32)
-    target_link_libraries(${PROJECT_NAME} logger ${CMAKE_JS_LIB} pthread)
+if (LOGGING)
+    if (WIN32)
+        set(LINK_LIBS logger ${CMAKE_JS_LIB})
+    else ()
+        set(LINK_LIBS logger ${CMAKE_JS_LIB} pthread)
+    endif (WIN32)
 else ()
-    target_link_libraries(${PROJECT_NAME} logger ${CMAKE_JS_LIB})
-endif ()
+    if (WIN32)
+        set(LINK_LIBS ${CMAKE_JS_LIB})
+    else ()
+        set(LINK_LIBS ${CMAKE_JS_LIB} pthread)
+    endif (WIN32)
+endif (LOGGING)
 
-# Add logger as a dependency to the current project
-add_dependencies(${PROJECT_NAME} logger_project)
+target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
+
+if (LOGGING)
+    # Add logger as a dependency to the current project
+    add_dependencies(${PROJECT_NAME} logger_project)
+endif (LOGGING)
 
 # Include N-API wrappers
 execute_process(COMMAND node -p "require('node-addon-api').include"

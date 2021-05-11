@@ -3,11 +3,15 @@
 #include "node_classes/java_instance_proxy.hpp"
 
 #include <napi_tools.hpp>
-#include <logger.hpp>
+#ifdef ENABLE_LOGGING
+#   include <logger.hpp>
+#endif //ENABLE_LOGGING
 #include <node_classes/jvm_container.hpp>
 
 using namespace node_classes;
+#ifdef ENABLE_LOGGING
 using namespace markusjx::logging;
+#endif //ENABLE_LOGGING
 
 /**
  * A helper class which will create
@@ -81,7 +85,9 @@ java_class_proxy::java_class_proxy(const Napi::CallbackInfo &info) : ObjectWrap(
 
         // The name of the class to fetch
         classname = info[0].ToString().Utf8Value();
+#ifdef ENABLE_LOGGING
         StaticLogger::debugStream << "Creating a new class proxy instance for class " << classname;
+#endif //ENABLE_LOGGING
 
         // Get our very own java environment pointer
         jni::jni_wrapper jvm = node_classes::jvm_container::attachJvm();
