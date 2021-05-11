@@ -3,6 +3,7 @@
 
 #include <jni.h>
 #include <util/shared_releaser.hpp>
+#include <memory>
 
 #include "jvm_jvm.hpp"
 
