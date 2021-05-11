@@ -10,6 +10,7 @@
 
 #include "shared_library.hpp"
 #include "jobject_wrapper.hpp"
+#include "java_type.hpp"
 
 /**
  * A namespace for jni operations
@@ -452,7 +453,8 @@ namespace jni {
          * @param isFinal whether the field is final
          * @param env the jni env
          */
-        java_field(std::string signature, std::string name, jfieldID id, bool isStatic, bool isFinal, jni_wrapper env);
+        java_field(const std::string &signature, std::string name, jfieldID id, bool isStatic, bool isFinal,
+                   jni_wrapper env);
 
         /**
          * Get the field's value.
@@ -493,7 +495,7 @@ namespace jni {
         void setStatic(jclass clazz, jvalue data) const;
 
         // The field's signature
-        std::string signature;
+        java_type signature;
         // The field's name
         std::string name;
         // Whether the field is static
@@ -522,7 +524,7 @@ namespace jni {
          * @param method the method id
          * @param isStatic whether the function is static
          */
-        java_function(std::vector<std::string> parameterTypes, std::string returnType, std::string functionName,
+        java_function(std::vector<java_type> parameterTypes, java_type returnType, std::string functionName,
                       jmethodID method, bool isStatic);
 
         /**
@@ -533,9 +535,9 @@ namespace jni {
         JAVA_NODISCARD std::string to_string() const;
 
         // The function's parameter types
-        std::vector<std::string> parameterTypes;
+        std::vector<java_type> parameterTypes;
         // The function's return type signature
-        std::string returnType;
+        java_type returnType;
         // The function's name
         std::string name;
         // Whether the function is static
@@ -573,7 +575,7 @@ namespace jni {
         JAVA_NODISCARD std::string to_string() const;
 
         // The constructor's parameter types
-        std::vector<std::string> parameterTypes;
+        std::vector<java_type> parameterTypes;
 
     private:
         /**
@@ -581,7 +583,7 @@ namespace jni {
          *
          * @return the parameter types
          */
-        [[nodiscard]] std::vector<std::string> getParameterTypes() const;
+        [[nodiscard]] std::vector<java_type> getParameterTypes() const;
 
         // The jni_wrapper to use
         jni_wrapper jni;

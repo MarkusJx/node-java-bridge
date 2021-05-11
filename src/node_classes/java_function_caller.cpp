@@ -21,7 +21,8 @@ public:
             if (val.IsNull() || val.IsUndefined()) {
                 c.object = jni::jobject_wrapper();
             } else {
-                c.object = conversion_helper::value_to_jobject(env, val, "java.lang.Object", true);
+                c.object = conversion_helper::value_to_jobject(env, val, java_type(j_type::lang_Object, nullptr,
+                                                                                   "java.lang.Object"), true);
             }
         } catch (const std::exception &e) {
             std::cerr << __FILE__ << ':' << __LINE__ << " " << e.what() << std::endl;
@@ -79,7 +80,8 @@ std::vector<napi_value> convert_object(const Napi::Env &env, jobjectArray args, 
             values.resize(numArgs);
             for (jsize i = 0; i < numArgs; i++) {
                 jni::local_jobject obj(jniEnv->GetObjectArrayElement(args, i));
-                values[i] = conversion_helper::jobject_to_value(env, obj, "java.lang.Object");
+                values[i] = conversion_helper::jobject_to_value(env, obj, java_type(j_type::lang_Object, nullptr,
+                                                                                    "java.lang.Object"));
             }
         }
 

@@ -33,7 +33,7 @@ java_constructor::java_constructor(jobject object, const jni_wrapper &jni) : job
     parameterTypes = getParameterTypes();
 }
 
-std::vector<std::string> java_constructor::getParameterTypes() const {
+std::vector<java_type> java_constructor::getParameterTypes() const {
     jclass Constructor = jni->FindClass("java/lang/reflect/Constructor");
     JVM_CHECK_EXCEPTION(jni);
 
@@ -58,7 +58,7 @@ std::vector<std::string> java_constructor::getParameterTypes() const {
     jint numParams = jni->GetArrayLength(parameters);
     JVM_CHECK_EXCEPTION(jni);
 
-    std::vector<std::string> res;
+    std::vector<java_type> res;
     for (jint i = 0; i < numParams; i++) {
         jobject elem = jni->GetObjectArrayElement(parameters, i);
         JVM_CHECK_EXCEPTION(jni);
@@ -69,7 +69,7 @@ std::vector<std::string> java_constructor::getParameterTypes() const {
         jobject_wrapper<jstring> name(jni->CallObjectMethod(type, getName), jni);
         JVM_CHECK_EXCEPTION(jni);
 
-        res.push_back(util::make_java_name_readable(jni.jstring_to_string(name)));
+        res.push_back(java_type::to_java_type(jni.jstring_to_string(name)));
     }
 
     return res;
@@ -450,25 +450,25 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
     };
 
     // Get the functions return type
-    const auto get_return_type = [&](const jobject_wrapper<jobject> &method) -> std::string {
+    const auto get_return_type = [&](const jobject_wrapper<jobject> &method) -> java_type {
         jobject_wrapper<jobject> type(env->CallObjectMethod(method, getReturnType), env);
         CHECK_EXCEPTION();
 
         jobject_wrapper<jstring> str(env->CallObjectMethod(type, class_getName), env);
         CHECK_EXCEPTION();
 
-        return util::make_java_name_readable(jstring_to_string(str));
+        return java_type::to_java_type(jstring_to_string(str));
     };
 
     // Get the functions parameter type
-    const auto get_parameter_types = [&](const jobject_wrapper<jobject> &method) -> std::vector<std::string> {
+    const auto get_parameter_types = [&](const jobject_wrapper<jobject> &method) -> std::vector<java_type> {
         jobject_wrapper<jobjectArray> types(env->CallObjectMethod(method, getParameterTypes), env);
         CHECK_EXCEPTION();
 
         const jsize numTypes = env->GetArrayLength(types);
         CHECK_EXCEPTION();
 
-        std::vector<std::string> res;
+        std::vector<java_type> res;
         res.reserve(numTypes);
 
         for (jsize i = 0; i < numTypes; i++) {
@@ -478,25 +478,25 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
             jobject_wrapper<jstring> name(env->CallObjectMethod(type, class_getName), env);
             CHECK_EXCEPTION();
 
-            res.push_back(util::make_java_name_readable(jstring_to_string(name)));
+            res.push_back(java_type::to_java_type(jstring_to_string(name)));
         }
 
         return res;
     };
 
     // Get the functions id
-    const auto get_id = [&](const std::string &name, const std::string &returnType,
-                            const std::vector<std::string> &parameterTypes) -> jmethodID {
+    const auto get_id = [&](const std::string &name, const java_type &returnType,
+                            const std::vector<java_type> &parameterTypes) -> jmethodID {
         jclass javaClass = getJClass(className);
         CHECK_EXCEPTION();
 
         std::string signature;
         signature += '(';
-        for (const std::string &param : parameterTypes) {
-            signature += util::java_type_to_jni_type(param);
+        for (const java_type &param : parameterTypes) {
+            signature += util::java_type_to_jni_type(param.signature);
         }
         signature += ')';
-        signature += util::java_type_to_jni_type(returnType);
+        signature += util::java_type_to_jni_type(returnType.signature);
 
         jmethodID id;
         if (onlyStatic) {
@@ -527,8 +527,8 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
 
         if (((onlyStatic && is_static) || (!onlyStatic && !is_static)) && is_public) {
             const std::string name = get_name(method);
-            const std::string returnType = get_return_type(method);
-            const std::vector<std::string> parameterTypes = get_parameter_types(method);
+            const java_type returnType = get_return_type(method);
+            const std::vector<java_type> parameterTypes = get_parameter_types(method);
             jmethodID id = get_id(name, returnType, parameterTypes);
 
             res.emplace_back(parameterTypes, returnType, name, id, is_static);
@@ -895,7 +895,7 @@ jvm_env &jni_wrapper::getEnv() {
     return env;
 }
 
-const jobject_wrapper<jobject> & jni_wrapper::getClassloader() const {
+const jobject_wrapper<jobject> &jni_wrapper::getClassloader() const {
     return classLoader;
 }
 
@@ -907,8 +907,8 @@ jni_wrapper::operator bool() const {
     return initialized;
 }
 
-java_field::java_field(std::string signature, std::string name, jfieldID id, bool isStatic, bool isFinal,
-                       jni_wrapper env) : signature(std::move(signature)), name(std::move(name)), id(id),
+java_field::java_field(const std::string &signature, std::string name, jfieldID id, bool isStatic, bool isFinal,
+                       jni_wrapper env) : signature(java_type::to_java_type(signature)), name(std::move(name)), id(id),
                                           isStatic(isStatic), isFinal(isFinal), env(std::move(env)) {}
 
 jvalue java_field::get(jobject classInstance, jobject_wrapper<jobject> &data) const {
@@ -921,28 +921,28 @@ jvalue java_field::get(jobject classInstance, jobject_wrapper<jobject> &data) co
     }
 
     jvalue val;
-    if (signature == "int") {
+    if (signature.isInt()) {
         // Value is an integer
         val.i = env->GetIntField(classInstance, id);
-    } else if (signature == "boolean") {
+    } else if (signature.isBool()) {
         // Value is a boolean
         val.z = env->GetBooleanField(classInstance, id);
-    } else if (signature == "byte") {
+    } else if (signature.isByte()) {
         // Value is a byte
         val.b = env->GetByteField(classInstance, id);
-    } else if (signature == "char") {
+    } else if (signature.isChar()) {
         // Value is a char
         val.c = env->GetCharField(classInstance, id);
-    } else if (signature == "short") {
+    } else if (signature.isShort()) {
         // Value is a short
         val.s = env->GetShortField(classInstance, id);
-    } else if (signature == "long") {
+    } else if (signature.isLong()) {
         // Value is a long
         val.j = env->GetLongField(classInstance, id);
-    } else if (signature == "float") {
+    } else if (signature.isFloat()) {
         // Value is a float
         val.f = env->GetFloatField(classInstance, id);
-    } else if (signature == "double") {
+    } else if (signature.isDouble()) {
         // Value is a double
         val.d = env->GetDoubleField(classInstance, id);
     } else {
@@ -960,28 +960,28 @@ jvalue java_field::getStatic(jclass clazz, jobject_wrapper<jobject> &data) const
     }
 
     jvalue val;
-    if (signature == "int") {
+    if (signature.isInt()) {
         // Value is an integer
         val.i = env->GetStaticIntField(clazz, id);
-    } else if (signature == "boolean") {
+    } else if (signature.isBool()) {
         // Value is a boolean
         val.z = env->GetStaticBooleanField(clazz, id);
-    } else if (signature == "byte") {
+    } else if (signature.isByte()) {
         // Value is a byte
         val.b = env->GetStaticByteField(clazz, id);
-    } else if (signature == "char") {
+    } else if (signature.isChar()) {
         // Value is a char
         val.c = env->GetStaticCharField(clazz, id);
-    } else if (signature == "short") {
+    } else if (signature.isShort()) {
         // Value is a short
         val.s = env->GetStaticShortField(clazz, id);
-    } else if (signature == "long") {
+    } else if (signature.isLong()) {
         // Value is a long
         val.j = env->GetStaticLongField(clazz, id);
-    } else if (signature == "float") {
+    } else if (signature.isFloat()) {
         // Value is a float
         val.f = env->GetStaticFloatField(clazz, id);
-    } else if (signature == "double") {
+    } else if (signature.isDouble()) {
         // Value is a double
         val.d = env->GetStaticDoubleField(clazz, id);
     } else {
@@ -998,28 +998,28 @@ void java_field::set(jobject classInstance, jvalue data) const {
         throw std::runtime_error("Tried to access a static field through a class instance");
     }
 
-    if (signature == "int") {
+    if (signature.isInt()) {
         // Value is an integer
         env->SetIntField(classInstance, id, data.i);
-    } else if (signature == "boolean") {
+    } else if (signature.isBool()) {
         // Value is a boolean
         env->SetBooleanField(classInstance, id, data.z);
-    } else if (signature == "byte") {
+    } else if (signature.isByte()) {
         // Value is a byte
         env->SetByteField(classInstance, id, data.b);
-    } else if (signature == "char") {
+    } else if (signature.isChar()) {
         // Value is a char
         env->SetCharField(classInstance, id, data.c);
-    } else if (signature == "short") {
+    } else if (signature.isShort()) {
         // Value is a short
         env->SetShortField(classInstance, id, data.s);
-    } else if (signature == "long") {
+    } else if (signature.isLong()) {
         // Value is a long
         env->SetLongField(classInstance, id, data.j);
-    } else if (signature == "float") {
+    } else if (signature.isFloat()) {
         // Value is a float
         env->SetFloatField(classInstance, id, data.f);
-    } else if (signature == "double") {
+    } else if (signature.isDouble()) {
         // Value is a double
         env->SetDoubleField(classInstance, id, data.d);
     } else {
@@ -1033,28 +1033,28 @@ void java_field::setStatic(jclass clazz, jvalue data) const {
         throw std::runtime_error("Tried to access a non-static field through a static accessor");
     }
 
-    if (signature == "int") {
+    if (signature.isInt()) {
         // Value is an integer
         env->SetStaticIntField(clazz, id, data.i);
-    } else if (signature == "boolean") {
+    } else if (signature.isBool()) {
         // Value is a boolean
         env->SetStaticBooleanField(clazz, id, data.z);
-    } else if (signature == "byte") {
+    } else if (signature.isByte()) {
         // Value is a byte
         env->SetStaticByteField(clazz, id, data.b);
-    } else if (signature == "char") {
+    } else if (signature.isChar()) {
         // Value is a char
         env->SetStaticCharField(clazz, id, data.c);
-    } else if (signature == "short") {
+    } else if (signature.isShort()) {
         // Value is a short
         env->SetStaticShortField(clazz, id, data.s);
-    } else if (signature == "long") {
+    } else if (signature.isLong()) {
         // Value is a long
         env->SetStaticLongField(clazz, id, data.j);
-    } else if (signature == "float") {
+    } else if (signature.isFloat()) {
         // Value is a float
         env->SetStaticFloatField(clazz, id, data.f);
-    } else if (signature == "double") {
+    } else if (signature.isDouble()) {
         // Value is a double
         env->SetStaticDoubleField(clazz, id, data.d);
     } else {
@@ -1063,7 +1063,7 @@ void java_field::setStatic(jclass clazz, jvalue data) const {
     JVM_CHECK_EXCEPTION(env);
 }
 
-java_function::java_function(std::vector<std::string> parameterTypes, std::string returnType, std::string functionName,
+java_function::java_function(std::vector<java_type> parameterTypes, java_type returnType, std::string functionName,
                              jmethodID method, bool isStatic)
         : parameterTypes(std::move(parameterTypes)), returnType(std::move(returnType)), name(std::move(functionName)),
           method(method), isStatic(isStatic) {}
@@ -1074,12 +1074,12 @@ std::string java_function::to_string() const {
         ss << "static ";
     }
 
-    ss << util::make_java_name_readable(returnType) << ' ' << name << '(';
+    ss << util::make_java_name_readable(returnType.signature) << ' ' << name << '(';
     for (size_t i = 0; i < parameterTypes.size(); i++) {
         if (i > 0) {
             ss << ", ";
         }
-        ss << util::make_java_name_readable(parameterTypes[i]);
+        ss << util::make_java_name_readable(parameterTypes[i].signature);
     }
 
     ss << ')';
