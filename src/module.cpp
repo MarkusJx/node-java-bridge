@@ -48,10 +48,12 @@ void setLoggerMode(const Napi::CallbackInfo &info) {
 }
 
 void setNativeLibraryPath(const Napi::CallbackInfo &info) {
-    CHECK_ARGS(napi_tools::string, napi_tools::string);
+    CHECK_ARGS(napi_tools::string, napi_tools::buffer);
     TRY
-        node_classes::java_function_caller::setLibraryPath(info[0].ToString().Utf8Value(),
-                                                           info[1].ToString().Utf8Value());
+        auto buf = info[1].As<Napi::Buffer<char>>();
+        std::vector<char> data(buf.Data(), buf.Data() + buf.Length());
+
+        node_classes::java_function_caller::setLibraryPath(info[0].ToString().Utf8Value(), data);
     CATCH_EXCEPTIONS
 }
 

@@ -33,7 +33,7 @@ namespace node_classes {
          * @param path the path to the native library for java to load
          * @param workingDir the current working directory
          */
-        static void setLibraryPath(const std::string &path, const std::string &workingDir);
+        static void setLibraryPath(const std::string &path, const std::vector<char> &classData);
 
         /**
          * Add the class to the exports

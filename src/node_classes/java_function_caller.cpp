@@ -11,8 +11,6 @@
 
 using namespace node_classes;
 
-const char *JAVA_CLASS_PATH = "/io/github/markusjx/bridge/JavaFunctionCaller.class";
-
 class node_classes::java_function_caller::value_converter {
 public:
     value_converter() = default;
@@ -92,20 +90,9 @@ std::vector<napi_value> convert_object(const Napi::Env &env, jobjectArray args, 
     }
 }
 
-void java_function_caller::setLibraryPath(const std::string &path, const std::string &workingDir) {
+void java_function_caller::setLibraryPath(const std::string &path, const std::vector<char> &_classData) {
     nativeLibPath = path;
-
-    std::ifstream file(workingDir + JAVA_CLASS_PATH, std::ios::in | std::ios::binary | std::ios::ate);
-    std::streamsize size = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    std::vector<char> buffer(size);
-    if (file.read(buffer.data(), size)) {
-        classData = buffer;
-    } else {
-        throw std::runtime_error("Could not load the JavaFunctionCaller.class file");
-    }
-    file.close();
+    classData = _classData;
 }
 
 bool java_function_caller::instanceOf(const Napi::Object &object) {

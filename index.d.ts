@@ -10,7 +10,7 @@ declare namespace native {
 
     function setLoggerMode(mode: java.logging.LogLevel | number): void;
 
-    function setNativeLibraryPath(path: string, workingDir: string): void;
+    function setNativeLibraryPath(path: string, classData: Buffer): void;
 }
 
 declare type basic_type = string | number | boolean | BigInt | null;

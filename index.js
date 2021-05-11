@@ -52,7 +52,9 @@ if (fs.existsSync(path.join(__dirname, 'build', 'Debug', 'node_java_bridge.node'
     throw new Error("Could not find the native binary");
 }
 
-native.setNativeLibraryPath(native_path, __dirname);
+const functionCallerPath = path.join(__dirname, 'io', 'github', 'markusjx', 'bridge', 'JavaFunctionCaller.class');
+const functionCaller = fs.readFileSync(functionCallerPath);
+native.setNativeLibraryPath(native_path, functionCaller);
 
 let java = null;
 
