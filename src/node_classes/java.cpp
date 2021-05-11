@@ -40,6 +40,8 @@ java::java(const Napi::CallbackInfo &info) : ObjectWrap(info), loaded_jars() {
     CHECK_ARGS(napi_tools::string, napi_tools::null | napi_tools::string);
 
     StaticLogger::debug("Creating a new java instance");
+    // Uncomment to add timeout to attach debugger
+    //std::this_thread::sleep_for(std::chrono::seconds(10));
 
     TRY
         const std::string lib_path = info[0].ToString();

@@ -16,4 +16,6 @@
 #   define JAVA_NODISCARD
 #endif
 
+#define RUNTIME_ERROR(msg) std::runtime_error(__FILE__ ":" + std::to_string(__LINE__) + " " + msg)
+
 #endif //NODE_JAVA_BRIDGE_DEFINITIONS_HPP

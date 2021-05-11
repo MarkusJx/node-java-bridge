@@ -15,6 +15,10 @@
 
 std::string get_object_type(const jni::jni_wrapper &j_env, const std::string &signature,
                             const jni::jobject_wrapper<jobject> &obj) {
+    if (obj.isNull()) {
+        throw RUNTIME_ERROR("The object was null");
+    }
+
     if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Integer"))) {
         return "java.lang.Integer";
     } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Boolean"))) {
@@ -44,6 +48,10 @@ std::string get_object_type(const jni::jni_wrapper &j_env, const std::string &si
 
 Napi::Value conversion_helper::jobject_to_value(const Napi::Env &env, const jni::jobject_wrapper<jobject> &obj,
                                                 const std::string &signature, bool objects) {
+    if (obj.isNull()) {
+        return env.Null();
+    }
+
     jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
     if (objects && signature == "java.lang.Object") {
         TRY_RUN(return jobject_to_value(env, obj, get_object_type(j_env, signature, obj), false))
@@ -635,34 +643,38 @@ const jni::java_constructor *conversion_helper::find_matching_constructor(const 
     return nullptr;
 }
 
-Napi::Value conversion_helper::call_matching_function(const Napi::CallbackInfo &args,
+Napi::Value conversion_helper::call_matching_function(const Napi::CallbackInfo &info,
                                                       const jni::jobject_wrapper<jobject> &classInstance,
                                                       const std::vector<jni::java_function> &functions) {
     std::vector<jni::jobject_wrapper<jobject>> outArgs;
     std::string error;
     std::vector<jvalue> values;
-    const jni::java_function *function = find_matching_function(args, functions, outArgs, error, values);
+    const jni::java_function *function = find_matching_function(info, functions, outArgs, error, values);
 
     if (function == nullptr) {
-        throw Napi::TypeError::New(args.Env(), error);
+        throw Napi::TypeError::New(info.Env(), error);
     } else {
-        jvalue value = call_function(*function, classInstance, values);
-        return jvalue_to_napi_value(value, function->returnType, args.Env());
+        TRY
+            jvalue value = call_function(*function, classInstance, values);
+            return jvalue_to_napi_value(value, function->returnType, info.Env());
+        CATCH_EXCEPTIONS
     }
 }
 
-Napi::Value conversion_helper::call_matching_static_function(const Napi::CallbackInfo &args, jclass clazz,
+Napi::Value conversion_helper::call_matching_static_function(const Napi::CallbackInfo &info, jclass clazz,
                                                              const std::vector<jni::java_function> &functions) {
     std::vector<jni::jobject_wrapper<jobject>> outArgs;
     std::string error;
     std::vector<jvalue> values;
-    const jni::java_function *function = find_matching_function(args, functions, outArgs, error, values);
+    const jni::java_function *function = find_matching_function(info, functions, outArgs, error, values);
 
     if (function == nullptr) {
-        throw Napi::TypeError::New(args.Env(), error);
+        throw Napi::TypeError::New(info.Env(), error);
     } else {
-        jvalue value = call_static_function(*function, clazz, values);
-        return jvalue_to_napi_value(value, function->returnType, args.Env());
+        TRY
+            jvalue value = call_static_function(*function, clazz, values);
+            return jvalue_to_napi_value(value, function->returnType, info.Env());
+        CATCH_EXCEPTIONS
     }
 }
 
@@ -714,6 +726,10 @@ const jni::java_function *conversion_helper::find_matching_function(const Napi::
 jvalue conversion_helper::call_function(const jni::java_function &function,
                                         const jni::jobject_wrapper<jobject> &classInstance,
                                         const std::vector<jvalue> &args) {
+    if (classInstance.isNull()) {
+        throw RUNTIME_ERROR("The class instance was null");
+    }
+
     const std::string &signature = function.returnType;
     jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
 
@@ -771,6 +787,10 @@ jvalue conversion_helper::call_function(const jni::java_function &function,
 
 jvalue conversion_helper::call_static_function(const jni::java_function &function, jclass clazz,
                                                const std::vector<jvalue> &args) {
+    if (clazz == nullptr) {
+        throw RUNTIME_ERROR("The class pointer was null");
+    }
+
     jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
     const std::string &signature = function.returnType;
 
@@ -779,6 +799,7 @@ jvalue conversion_helper::call_static_function(const jni::java_function &functio
         // Method returns void
         j_env->CallStaticVoidMethodA(clazz, function.method, args.data());
         j_env.checkForError();
+        val.l = nullptr;
     } else if (signature == "int") {
         // Value is an integer
         CALL_STATIC_FUNCTION(CallStaticIntMethodA);
@@ -824,6 +845,10 @@ jvalue conversion_helper::call_static_function(const jni::java_function &functio
 
 Napi::Value jarray_to_napi_value(jarray array, const std::string &signature, const Napi::Env &env,
                                  const jni::jni_wrapper &j_env) {
+    if (array == nullptr) {
+        return env.Null();
+    }
+
     const jsize length = j_env->GetArrayLength(array);
     j_env.checkForError();
     Napi::Array res = Napi::Array::New(env, length);
@@ -831,6 +856,7 @@ Napi::Value jarray_to_napi_value(jarray array, const std::string &signature, con
     if (signature == "int") {
         // Value is an integer
         jint *elements = j_env->GetIntArrayElements((jintArray) array, nullptr);
+        j_env.checkForError();
         for (uint32_t i = 0; i < length; i++) {
             res.Set(i, Napi::Number::From(env, elements[i]));
         }
@@ -839,6 +865,7 @@ Napi::Value jarray_to_napi_value(jarray array, const std::string &signature, con
     } else if (signature == "boolean") {
         // Value is a boolean
         jboolean *elements = j_env->GetBooleanArrayElements((jbooleanArray) array, nullptr);
+        j_env.checkForError();
         for (uint32_t i = 0; i < length; i++) {
             res.Set(i, Napi::Boolean::New(env, elements[i]));
         }
@@ -847,6 +874,7 @@ Napi::Value jarray_to_napi_value(jarray array, const std::string &signature, con
     } else if (signature == "byte") {
         // Value is a byte
         jbyte *elements = j_env->GetByteArrayElements((jbyteArray) array, nullptr);
+        j_env.checkForError();
         for (uint32_t i = 0; i < length; i++) {
             res.Set(i, Napi::Number::From(env, elements[i]));
         }
@@ -855,6 +883,7 @@ Napi::Value jarray_to_napi_value(jarray array, const std::string &signature, con
     } else if (signature == "char") {
         // Value is a char
         jchar *elements = j_env->GetCharArrayElements((jcharArray) array, nullptr);
+        j_env.checkForError();
         for (uint32_t i = 0; i < length; i++) {
             res.Set(i, Napi::String::New(env, std::u16string({static_cast<char16_t>(elements[i])})));
         }
@@ -863,6 +892,7 @@ Napi::Value jarray_to_napi_value(jarray array, const std::string &signature, con
     } else if (signature == "short") {
         // Value is a short
         jshort *elements = j_env->GetShortArrayElements((jshortArray) array, nullptr);
+        j_env.checkForError();
         for (uint32_t i = 0; i < length; i++) {
             res.Set(i, Napi::Number::From(env, elements[i]));
         }
@@ -871,6 +901,7 @@ Napi::Value jarray_to_napi_value(jarray array, const std::string &signature, con
     } else if (signature == "long") {
         // Value is a long
         jlong *elements = j_env->GetLongArrayElements((jlongArray) array, nullptr);
+        j_env.checkForError();
         for (uint32_t i = 0; i < length; i++) {
             res.Set(i, Napi::BigInt::New(env, int64_t(elements[i])));
         }
@@ -879,6 +910,7 @@ Napi::Value jarray_to_napi_value(jarray array, const std::string &signature, con
     } else if (signature == "float") {
         // Value is a float
         jfloat *elements = j_env->GetFloatArrayElements((jfloatArray) array, nullptr);
+        j_env.checkForError();
         for (uint32_t i = 0; i < length; i++) {
             res.Set(i, Napi::Number::From(env, elements[i]));
         }
@@ -887,6 +919,7 @@ Napi::Value jarray_to_napi_value(jarray array, const std::string &signature, con
     } else if (signature == "double") {
         // Value is a double
         jdouble *elements = j_env->GetDoubleArrayElements((jdoubleArray) array, nullptr);
+        j_env.checkForError();
         for (uint32_t i = 0; i < length; i++) {
             res.Set(i, Napi::Number::From(env, elements[i]));
         }
@@ -896,12 +929,14 @@ Napi::Value jarray_to_napi_value(jarray array, const std::string &signature, con
         // Value is an array
         for (uint32_t i = 0; i < length; i++) {
             jobject element = j_env->GetObjectArrayElement((jobjectArray) array, (jsize) i);
+            j_env.checkForError();
             res.Set(i, jarray_to_napi_value((jarray) element, signature.substr(0, signature.size() - 2), env, j_env));
             j_env->DeleteLocalRef(element);
         }
     } else {
         for (uint32_t i = 0; i < length; i++) {
             jobject element = j_env->GetObjectArrayElement((jobjectArray) array, (jsize) i);
+            j_env.checkForError();
             res.Set(i, conversion_helper::jobject_to_value(env, jni::jobject_wrapper<jobject>(element, j_env),
                                                            signature));
         }

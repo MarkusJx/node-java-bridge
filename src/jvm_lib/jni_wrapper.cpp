@@ -916,6 +916,10 @@ jvalue java_field::get(jobject classInstance, jobject_wrapper<jobject> &data) co
         throw std::runtime_error("Tried to access a static field through a class instance");
     }
 
+    if (classInstance == nullptr) {
+        throw std::runtime_error(__FILE__ ":" + std::to_string(__LINE__) + " classInstance was nullptr");
+    }
+
     jvalue val;
     if (signature == "int") {
         // Value is an integer
