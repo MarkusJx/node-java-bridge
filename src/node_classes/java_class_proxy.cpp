@@ -105,7 +105,11 @@ java_class_proxy::java_class_proxy(const Napi::CallbackInfo &info) : ObjectWrap(
 }
 
 java_class_proxy::~java_class_proxy() {
-    clazz.reset();
+    cleanup_class(clazz, classname);
+}
+
+void java_class_proxy::cleanup_class(std::shared_ptr<jni::java_class> &ptr, const std::string &classname) {
+    ptr.reset();
     std::unique_lock<std::mutex> lock(cache_mtx);
     auto iter = cached_classes.find(classname);
     if (iter != cached_classes.end() && iter->second.use_count() == 1) {

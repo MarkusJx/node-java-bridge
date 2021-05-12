@@ -50,15 +50,15 @@ class jvalue_converter {
 public:
     jvalue_converter() : value(), signature() {}
 
-    jvalue_converter(jvalue value, std::string signature) : value(value), signature(std::move(signature)) {}
+    jvalue_converter(jvalue value, java_type signature) : value(value), signature(std::move(signature)) {}
 
     [[maybe_unused]] static Napi::Value toNapiValue(const Napi::Env &env, const jvalue_converter &c) {
         return conversion_helper::jvalue_to_napi_value(c.value, c.signature, env);
     }
 
 private:
-    [[maybe_unused]] std::string signature;
-    [[maybe_unused]] jvalue value;
+    java_type signature;
+    jvalue value;
 };
 
 Napi::Value java_instance_proxy::staticGetter(const Napi::CallbackInfo &info) {
@@ -333,4 +333,8 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
             object = constructor->newInstance(outArgs);
         }
     }
+}
+
+java_instance_proxy::~java_instance_proxy() {
+    java_class_proxy::cleanup_class(clazz, classname);
 }

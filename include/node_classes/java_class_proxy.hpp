@@ -58,12 +58,20 @@ namespace node_classes {
         Napi::Value getClassConstructor(const Napi::CallbackInfo &info);
 
         /**
-         * The java_class_proxy destructor.
+         * The java_class_proxy destructor
+         */
+        ~java_class_proxy() override;
+
+        /**
          * This will check if this was the last instance
          * referencing the stored class and will delete
          * the class instance from the cache if so.
+         * This will also call reset on the pointer passed to it.
+         *
+         * @param ptr the shared pointer to release
+         * @param classname the name of the stored class
          */
-        ~java_class_proxy() override;
+        static void cleanup_class(std::shared_ptr<jni::java_class> &ptr, const std::string &classname);
 
         // The jni::java_class instance
         std::shared_ptr<jni::java_class> clazz;

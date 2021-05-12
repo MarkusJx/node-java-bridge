@@ -20,7 +20,7 @@ namespace conversion_helper {
      * @return the converted n-api value
      */
     Napi::Value jobject_to_value(const Napi::Env &env, const jni::jobject_wrapper<jobject> &obj,
-                                 const std::string &signature, bool objects = true);
+                                 const java_type &signature, bool objects = true);
 
     /**
      * Convert a napi value to a jobject
@@ -32,7 +32,7 @@ namespace conversion_helper {
      * @return the converted jobject
      */
     jni::jobject_wrapper<jobject> value_to_jobject(const Napi::Env &env, const Napi::Value &value,
-                                                   const std::string &signature, bool objects);
+                                                   const java_type &signature, bool objects);
 
     /**
      * Convert a napi_valuetype to a string
@@ -124,7 +124,7 @@ namespace conversion_helper {
      * @param env the environment to work in
      * @return the converted Napi::Value
      */
-    Napi::Value jvalue_to_napi_value(jvalue value, const std::string &signature, const Napi::Env &env);
+    Napi::Value jvalue_to_napi_value(jvalue value, const java_type &signature, const Napi::Env &env);
 
     /**
      * Convert a n-api value to a jvalue
@@ -136,7 +136,7 @@ namespace conversion_helper {
      * @param objects whether to convert values to java.lang.Object, if supplied
      * @return the converted value
      */
-    jvalue napi_value_to_jvalue(const Napi::Env &env, const Napi::Value &value, const std::string &signature,
+    jvalue napi_value_to_jvalue(const Napi::Env &env, const Napi::Value &value, const java_type &signature,
                                 std::vector<jni::jobject_wrapper<jobject>> &values, bool objects);
 
     /**
@@ -150,7 +150,7 @@ namespace conversion_helper {
      * @return the converted array
      */
     jni::jobject_wrapper<jarray> napi_array_to_jarray(const Napi::Env &env, const jni::jni_wrapper &j_env,
-                                                      const std::string &signature, const Napi::Array &array,
+                                                      const java_type &signature, const Napi::Array &array,
                                                       bool objects);
 
     /**
