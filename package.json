@@ -1,8 +1,9 @@
 {
   "name": "@markusjx/java",
-  "version": "0.1.0-beta.2",
+  "version": "0.1.0-beta.3",
   "description": "A bridge between node.js and java",
   "main": "index.js",
+  "repository": "https://github.com/MarkusJx/node-java-bridge",
   "scripts": {
     "test": "mocha -r ts-node/register test/**/*.ts",
     "pretest": "npm run build",
@@ -10,13 +11,12 @@
     "build:dev": "cmake-js compile -D --CDLOGGING=ON",
     "pretest:dev": "npm run build:dev",
     "test:dev": "node test.js --debug",
-    "postinstall": "node --unhandled-rejections=strict scripts/setJavaDllPath.js && npm run build"
+    "postinstall": "node --unhandled-rejections=strict scripts/setJavaDllPath.js && cmake-js build"
   },
   "author": "MarkusJx",
   "license": "MIT",
   "dependencies": {
     "@markusjx/n-api-tools": "^1.1.0",
-    "bindings": "^1.5.0",
     "cmake-js": "^6.1.0",
     "find-java-home": "^1.2.0",
     "node-addon-api": "^3.1.0"
