@@ -43,6 +43,11 @@ namespace node_classes {
          */
         explicit java_instance_proxy(const Napi::CallbackInfo &info);
 
+        /**
+         * The java instance proxy destructor
+         */
+        ~java_instance_proxy() override;
+
         // The stored class instance object
         jni::jobject_wrapper<jobject> object;
         // The class

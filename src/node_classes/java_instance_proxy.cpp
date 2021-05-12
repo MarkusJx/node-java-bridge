@@ -334,3 +334,7 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
         }
     }
 }
+
+java_instance_proxy::~java_instance_proxy() {
+    java_class_proxy::cleanup_class(clazz, classname);
+}
