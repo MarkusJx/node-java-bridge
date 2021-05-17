@@ -14,7 +14,7 @@ on:
   pull_request:
 
 env:
-  IMAGE_NAME: markusjx/java:latest
+  IMAGE_NAME: markusjx/java
 
 jobs:
   # Push image to GitHub Packages.
