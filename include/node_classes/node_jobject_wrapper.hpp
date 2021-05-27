@@ -53,7 +53,7 @@ namespace node_classes {
          *
          * @return the stored jobject
          */
-        [[nodiscard]] jni::jobject_wrapper<jobject> getObject() const;
+        JAVA_NODISCARD jni::jobject_wrapper<jobject> getObject() const;
 
     private:
         // The class's constructor

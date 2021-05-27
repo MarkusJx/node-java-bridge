@@ -4,6 +4,8 @@
 #include <functional>
 #include <mutex>
 
+#include "definitions.hpp"
+
 /**
  * A class for calling a function when destroyed.
  * Works almost like a std::shared_ptr just without the pointer part.
@@ -97,7 +99,7 @@ public:
      *
      * @return true, if the function is not nullptr
      */
-    [[nodiscard]] operator bool() const noexcept {
+    JAVA_NODISCARD operator bool() const noexcept {
         return on_destroy.operator bool();
     }
 

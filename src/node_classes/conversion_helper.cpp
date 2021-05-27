@@ -609,6 +609,48 @@ uint32_t get_num_objects(const std::vector<java_type> &parameterTypes) {
     return sz;
 }
 
+std::string napi_value_to_string(const Napi::Value &value) {
+    if (value.IsObject()) {
+        if (node_classes::java_function_caller::instanceOf(value.ToObject())) {
+            try {
+                return Napi::ObjectWrap<node_classes::java_function_caller>::Unwrap(value.ToObject())->getClassName();
+            } catch (...) {
+                return "object";
+            }
+        } else {
+            try {
+                return Napi::ObjectWrap<node_classes::java_instance_proxy>::Unwrap(value.ToObject())->classname;
+            } catch (...) {
+                return "object";
+            }
+        }
+    } else if (value.IsArray()) {
+        auto arr = value.As<Napi::Array>();
+        if (arr.Length() == 0) {
+            return "any[]";
+        } else {
+            return napi_value_to_string(arr.Get(uint32_t(0))) + "[]";
+        }
+    } else {
+        return conversion_helper::napi_valuetype_to_string(value.Type());
+    }
+}
+
+std::string js_args_to_string(const Napi::CallbackInfo &info) {
+    std::stringstream ss;
+    ss << '(';
+    for (size_t i = 0; i < info.Length(); i++) {
+        ss << napi_value_to_string(info[i]);
+
+        if (i < info.Length() - 1) {
+            ss << ", ";
+        }
+    }
+    ss << ')';
+
+    return ss.str();
+}
+
 const jni::java_constructor *conversion_helper::find_matching_constructor(const Napi::CallbackInfo &args,
                                                                           const std::vector<jni::java_constructor> &constructors,
                                                                           std::vector<jni::jobject_wrapper<jobject>> &outArgs,
@@ -649,7 +691,8 @@ const jni::java_constructor *conversion_helper::find_matching_constructor(const 
     }
 
     std::stringstream ss;
-    ss << "Could not find an appropriate constructor. Options were:";
+    ss << "Could not find an appropriate constructor with arguments: ";
+    ss << js_args_to_string(args) << ". Options were:";
     for (const auto &c : constructors) {
         ss << std::endl << '\t' << c.to_string();
     }
@@ -727,7 +770,8 @@ const jni::java_function *conversion_helper::find_matching_function(const Napi::
     }
 
     std::stringstream ss;
-    ss << "Could not find a matching function. Options were:";
+    ss << "Could not find a matching function with arguments: ";
+    ss << js_args_to_string(args) << ". Options were:";
     for (const auto &f : functions) {
         ss << std::endl << '\t' << f.to_string();
     }

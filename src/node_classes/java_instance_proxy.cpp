@@ -34,13 +34,13 @@ public:
     instance_def(util::persistent_object class_proxy, jni::jobject_wrapper<jobject> object)
             : class_proxy(std::move(class_proxy)), object(std::move(object)) {}
 
-    [[maybe_unused]] static Napi::Value toNapiValue(const Napi::Env &env, const instance_def &c) {
+    JAVA_UNUSED static Napi::Value toNapiValue(const Napi::Env &env, const instance_def &c) {
         return java_instance_proxy::fromJObject(env, c.object, c.class_proxy.value());
     }
 
 private:
-    [[maybe_unused]] util::persistent_object class_proxy;
-    [[maybe_unused]] jni::jobject_wrapper<jobject> object;
+    util::persistent_object class_proxy;
+    jni::jobject_wrapper<jobject> object;
 };
 
 /**
@@ -52,7 +52,7 @@ public:
 
     jvalue_converter(jvalue value, java_type signature) : value(value), signature(std::move(signature)) {}
 
-    [[maybe_unused]] static Napi::Value toNapiValue(const Napi::Env &env, const jvalue_converter &c) {
+    JAVA_UNUSED static Napi::Value toNapiValue(const Napi::Env &env, const jvalue_converter &c) {
         return conversion_helper::jvalue_to_napi_value(c.value, c.signature, env);
     }
 
@@ -330,7 +330,9 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
         if (constructor == nullptr) {
             throw Napi::TypeError::New(info.Env(), error);
         } else {
-            object = constructor->newInstance(outArgs);
+            TRY
+                object = constructor->newInstance(outArgs);
+            CATCH_EXCEPTIONS
         }
     }
 }

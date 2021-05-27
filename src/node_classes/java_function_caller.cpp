@@ -142,7 +142,7 @@ java_function_caller::java_function_caller(const Napi::CallbackInfo &info) : Obj
             }
         }
 
-        std::string classname = info[0].ToString().Utf8Value();
+        classname = info[0].ToString().Utf8Value();
 
         jmethodID ctor = jvm->GetMethodID(clazz, "<init>", "(Ljava/lang/String;[Ljava/lang/String;J)V");
         jvm.checkForError();
@@ -161,6 +161,10 @@ java_function_caller::java_function_caller(const Napi::CallbackInfo &info) : Obj
                 jvm);
         jvm->DeleteLocalRef(classes);
     CATCH_EXCEPTIONS
+}
+
+const std::string &java_function_caller::getClassName() const {
+    return classname;
 }
 
 java_function_caller::~java_function_caller() {

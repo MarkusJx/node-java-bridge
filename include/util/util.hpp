@@ -110,6 +110,13 @@ namespace util {
      */
     bool hasEnding(std::string const &fullString, std::string const &ending);
 
+    /**
+     * Check if a signature equals to a java primitive type,
+     * e.g. int, long, float, double...
+     *
+     * @param signature the signature to check
+     * @return true if it is a primitive type
+     */
     bool isPrimitive(const std::string &signature);
 }
 

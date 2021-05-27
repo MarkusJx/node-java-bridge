@@ -64,6 +64,13 @@ namespace node_classes {
         explicit java_function_caller(const Napi::CallbackInfo &info);
 
         /**
+         * Get the name of the instantiated interface
+         *
+         * @return the interface's signature
+         */
+        JAVA_NODISCARD const std::string &getClassName() const;
+
+        /**
          * Destroy the java_function_caller instance.
          * Will call destruct() on the JavaFunctionCaller
          * java class instance to render that class instance invalid
@@ -83,12 +90,13 @@ namespace node_classes {
          */
         jni::jobject_wrapper<jobject> proxy;
     private:
-
         // The io.github.markusjx.bridge.JavaFunctionCaller class
         jclass clazz;
         // The io.github.markusjx.bridge.JavaFunctionCaller
         // class instance
         jni::jobject_wrapper<jobject> object;
+        // The class name
+        std::string classname;
 
         // The java_function_caller constructor
         static Napi::FunctionReference *constructor;

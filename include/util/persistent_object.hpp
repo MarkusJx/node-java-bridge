@@ -4,6 +4,7 @@
 #include <napi.h>
 
 #include "shared_releaser.hpp"
+#include "definitions.hpp"
 
 namespace util {
     /**
@@ -33,7 +34,7 @@ namespace util {
          *
          * @return the stored object value
          */
-        [[nodiscard]] Napi::Object value() const;
+        JAVA_NODISCARD Napi::Object value() const;
 
     private:
         // The releaser responsible for releasing the object

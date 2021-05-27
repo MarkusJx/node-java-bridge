@@ -1,6 +1,6 @@
 {
   "name": "@markusjx/java",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "description": "A bridge between node.js and java",
   "main": "index.js",
   "repository": "https://github.com/MarkusJx/node-java-bridge",
@@ -19,15 +19,15 @@
     "@markusjx/n-api-tools": "^1.1.0",
     "cmake-js": "^6.1.0",
     "find-java-home": "^1.2.0",
-    "node-addon-api": "^3.1.0"
+    "node-addon-api": "^3.2.0"
   },
   "devDependencies": {
     "@types/bindings": "^1.5.0",
     "@types/mocha": "^8.2.2",
-    "@types/node": "^15.0.2",
+    "@types/node": "^15.6.1",
     "mocha": "^8.4.0",
-    "ts-node": "^9.1.1",
-    "typescript": "^4.2.4"
+    "ts-node": "^10.0.0",
+    "typescript": "^4.3.2"
   },
   "cmake-js": {
     "runtime": "node",

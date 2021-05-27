@@ -583,7 +583,7 @@ namespace jni {
          *
          * @return the parameter types
          */
-        [[nodiscard]] std::vector<java_type> getParameterTypes() const;
+        JAVA_NODISCARD std::vector<java_type> getParameterTypes() const;
 
         // The jni_wrapper to use
         jni_wrapper jni;
