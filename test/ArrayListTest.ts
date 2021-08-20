@@ -46,7 +46,7 @@ describe('ArrayListTest', () => {
 
     it('Ensure jvm', () => {
         java.ensureJVM();
-    });
+    }).timeout(10000);
 
     it('Import java.util.ArrayList', () => {
         ArrayList = java.importClass('java.util.ArrayList') as typeof List;
