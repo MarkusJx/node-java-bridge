@@ -1,44 +1,7 @@
-import java, {java_instance_proxy, JavaType} from "../index";
+import java, {JavaType} from "../index";
+import List from "../types/List";
 import assert = require("assert");
 import {it} from "mocha";
-
-declare class List<T extends JavaType> extends java_instance_proxy {
-    size(): Promise<number>;
-
-    sizeSync(): number;
-
-    add(data: T): Promise<void>;
-
-    addSync(data: T): void;
-
-    get(index: number): Promise<T>;
-
-    getSync(index: number): T;
-
-    toArray(): Promise<T[]>;
-
-    toArraySync(): T[];
-
-    isEmpty(): Promise<boolean>;
-
-    isEmptySync(): boolean;
-
-    contains(value: T): Promise<boolean>;
-
-    containsSync(value: T): boolean;
-
-    clear(): Promise<void>;
-
-    clearSync(): void;
-
-    lastIndexOf(value: T): Promise<number>;
-
-    lastIndexOfSync(value: T): number;
-
-    remove(index: number): Promise<T>;
-
-    removeSync(index: number): T;
-}
 
 describe('ArrayListTest', () => {
     let ArrayList: typeof List = null;

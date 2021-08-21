@@ -179,10 +179,11 @@ export class java_instance_proxy extends java_object implements ImportedMembers 
      * Create a new java class instance.
      * Async version.
      *
+     * @template T the type of this class as a new instance of this class will be returned
      * @param args the arguments to create the instance
      * @return the java_instance_proxy instance
      */
-    public static newInstance(...args: any_type[]): Promise<java_instance_proxy>;
+    public static newInstance<T extends java_instance_proxy = java_instance_proxy>(...args: any_type[]): Promise<T>;
 
     /**
      * Create a new java instance of type
@@ -201,9 +202,44 @@ export class java_instance_proxy extends java_object implements ImportedMembers 
     public instanceOf(classname: string): boolean;
 
     /**
+     * Default java equals implementation.
+     * Async call.
+     *
+     * @param o the object to compare this to
+     * @returns true if this matches o
+     */
+    public equals(o: java_instance_proxy): Promise<boolean>;
+
+    /**
+     * Default java equals implementation.
+     * Sync call.
+     *
+     * @param o the object to compare this to
+     * @returns true if this matches o
+     */
+    public equalsSync(o: java_instance_proxy): boolean;
+
+    /**
+     * Java default toString method.
+     * Async call.
+     *
+     * @returns this as a string
+     */
+    public toString(): Promise<string>;
+
+    /**
+     * Java default toString method.
+     * Sync call.
+     *
+     * @returns this as a string
+     */
+    public toStringSync(): string;
+
+    /**
      * Any class member imported.
      * We'll need to use 'any' as any is callable.
-     * The actual type would be JavaType | ((...args: JavaType[]) => JavaType | Promise<JavaType>)
+     * The actual type would be JavaType | ((...args: JavaType[]) => JavaType | Promise<JavaType>).
+     * Just throwing it out there.
      */
     [member: string]: any;
 }
@@ -277,6 +313,7 @@ declare namespace java {
     /**
      * Create a new java instance.
      * This will destroy the old instance.
+     * The creation process might take a while.
      *
      * @param jvmPath the path to the jvm shared library
      * @param version the version to use
@@ -284,8 +321,15 @@ declare namespace java {
     function createJVM(jvmPath?: string | null, version?: java_version | string | null): void;
 
     /**
-     * Import a class
+     * Import a class.
+     * Returns the constructor of the class to be created.
+     * For example, import "java.util.ArrayList" for a java Array List.
      *
+     * Define a custom class type for the imported class and pass the
+     * constructor type of the class as the template parameter to get
+     * the proper type returned. You could also just cast the result.
+     *
+     * @template T the type of the java class to import as a js type
      * @param classname the name of the class to resolve
      * @return the java_instance_proxy constructor
      */
@@ -321,7 +365,19 @@ declare namespace java {
     function newProxy(name: string, methods: ProxyMethods): JavaInterfaceProxy;
 
     /**
-     * Ensure that the jvm exists
+     * Ensure that the jvm exists.
+     * If any argument is set to null, it will be ignored,
+     * thus, any argument may be omitted. The path to the jvm
+     * shared library should contain the full path to the
+     * jvm.(dll|so|dylib). If omitted, the path to the shared
+     * library will be used that was found on installation.
+     * 
+     * The version argument should be either of type java_version
+     * or a string defined in the java_version type. For example,
+     * use "1.8" for java version 1.8. If omitted, version 1.8 will
+     * be selected if the native binary was compiled with a version
+     * greater than or equal to 1.8. If that is not the case,
+     * version 1.6 will be selected by default.
      *
      * @param jvmPath the path to the jvm shared library
      * @param version the version to use
@@ -341,7 +397,10 @@ declare namespace java {
      */
     namespace logging {
         /**
-         * Set the log level for the java module
+         * Set the log level for the java module.
+         * Only displays logging information in the console.
+         * The level should be either one from LogLevel
+         * or a number defined in LogLevel.
          *
          * @param level the level to set
          */
