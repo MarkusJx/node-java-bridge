@@ -11,7 +11,8 @@
         "build:dev": "cmake-js compile -D --CDLOGGING=ON",
         "pretest:dev": "npm run build:dev",
         "test:dev": "node test.js --debug",
-        "postinstall": "node --unhandled-rejections=strict scripts/setJavaDllPath.js && cmake-js build"
+        "postinstall": "node --unhandled-rejections=strict scripts/setJavaDllPath.js && cmake-js build",
+        "clean": "cmake-js clean"
     },
     "author": "MarkusJx",
     "license": "MIT",
