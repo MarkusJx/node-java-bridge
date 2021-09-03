@@ -45,7 +45,7 @@ java_type java_type::to_java_type(std::string signature, bool convert) {
         return java_type(String, nullptr, signature);
     } else if (util::hasEnding(signature, "[]")) {
         return java_type(Array,
-                         std::make_unique<java_type>(to_java_type(signature.substr(0, signature.size() - 2), false)),
+                         std::make_shared<java_type>(to_java_type(signature.substr(0, signature.size() - 2), false)),
                          signature);
     } else if (signature == "java.lang.Object") {
         return java_type(lang_Object, nullptr, signature);
