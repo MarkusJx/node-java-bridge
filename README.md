@@ -33,7 +33,7 @@ npm i @markusjx/java
 
 # Getting started
 
-```ts
+```js
 const java = require('@markusjx/java');
 // or
 import java from "@markusjx/java";
@@ -48,14 +48,14 @@ if it doesn't already exist. Calling this isn't required as it is called on ever
 
 Example: Creating a jvm with version 1.8 and the default path to the java library
 
-```ts
+```js
 java.ensureJVM(null, java.java_version.VER_1_8);
 ```
 
 Alternatively, you may want to create a new java instance using ``java.createJVM()``. This will destroy the old instance
 before creating the new one.
 
-```ts
+```js
 // Someone requested number 10?
 java.createJVM(null, java.java_version.VER_10);
 ```
@@ -70,7 +70,7 @@ therefore, async calls may still succeed, whereas sync calls will likely fail
 (if there are no async operations currently running). Though the question still remains why anyone would want to destroy
 the vm mid-call.
 
-```ts
+```js
 java.destroyJVM();
 ```
 
@@ -88,7 +88,7 @@ java.destroyJVM();
 
 This imports the java String class:
 
-````ts
+````js
 const JString = java.importClass('java.lang.String');
 // or, async version
 const JString_async = await java.importClassAsync('java.lang.String');
@@ -99,7 +99,7 @@ const JString_async = await java.importClassAsync('java.lang.String');
 Create a new ``java.lang.String`` class instance. This is never required as javascript strings are always converted to
 java strings and the other way around. Anyways, here it is just for the hell of it:
 
-```ts
+```js
 let str = new JString("some string which will be converted to a java string");
 // Async version
 str = await JString.createInstance("some string");
@@ -108,6 +108,15 @@ str = await JString.createInstance("some string");
 let jsString = str.toStringSync();
 // or, async
 jsString = await str.toString();
+```
+
+#### Calling static methods
+As JavaScript doesn't permit static methods to be called on class instances, you should always call static methods
+directly on the imported class:
+```js
+// Call static java.lang.String.valueOf(char[])
+// Note that javas char translates to a js string containign a single character
+let jsString = JString.valueOf(['s', 'o', 'm', 'e', ' ', 's', 't', 'r', 'i', 'n', 'g']);
 ```
 
 ### Lists
@@ -172,7 +181,7 @@ const async_list: List<number> = await ArrayList.createInstance();
 
 You may then want to start adding values:
 
-```ts
+```js
 list.addSync(1234);
 
 // Will print out '1'
@@ -187,7 +196,7 @@ console.log(list.getSync(0));
 Float values are not supported to be passed directly to methods expecting an object (template classes), e.g. Lists,
 those values must be wrapped using the ``Float`` class:
 
-```ts
+```js
 const Float = java.importClass('java.lang.Float');
 
 // Create the actual float value.
@@ -419,7 +428,7 @@ is passed, the default path will be used.
 
 You may want to pass a path like this:
 
-```ts
+```js
 // A jvm.dll path on a windows system
 const jvm_path = "C:\\Program Files\\AdoptOpenJDK\\jdk-11.0.10.9-hotspot\\bin\\client\\jvm.dll";
 
@@ -432,7 +441,7 @@ java.createJVM(jvm_path);
 
 Again, passing no path will cause the module to use the path provided by ``module_path/jvmLibPath.json``:
 
-```ts
+```js
 // Use the default path
 java.ensureJVM(null);
 
@@ -476,19 +485,20 @@ to unexpected results and requesting a newer version will fail (obviously).
    types
 2. ``string`` values will always be converted to ``java.lang.String``
 3. ``string`` values with just one character may be converted to ``char`` or ``java.lang.Char`` if required
-4. ``number`` values will be converted to ``int``, ``long``, ``double``, ``float``, ``java.lang.Integer``,
+4. Thus, in order to pass a ``char`` to a java method, use a ``string`` containing just one character
+5. ``number`` values will be converted to ``int``, ``long``, ``double``, ``float``, ``java.lang.Integer``,
    ``java.lang.Long``, ``java.lang.Double`` or ``java.lang.Float`` depending on the type the java function to call requires
-5. ``boolean`` values will be converted to either ``boolean`` or ``java.lang.Boolean``
-6. ``BigInt`` values will be converted to either ``long`` or ``java.lang.Long``
-7. Arrays will be converted to java arrays. Java arrays may only contain a single value type, therefore the type of
+6. ``boolean`` values will be converted to either ``boolean`` or ``java.lang.Boolean``
+7. ``BigInt`` values will be converted to either ``long`` or ``java.lang.Long``
+8. Arrays will be converted to java arrays. Java arrays may only contain a single value type, therefore the type of
    the first element in the array will be chosen as the array type, empty arrays need no conversions.
-8. ``java.lang.String`` values will be converted to ``string``
-9. ``int``, ``double``, ``float``, ``java.lang.Integer``, ``java.lang.Double`` or ``java.lang.Float``
+9. ``java.lang.String`` values will be converted to ``string``
+10. ``int``, ``double``, ``float``, ``java.lang.Integer``, ``java.lang.Double`` or ``java.lang.Float``
    values will be converted to ``number``
-10. ``long`` or ``java.lang.Long`` values will always be converted to ``BigInt``
-11. ``boolean`` or ``java.lang.Boolean`` values will be converted to ``boolean``
-12. ``char`` or ``java.lang.Character`` values will be converted to ``string``
-13. Java arrays will be converted to javascript arrays, applying the rules mentioned above
+11. ``long`` or ``java.lang.Long`` values will always be converted to ``BigInt``
+12. ``boolean`` or ``java.lang.Boolean`` values will be converted to ``boolean``
+13. ``char`` or ``java.lang.Character`` values will be converted to ``string``
+14. Java arrays will be converted to javascript arrays, applying the rules mentioned above
 
 Java objects are stored in an instance of the ``java_instance_proxy`` class, any of those
 instances may be passed to any method accepting the object stored in that instance (and its type).
