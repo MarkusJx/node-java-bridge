@@ -9,3 +9,4 @@
 jvmLibPath.json
 *.jar
 .vscode
+*.class

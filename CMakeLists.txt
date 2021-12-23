@@ -4,7 +4,7 @@ project(node_java_bridge)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Fis for string streams
+# Fix for string streams
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 option(LOGGING "Enable logging support" OFF)
@@ -30,6 +30,28 @@ if (LOGGING)
 
     message(STATUS "Building with logging enabled")
 endif (LOGGING)
+
+# Find the java compiler
+find_package(Java 1.8 REQUIRED)
+include(UseJava)
+
+# Set the compile flags and source directory
+set(CMAKE_JAVA_COMPILE_FLAGS "-source" "1.8" "-target" "1.8")
+set(JAVA_SOURCE_REL_DIR "io/github/markusjx/bridge")
+set(JAVA_SOURCE_DIR "${CMAKE_SOURCE_DIR}/${JAVA_SOURCE_REL_DIR}")
+
+# Compile the jar file
+add_jar(JavaUtil ${JAVA_SOURCE_DIR}/JavaFunctionCaller.java)
+
+# Get the class output directory
+get_target_property(_classDir JavaUtil CLASSDIR)
+
+# Copy the class file
+add_custom_command(TARGET JavaUtil POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${_classDir}/${JAVA_SOURCE_REL_DIR}/JavaFunctionCaller.class
+        ${JAVA_SOURCE_DIR}/JavaFunctionCaller.class
+)
 
 # Get the n-api-tools include directory
 execute_process(COMMAND node -p "require('@markusjx/n-api-tools').include"
@@ -73,6 +95,7 @@ elseif ("${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
     message(STATUS "Building for x64")
 endif ()
 
+# Let the library end with .node
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
 
 if (LOGGING)
