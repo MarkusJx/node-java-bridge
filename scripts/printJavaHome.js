@@ -1,21 +1,9 @@
-const findJavaHome = require('find-java-home');
 const path = require('path');
 const fs = require('fs');
-
-function findHome() {
-    return new Promise((resolve, reject) => {
-        findJavaHome((err, res) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(res);
-            }
-        });
-    });
-}
+const {findHome} = require("./findJavaLibrary");
 
 async function run() {
-    const res = await findHome();
+    const res = await findHome(false);
     const include_dir = path.join(res, 'include');
     if (fs.existsSync(include_dir)) {
         const os_include_dir = path.join(include_dir, process.platform);

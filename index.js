@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const {findJavaLibrary} = require("./scripts/findJavaLibrary");
 
 let native;
 if (process.argv.indexOf("--debug") >= 0) {
@@ -91,6 +92,7 @@ module.exports = {
     destroyJVM: function () {
         native.java.destroyJVM();
     },
+    findJVM: findJavaLibrary,
     logging: {
         setLogLevel: function(level) {
             native.setLoggerMode(level);

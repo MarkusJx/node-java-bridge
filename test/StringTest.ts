@@ -1,6 +1,8 @@
 import java, {java_instance_proxy} from "../index";
 import assert = require("assert");
 import LogLevel = java.logging.LogLevel;
+import * as fs from "fs";
+import path from "path";
 
 declare class JString extends java_instance_proxy {
     static valueOf(values: string[]): Promise<JString>;
@@ -29,6 +31,11 @@ java.logging.setLogLevel(LogLevel.WARNING);
 describe('StringTest', () => {
     it('Ensure jvm', () => {
         java.ensureJVM();
+    });
+
+    it('Check dll path', async () => {
+        const data = require("../jvmLibPath.json");
+        assert.strictEqual(await java.findJVM(), data);
     });
 
     let JavaString: typeof JString;

@@ -393,6 +393,19 @@ declare namespace java {
     function destroyJVM(): void;
 
     /**
+     * Find a suitable JVM or JRE and return it.
+     * Throws an error if no jvm could be found.
+     * Returns the appropriate path to the jvm shared
+     * library adapted to the current operating system.
+     * This may be passed to {@link ensureJVM} to start
+     * a new jvm instance.
+     *
+     * @param allowJre whether to allow finding jre instances. Defaults to true.
+     * @return the path to the jvm shared library
+     */
+    function findJVM(allowJre?: boolean): Promise<string>;
+
+    /**
      * A namespace for logging utilities
      */
     namespace logging {
