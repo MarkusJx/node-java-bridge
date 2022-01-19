@@ -60,6 +60,15 @@ before creating the new one.
 java.createJVM(null, java.java_version.VER_10);
 ```
 
+If you want to find a valid jvm on your machine, you may want to use:
+```js
+// Find the shared library on this machine
+const libPath = await java.findJVM();
+
+// This can be passed directly into ensureJVM() or createJVM():
+java.createJVM(libPath, java.java_version.VER_1_8);
+```
+
 ### Deleting the jvm instance
 
 If you want to delete the current jvm instance, you may want to call ``java.destroyJVM()``. The jvm will be destroyed
