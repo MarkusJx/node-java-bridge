@@ -48,7 +48,7 @@ public class StdoutRedirect {
 
         @Override
         public void flush() {
-            if (!stringBuffer.isEmpty()) {
+            if (stringBuffer.length() > 0) {
                 this.writeBuffer();
             }
         }
