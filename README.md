@@ -383,6 +383,20 @@ run in the main thread as v8 doesn't really support multithreading.
 
 ``java_function_caller_class`` - The created proxy
 
+## Redirecting the program's ``stdout``
+### stdoutRedirect.enableRedirect
+Enable redirecting the program's ``stdout``/``stderr``
+to a custom method.
+
+**Arguments**
+
+* ``stdout: (line: string) => void`` - The custom stdout callback
+* ``stderr: (line: string) => void`` - The custom stderr callback
+
+**Returns**
+
+``void``
+
 ## logging
 
 A namespace for managing logging output

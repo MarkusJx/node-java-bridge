@@ -118,14 +118,14 @@ if (!value.check())                   \
 jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::Env &env, const Napi::Value &value,
                                                                   const java_type &signature, bool objects) {
     if (value.IsNull()) {
-        return jni::jobject_wrapper<jobject>();
+        return {};
     }
 
     jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
 #ifdef ENABLE_LOGGING
     markusjx::logging::StaticLogger::debugStream << "Converting value of type "
                                                  << napi_valuetype_to_string(value.Type()) << " to java object type "
-                                                 << signature;
+                                                 << signature.signature;
 #endif //ENABLE_LOGGING
 
     if (objects && signature == j_type::lang_Object) {
@@ -268,7 +268,7 @@ jvalue conversion_helper::napi_value_to_jvalue(const Napi::Env &env, const Napi:
 #ifdef ENABLE_LOGGING
     markusjx::logging::StaticLogger::debugStream << "Converting value of type "
                                                  << conversion_helper::napi_valuetype_to_string(value.Type())
-                                                 << " to java type " << signature;
+                                                 << " to java type " << signature.signature;
 #endif //ENABLE_LOGGING
 
     jvalue val;

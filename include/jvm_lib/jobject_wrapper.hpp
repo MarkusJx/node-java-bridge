@@ -146,6 +146,14 @@ namespace jni {
             return obj == nullptr;
         }
 
+        /**
+         * Reset this wrapper and release all resources
+         */
+        void reset() {
+            releaser.reset();
+            obj = nullptr;
+        }
+
         // The stored value
         T obj;
 

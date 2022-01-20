@@ -1,12 +1,14 @@
 {
     "name": "@markusjx/java",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "A bridge between node.js and java",
     "main": "index.js",
     "repository": "https://github.com/MarkusJx/node-java-bridge",
     "scripts": {
         "test": "mocha -r ts-node/register test/**/*.ts",
         "pretest": "npm run build",
+        "test:debug": "mocha -r ts-node/register test/**/*.ts --debug",
+        "pretest:debug": "npm run build:dev",
         "build": "cmake-js compile",
         "build:dev": "cmake-js compile -D --CDLOGGING=ON",
         "pretest:dev": "npm run build:dev",

@@ -66,6 +66,13 @@ java::java(const Napi::CallbackInfo &info) : ObjectWrap(info), loaded_jars() {
 #endif //ENABLE_LOGGING
         jvm_container::createInstance(lib_path, version);
 
+        // Load the utility library
+        auto jvm = jvm_container::getJvm();
+        jvm.appendClasspath(root_dir + "/build/JavaUtil.jar");
+        jclass nativeLibClass = jvm.getJClass("io.github.markusjx.bridge.NativeLibrary");
+        jmethodID loadLibrary = jvm->GetStaticMethodID(nativeLibClass, "loadLibrary", "(Ljava/lang/String;)V");
+        jvm->CallStaticVoidMethod(nativeLibClass, loadLibrary, jvm.string_to_jstring(nativeLibPath).obj);
+
         Value().DefineProperty(Napi::PropertyDescriptor::Value("version",
                                                                Napi::String::New(info.Env(),
                                                                                  util::get_java_version_from_jint(
@@ -78,6 +85,14 @@ java::java(const Napi::CallbackInfo &info) : ObjectWrap(info), loaded_jars() {
                                                                                          version)),
                                                                napi_enumerable));
     CATCH_EXCEPTIONS
+}
+
+void java::set_root_dir(const std::string &dir) {
+    root_dir = dir;
+}
+
+void java::set_native_lib_path(const std::string &path) {
+    nativeLibPath = path;
 }
 
 Napi::Value java::getClass(const Napi::CallbackInfo &info) {
@@ -175,3 +190,6 @@ java::~java() {
     // B, java.createInstance is called
     jvm_container::destroyInstance();
 }
+
+std::string java::root_dir;
+std::string java::nativeLibPath;

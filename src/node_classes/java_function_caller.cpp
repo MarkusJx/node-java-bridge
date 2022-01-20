@@ -88,13 +88,8 @@ std::vector<napi_value> convert_object(const Napi::Env &env, jobjectArray args, 
         return values;
     } catch (const std::exception &e) {
         jniEnv->ThrowNew(jniEnv->FindClass("java/lang/Exception"), e.what());
-        return std::vector<napi_value>();
+        return {};
     }
-}
-
-void java_function_caller::setLibraryPath(const std::string &path, const std::vector<char> &_classData) {
-    nativeLibPath = path;
-    classData = _classData;
 }
 
 bool java_function_caller::instanceOf(const Napi::Object &object) {
@@ -120,9 +115,7 @@ java_function_caller::java_function_caller(const Napi::CallbackInfo &info) : Obj
 
     TRY
         jni::jni_wrapper jvm = node_classes::jvm_container::attachJvm();
-        clazz = jvm->DefineClass("io/github/markusjx/bridge/JavaFunctionCaller", nullptr,
-                                 reinterpret_cast<const jbyte *>(classData.data()),
-                                 static_cast<jsize>(classData.size()));
+        clazz = jvm.getJClass("io.github.markusjx.bridge.JavaFunctionCaller");
         jvm.checkForError();
 
         Napi::Object obj = info[1].ToObject();
@@ -144,11 +137,9 @@ java_function_caller::java_function_caller(const Napi::CallbackInfo &info) : Obj
 
         classname = info[0].ToString().Utf8Value();
 
-        jmethodID ctor = jvm->GetMethodID(clazz, "<init>", "(Ljava/lang/String;[Ljava/lang/String;J)V");
+        jmethodID ctor = jvm->GetMethodID(clazz, "<init>", "([Ljava/lang/String;J)V");
         jvm.checkForError();
-        object = jni::jobject_wrapper(
-                jvm->NewObject(clazz, ctor, jvm.string_to_jstring(nativeLibPath).obj, arr,
-                               (jlong) this), jvm);
+        object = jni::jobject_wrapper(jvm->NewObject(clazz, ctor, arr, (jlong) this), jvm);
         jvm->DeleteLocalRef(arr);
 
         jclass Proxy = jvm->FindClass("java/lang/reflect/Proxy");
@@ -180,5 +171,3 @@ java_function_caller::~java_function_caller() {
 }
 
 Napi::FunctionReference *java_function_caller::constructor = nullptr;
-std::string java_function_caller::nativeLibPath;
-std::vector<char> java_function_caller::classData;

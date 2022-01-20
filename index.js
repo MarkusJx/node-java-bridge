@@ -53,9 +53,7 @@ if (fs.existsSync(path.join(__dirname, 'build', 'Debug', 'node_java_bridge.node'
     throw new Error("Could not find the native binary");
 }
 
-const functionCallerPath = path.join(__dirname, 'io', 'github', 'markusjx', 'bridge', 'JavaFunctionCaller.class');
-const functionCaller = fs.readFileSync(functionCallerPath);
-native.setNativeLibraryPath(native_path, functionCaller);
+native.setNativeLibraryPath(native_path, __dirname);
 
 let java = null;
 
@@ -102,5 +100,15 @@ module.exports = {
     newProxy: function (name, obj) {
         ensureJVM();
         return new native.java_function_caller(name, obj);
+    },
+    stdoutRedirect: {
+        enableRedirect: function (stdout = null, stderr = null) {
+            ensureJVM();
+            native.stdout_redirect.setCallbacks(stdout, stderr);
+        },
+        reset: function () {
+            ensureJVM();
+            native.stdout_redirect.reset();
+        }
     }
 };

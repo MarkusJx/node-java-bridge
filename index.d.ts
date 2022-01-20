@@ -10,7 +10,13 @@ declare namespace native {
 
     function setLoggerMode(mode: java.logging.LogLevel | number): void;
 
-    function setNativeLibraryPath(path: string, classData: Buffer): void;
+    function setNativeLibraryPath(path: string, rootDir: string): void;
+
+    namespace stdout_redirect {
+        function setCallbacks(stdout?: StdoutCallback | null, stderr?: StdoutCallback | null): void;
+
+        function reset(): void;
+    }
 }
 
 declare type basic_type = string | number | boolean | BigInt | null;
@@ -21,6 +27,7 @@ declare type any_type = basic_or_java | basic_or_java[];
  * All types accepted by java
  */
 export type JavaType = any_type;
+export type StdoutCallback = (line: string) => void;
 
 /**
  * The java instance.
@@ -432,6 +439,30 @@ declare namespace java {
             // Log nothing at all
             NONE = 3
         }
+    }
+
+    /**
+     * A namespace for redirecting the stdout/stderr
+     */
+    namespace stdoutRedirect {
+        /**
+         * Enable redirecting the stdout/stderr to custom callbacks.
+         * If enabled, nothing will be printed to the default stdout/stderr.
+         * Call {@link reset} to print to the default stdout/stderr again.
+         * This will also be reset every time this is called again.
+         * Set any parameter to null or undefined to log to the console.
+         * Leave both parameters unset to create a call equal to {@link reset}.
+         *
+         * @param stdout the custom callback for stdout
+         * @param stderr the custom callback for stdout
+         */
+        function enableRedirect(stdout?: StdoutCallback | null, stderr?: StdoutCallback | null): void;
+
+        /**
+         * Remove any redirects created and print to the console again.
+         * Does nothing if no redirects have been created (that is not a no-op).
+         */
+        function reset(): void;
     }
 }
 

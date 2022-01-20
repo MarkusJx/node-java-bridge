@@ -27,15 +27,6 @@ namespace node_classes {
         using callback = napi_tools::callbacks::callback<value_converter(jobjectArray, JNIEnv *)>;
 
         /**
-         * Set the native library (node_java_bridge.node) path and the
-         * working directory. Will load the JavaFunctionCaller.class file.
-         *
-         * @param path the path to the native library for java to load
-         * @param workingDir the current working directory
-         */
-        static void setLibraryPath(const std::string &path, const std::vector<char> &classData);
-
-        /**
          * Add the class to the exports
          *
          * @param env the environment to work in
@@ -100,11 +91,6 @@ namespace node_classes {
 
         // The java_function_caller constructor
         static Napi::FunctionReference *constructor;
-
-        // The path to the native library (node_java_bridge.node)
-        static std::string nativeLibPath;
-        // The raw bytes from the JavaFunctionCaller.class file
-        static std::vector<char> classData;
     };
 }
 

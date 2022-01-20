@@ -40,13 +40,10 @@ public class JavaFunctionCaller implements InvocationHandler {
     /**
      * Create a new JavaFunctionCaller instance
      *
-     * @param nativePath         the path of the native library
      * @param implementedMethods the form the node process implemented functions
      * @param ptr                the pointer to the native proxy class
      */
-    public JavaFunctionCaller(String nativePath, String[] implementedMethods, long ptr) {
-        Runtime.getRuntime().load(nativePath.replace('\\', '/'));
-
+    public JavaFunctionCaller(String[] implementedMethods, long ptr) {
         this.implementedMethods = Arrays.asList(implementedMethods);
         this.ptr = ptr;
         this.valid = true;

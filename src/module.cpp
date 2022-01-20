@@ -2,6 +2,7 @@
 #include <jni.h>
 #include <napi_tools.hpp>
 #include <node_classes/node_jobject_wrapper.hpp>
+#include <node_classes/stdout_redirect.hpp>
 
 #ifdef ENABLE_LOGGING
 #   include <logger.hpp>
@@ -48,12 +49,10 @@ void setLoggerMode(const Napi::CallbackInfo &info) {
 }
 
 void setNativeLibraryPath(const Napi::CallbackInfo &info) {
-    CHECK_ARGS(napi_tools::string, napi_tools::buffer);
+    CHECK_ARGS(napi_tools::string, napi_tools::string);
     TRY
-        auto buf = info[1].As<Napi::Buffer<char>>();
-        std::vector<char> data(buf.Data(), buf.Data() + buf.Length());
-
-        node_classes::java_function_caller::setLibraryPath(info[0].ToString().Utf8Value(), data);
+        node_classes::java::set_root_dir(info[1].ToString().Utf8Value());
+        node_classes::java::set_native_lib_path(info[0].ToString().Utf8Value());
     CATCH_EXCEPTIONS
 }
 
@@ -65,6 +64,7 @@ Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
     node_classes::java_class_proxy::init(env, exports);
     node_classes::node_jobject_wrapper::init(env, exports);
     node_classes::java_function_caller::init(env, exports);
+    node_classes::stdout_redirect::init(env, exports);
 
     EXPORT_FUNCTION(exports, env, setLoggerMode);
     EXPORT_FUNCTION(exports, env, setNativeLibraryPath);

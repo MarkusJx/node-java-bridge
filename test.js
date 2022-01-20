@@ -4,10 +4,10 @@ java.logging.setLogLevel(3);
 
 setTimeout(() => {
     java.ensureJVM();
-    java.classpath.append("C:/Users/marku/CLionProjects/node-java-bridge/dbLib-1.0-SNAPSHOT.jar");
+    //java.classpath.append("C:/Users/marku/CLionProjects/node-java-bridge/dbLib-1.0-SNAPSHOT.jar");
     //return;
 
-    let proxy = java.newProxy('java.lang.Runnable', {
+    /*nlet proxy = java.newProxy('java.lang.Runnable', {
         run: () => {
             console.log("Run called");
         }
@@ -15,11 +15,19 @@ setTimeout(() => {
 
     let Thread = java.importClass('java.lang.Thread');
     let thread = new Thread(proxy);
-    thread.startSync();
+    thread.startSync();*/
 
     //return;
 
     const cls = java.importClass("java.lang.String");
+
+    java.stdoutRedirect.enableRedirect(msg => {
+        console.log(msg);
+    });
+
+    const system = java.importClass("java.lang.System");
+    system.out.printlnSync("test");
+    java.stdoutRedirect.reset();
     //return;
     //console.log(cls['CASE_INSENSITIVE_ORDER']);
     //return;
@@ -27,7 +35,7 @@ setTimeout(() => {
     //cls.newInstance(123).then(e => console.log(e), e => console.error(e));
     //return;
 
-    const instance = new cls("abc");
+    /*const instance = new cls("abc");
     //return;
     //console.log(JSON.stringify(instance));
     //console.log(Object.getOwnPropertyNames(instance));
@@ -59,5 +67,5 @@ setTimeout(() => {
     const manager = new DatabaseManager(em);
     manager.closeSync();
 
-    //console.log(Object.getOwnPropertyNames(manager));
-}, 100);
+    //console.log(Object.getOwnPropertyNames(manager));*/
+}, 1000);

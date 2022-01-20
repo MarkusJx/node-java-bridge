@@ -38,6 +38,16 @@ namespace node_classes {
          */
         static void init(Napi::Env env, Napi::Object &exports);
 
+        static void set_root_dir(const std::string &root_dir);
+
+        /**
+         * Set the native library (node_java_bridge.node) path and the
+         * working directory. Will load the JavaFunctionCaller.class file.
+         *
+         * @param path the path to the native library for java to load
+         */
+        static void set_native_lib_path(const std::string &path);
+
         /**
          * Create a new java class instance.
          * This will create the jvm in node_classes::jvm_container.
@@ -137,6 +147,9 @@ namespace node_classes {
 
         // The list of loaded jar files
         std::vector<std::string> loaded_jars;
+        static std::string root_dir;
+        // The path to the native library (node_java_bridge.node)
+        static std::string nativeLibPath;
     };
 }
 
