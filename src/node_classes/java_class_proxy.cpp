@@ -105,6 +105,9 @@ java_class_proxy::java_class_proxy(const Napi::CallbackInfo &info) : ObjectWrap(
 }
 
 java_class_proxy::~java_class_proxy() {
+#ifdef ENABLE_LOGGING
+    StaticLogger::debugStream << "Cleaning up class '" << classname << "'";
+#endif //ENABLE_LOGGING
     cleanup_class(clazz, classname);
 }
 

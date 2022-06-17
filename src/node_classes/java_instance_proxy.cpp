@@ -161,17 +161,35 @@ java_instance_proxy::generateProperties(const Napi::Object &class_proxy, const N
     for (const auto &f : cls->clazz->static_functions) {
         char *name = STRDUP((f.first + "Sync").c_str());
         cls->additionalData.emplace_back(name, free);
+#ifdef ENABLE_LOGGING
+        StaticLogger::debugStream << "Creating static method: " << name;
+#endif //ENABLE_LOGGING
         properties.push_back(StaticMethod(name,
                                           &java_instance_proxy::callStaticFunction, napi_enumerable,
                                           (void *) f.first.c_str()));
 
+#ifdef ENABLE_LOGGING
+        StaticLogger::debugStream << "Creating static method: " << f.first;
+#endif //ENABLE_LOGGING
         properties.push_back(StaticMethod(f.first.c_str(), &java_instance_proxy::callStaticFunctionAsync,
                                           napi_enumerable, (void *) f.first.c_str()));
     }
 
-    properties.push_back(StaticMethod("newInstance", &java_instance_proxy::newInstance, napi_enumerable));
+    if (cls->clazz->constructors.size() > 0) {
+#ifdef ENABLE_LOGGING
+        StaticLogger::debugStream << "Creating 'newInstance' method";
+#endif //ENABLE_LOGGING
+        properties.push_back(StaticMethod("newInstance", &java_instance_proxy::newInstance, napi_enumerable));
+    }
+
+#ifdef ENABLE_LOGGING
+    StaticLogger::debugStream << "Creating 'instanceOf' method";
+#endif //ENABLE_LOGGING
     properties.push_back(InstanceMethod("instanceOf", &java_instance_proxy::instanceOf, napi_enumerable));
 
+#ifdef ENABLE_LOGGING
+    StaticLogger::debugStream << "Done creating class '" << cls->classname << "'";
+#endif //ENABLE_LOGGING
     return properties;
 }
 
