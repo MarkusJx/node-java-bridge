@@ -3,7 +3,11 @@
     "version": "1.0.0",
     "description": "A bridge between node.js and java",
     "main": "index.js",
+    "typings": "index.d.ts",
     "repository": "https://github.com/MarkusJx/node-java-bridge",
+    "engines": {
+        "node": ">=10"
+    },
     "scripts": {
         "test": "mocha -r ts-node/register test/**/*.ts",
         "pretest": "npm run build",
