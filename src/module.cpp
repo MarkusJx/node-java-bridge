@@ -1,8 +1,6 @@
 #include <napi.h>
 #include <jni.h>
 #include <napi_tools.hpp>
-#include <node_classes/node_jobject_wrapper.hpp>
-#include <node_classes/stdout_redirect.hpp>
 
 #ifdef ENABLE_LOGGING
 #   include <logger.hpp>
@@ -11,6 +9,9 @@
 #include "node_classes/java.hpp"
 #include "node_classes/java_class_proxy.hpp"
 #include "node_classes/java_function_caller.hpp"
+#include "node_classes/node_jobject_wrapper.hpp"
+#include "node_classes/stdout_redirect.hpp"
+#include "node_classes/jvm_container.hpp"
 
 #ifdef ENABLE_LOGGING
 using namespace markusjx::logging;
@@ -72,6 +73,22 @@ Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
 #ifdef ENABLE_LOGGING
     StaticLogger::debug("InitAll() called");
 #endif //ENABLE_LOGGING
+
+    std::atexit([] {
+#ifdef ENABLE_LOGGING
+        StaticLogger::debug("Running exit action");
+#endif //ENABLE_LOGGING
+        try {
+            node_classes::jvm_container::destroyInstance();
+#ifdef ENABLE_LOGGING
+        } catch (const std::exception &e) {
+            StaticLogger::errorStream << "The cleanup action threw an exception: " << e.what();
+#endif //ENABLE_LOGGING
+        } catch (...) {}
+#ifdef ENABLE_LOGGING
+        StaticLogger::debug("Exit action complete");
+#endif //ENABLE_LOGGING
+    });
 
     return exports;
 }
