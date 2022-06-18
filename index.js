@@ -7,7 +7,7 @@ if (process.argv.indexOf("--debug") >= 0) {
     console.warn("Running in debug mode");
     native = require('./build/Debug/node_java_bridge');
 } else {
-    native = require('./build/Debug/node_java_bridge.node');
+    native = require('./build/Release/node_java_bridge.node');
 }
 
 const JVM_PATH = JSON.parse(fs.readFileSync(path.join(__dirname, 'jvmLibPath.json'), {encoding: 'utf-8'}));
