@@ -35,6 +35,50 @@ public:
     jni::jobject_wrapper<jobject> object;
 };
 
+jthrowable jsErrorToException(JNIEnv *env, napi_tools::exception &e) {
+    const auto check_exception = [&env](jstring msg, jobjectArray stackTrace, jstring str) {
+        if (env->ExceptionCheck()) {
+            env->ExceptionClear();
+            if (msg) env->DeleteLocalRef(msg);
+            if (stackTrace) env->DeleteLocalRef(stackTrace);
+            if (str) env->DeleteLocalRef(str);
+            throw std::runtime_error("Could not convert the javascript exception");
+        }
+    };
+
+    jclass utils = env->FindClass("io/github/markusjx/bridge/Util");
+    check_exception(nullptr, nullptr, nullptr);
+
+    jmethodID exceptionFromJsError = env->GetStaticMethodID(utils, "exceptionFromJsError",
+                                                            "(Ljava/lang/String;[Ljava/lang/String;)Ljava/lang/Exception;");
+    check_exception(nullptr, nullptr, nullptr);
+
+    e.add_to_stack(__FUNCTION__, __FILE__, __LINE__);
+    const size_t sz = e.stack().size();
+    const auto msg = env->NewStringUTF(e.what());
+    const auto stackTrace = env->NewObjectArray(static_cast<jsize>(sz), env->FindClass("java/lang/String"), nullptr);
+    check_exception(msg, stackTrace, nullptr);
+
+    for (size_t i = 0; i < sz; i++) {
+        auto str = env->NewStringUTF(e.stack().at(i).c_str());
+        check_exception(msg, stackTrace, str);
+
+        env->SetObjectArrayElement(stackTrace, static_cast<jsize>(i), str);
+        check_exception(msg, stackTrace, str);
+
+        env->DeleteLocalRef(str);
+        check_exception(msg, stackTrace, nullptr);
+    }
+
+    jobject exception = env->CallStaticObjectMethod(utils, exceptionFromJsError, msg, stackTrace);
+    check_exception(msg, stackTrace, nullptr);
+
+    env->DeleteLocalRef(msg);
+    env->DeleteLocalRef(stackTrace);
+
+    return (jthrowable) exception;
+}
+
 JAVA_UNUSED jobject
 Java_io_github_markusjx_bridge_JavaFunctionCaller_callNodeFunction(JNIEnv *env, jobject, jlong ptr, jobject method,
                                                                    jobjectArray args) {
@@ -53,15 +97,21 @@ Java_io_github_markusjx_bridge_JavaFunctionCaller_callNodeFunction(JNIEnv *env, 
 
         // Call the js function and await the result
         java_function_caller::value_converter res = caller->functions.at(name).callSync(args, env);
-        if (res.object.isNull()) {
-            return nullptr;
-        } else {
+        if (!res.object.isNull()) {
             return env->NewLocalRef(res.object);
+        }
+    } catch (napi_tools::exception &e) {
+        try {
+            e.add_to_stack(__FUNCTION__, __FILE__, __LINE__);
+            env->Throw(jsErrorToException(env, e));
+        } catch (const std::exception &e) {
+            env->ThrowNew(env->FindClass("java/lang/Exception"), e.what());
         }
     } catch (const std::exception &e) {
         env->ThrowNew(env->FindClass("java/lang/Exception"), e.what());
-        return nullptr;
     }
+
+    return nullptr;
 }
 
 /**

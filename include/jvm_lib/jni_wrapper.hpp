@@ -127,7 +127,8 @@ namespace jni {
          * @param onlyStatic whether to return only static or only non-static methods
          * @return the list of class member functions
          */
-        JAVA_NODISCARD std::vector<java_function> getClassFunctions(const std::string &className, bool onlyStatic) const;
+        JAVA_NODISCARD std::vector<java_function>
+        getClassFunctions(const std::string &className, bool onlyStatic) const;
 
         /**
          * Get a java class instance.
@@ -168,7 +169,7 @@ namespace jni {
          *
          * @param path the jar to append to the class path
          */
-        void appendClasspath(const std::string& path);
+        void appendClasspath(const std::string &path);
 
         /**
          * Append multiple jars to the class path.

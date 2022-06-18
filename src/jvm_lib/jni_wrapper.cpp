@@ -492,7 +492,7 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
 
         std::string signature;
         signature += '(';
-        for (const java_type &param : parameterTypes) {
+        for (const java_type &param: parameterTypes) {
             signature += util::java_type_to_jni_type(param.signature);
         }
         signature += ')';
@@ -617,7 +617,7 @@ void jni_wrapper::throwLastException(int line) const {
                 if (env->ExceptionCheck()) throw std::runtime_error("Could not get a stack trace element");
                 jobject_wrapper<jstring> frame_string(env->CallObjectMethod(frame, stacktrace_toString), env);
                 if (env->ExceptionCheck())
-                    throw std::runtime_error("Could not convert a  stack trace element to string");
+                    throw std::runtime_error("Could not convert a stack trace element to string");
 
                 stackFrames.push_back(jstring_to_string(frame_string, false));
             }

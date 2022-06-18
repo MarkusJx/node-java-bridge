@@ -23,7 +23,7 @@
     "author": "MarkusJx",
     "license": "MIT",
     "dependencies": {
-        "@markusjx/n-api-tools": "^1.1.0",
+        "@markusjx/n-api-tools": "^1.2.0",
         "cmake-js": "^6.3.0",
         "find-java-home": "^1.2.2",
         "node-addon-api": "^5.0.0"

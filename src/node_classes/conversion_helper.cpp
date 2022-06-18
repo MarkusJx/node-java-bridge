@@ -49,6 +49,28 @@ java_type get_object_type(const jni::jni_wrapper &j_env, const java_type &signat
     }
 }
 
+template<class T, class R>
+Napi::Array create_array(const Napi::Env &env, const jni::jobject_wrapper<jobject> &obj, const jni::jni_wrapper &j_env,
+                         const std::function<R *(T)> &get_array_elements,
+                         const std::function<Napi::Value(R)> &get_array_element,
+                         const std::function<void(const jni::jobject_wrapper<T> &, R *)> &releaser) {
+    jni::jobject_wrapper<T> j_array = obj.as<T>();
+    const jsize size = j_env->GetArrayLength(j_array);
+    j_env.checkForError();
+    Napi::Array array = Napi::Array::New(env, static_cast<size_t>(size));
+    R *arr = get_array_elements(j_array);
+    j_env.checkForError();
+
+    for (jsize i = 0; i < size; i++) {
+        array.Set(i, get_array_element(arr[i]));
+        j_env.checkForError();
+    }
+
+    releaser(j_array, arr);
+    j_env.checkForError();
+    return array;
+}
+
 Napi::Value conversion_helper::jobject_to_value(const Napi::Env &env, const jni::jobject_wrapper<jobject> &obj,
                                                 const java_type &signature, bool objects) {
     if (obj.isNull()) {
@@ -89,16 +111,92 @@ Napi::Value conversion_helper::jobject_to_value(const Napi::Env &env, const jni:
     } else if (signature.isArray()) {
         // The value is an array
         try {
-            jni::jobject_wrapper<jobjectArray> j_array = obj.as<jobjectArray>();
-            const jsize size = j_env->GetArrayLength(j_array);
-            Napi::Array array = Napi::Array::New(env, static_cast<size_t>(size));
+            switch (signature.inner->type) {
+                case Integer:
+                    return create_array<jintArray, jint>(env, obj, j_env, [&j_env](auto arr) {
+                        return j_env->GetIntArrayElements(arr, nullptr);
+                    }, [&env](jint el) {
+                        return Napi::Number::From(env, el);
+                    }, [&j_env](auto a1, auto a2) {
+                        j_env->ReleaseIntArrayElements(a1, a2, JNI_ABORT);
+                    });
+                case Boolean:
+                    return create_array<jbooleanArray, jboolean>(env, obj, j_env, [&j_env](auto arr) {
+                        return j_env->GetBooleanArrayElements(arr, nullptr);
+                    }, [&env](jboolean el) {
+                        return Napi::Boolean::New(env, static_cast<bool>(el));
+                    }, [&j_env](auto a1, auto a2) {
+                        j_env->ReleaseBooleanArrayElements(a1, a2, JNI_ABORT);
+                    });
+                case Byte: {
+                    jni::jobject_wrapper<jbyteArray> j_array = obj.as<jbyteArray>();
+                    jbyte *elements = j_env->GetByteArrayElements(j_array, nullptr);
+                    j_env.checkForError();
+                    jsize length = j_env->GetArrayLength(j_array);
+                    j_env.checkForError();
 
-            for (jsize i = 0; i < size; i++) {
-                auto cur = jni::jobject_wrapper(j_env->GetObjectArrayElement(j_array, i), j_env);
-                array.Set(i, jobject_to_value(env, cur, *signature.inner));
+                    const auto releaser = [j_array](const Napi::Env &, jbyte *arr) {
+                        jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+                        j_env->ReleaseByteArrayElements(j_array, arr, JNI_ABORT);
+                        j_env.checkForError();
+                    };
+
+                    return Napi::Buffer<jbyte>::New(env, elements, static_cast<size_t>(length), releaser);
+                }
+                case Character:
+                    return create_array<jcharArray, jchar>(env, obj, j_env, [&j_env](auto arr) {
+                        return j_env->GetCharArrayElements(arr, nullptr);
+                    }, [&env](jchar el) {
+                        return Napi::String::New(env, std::u16string(1, static_cast<char16_t>(el)));
+                    }, [&j_env](auto a1, auto a2) {
+                        j_env->ReleaseCharArrayElements(a1, a2, JNI_ABORT);
+                    });
+                case Short:
+                    return create_array<jshortArray, jshort>(env, obj, j_env, [&j_env](auto arr) {
+                        return j_env->GetShortArrayElements(arr, nullptr);
+                    }, [&env](jshort el) {
+                        return Napi::Number::From(env, el);
+                    }, [&j_env](auto a1, auto a2) {
+                        j_env->ReleaseShortArrayElements(a1, a2, JNI_ABORT);
+                    });
+                case Long:
+                    return create_array<jlongArray, jlong>(env, obj, j_env, [&j_env](auto arr) {
+                        return j_env->GetLongArrayElements(arr, nullptr);
+                    }, [&env](jlong el) {
+                        return Napi::Number::From(env, el);
+                    }, [&j_env](auto a1, auto a2) {
+                        j_env->ReleaseLongArrayElements(a1, a2, JNI_ABORT);
+                    });
+                case Float:
+                    return create_array<jfloatArray, jfloat>(env, obj, j_env, [&j_env](auto arr) {
+                        return j_env->GetFloatArrayElements(arr, nullptr);
+                    }, [&env](jfloat el) {
+                        return Napi::Number::From(env, el);
+                    }, [&j_env](auto a1, auto a2) {
+                        j_env->ReleaseFloatArrayElements(a1, a2, JNI_ABORT);
+                    });
+                case Double:
+                    return create_array<jdoubleArray, jdouble>(env, obj, j_env, [&j_env](auto arr) {
+                        return j_env->GetDoubleArrayElements(arr, nullptr);
+                    }, [&env](jdouble el) {
+                        return Napi::Number::From(env, el);
+                    }, [&j_env](auto a1, auto a2) {
+                        j_env->ReleaseDoubleArrayElements(a1, a2, JNI_ABORT);
+                    });
+                default: {
+                    jni::jobject_wrapper<jobjectArray> j_array = obj.as<jobjectArray>();
+                    const jsize size = j_env->GetArrayLength(j_array);
+                    j_env.checkForError();
+                    Napi::Array array = Napi::Array::New(env, static_cast<size_t>(size));
+
+                    for (jsize i = 0; i < size; i++) {
+                        auto cur = jni::jobject_wrapper(j_env->GetObjectArrayElement(j_array, i), j_env);
+                        array.Set(i, jobject_to_value(env, cur, *signature.inner));
+                    }
+
+                    return array;
+                }
             }
-
-            return array;
         } catch (const std::exception &e) {
             throw Napi::Error::New(env, e.what());
         }
@@ -600,7 +698,7 @@ std::vector<jvalue> args_to_java_arguments(const Napi::CallbackInfo &args,
  */
 uint32_t get_num_objects(const std::vector<java_type> &parameterTypes) {
     uint32_t sz = 0;
-    for (const auto &t : parameterTypes) {
+    for (const auto &t: parameterTypes) {
         if (t.type == j_type::lang_Object) {
             sz++;
         }
@@ -659,7 +757,7 @@ const jni::java_constructor *conversion_helper::find_matching_constructor(const 
     const jni::java_constructor *generic_constructor = nullptr;
     uint32_t numObjects = 0;
 
-    for (const auto &c : constructors) {
+    for (const auto &c: constructors) {
         if (args_match_java_types(args, c.parameterTypes, j_env, false)) {
             std::vector<jni::jobject_wrapper<jobject>> arguments;
             for (size_t i = 0; i < args.Length(); i++) {
@@ -693,7 +791,7 @@ const jni::java_constructor *conversion_helper::find_matching_constructor(const 
     std::stringstream ss;
     ss << "Could not find an appropriate constructor with arguments: ";
     ss << js_args_to_string(args) << ". Options were:";
-    for (const auto &c : constructors) {
+    for (const auto &c: constructors) {
         ss << std::endl << '\t' << c.to_string();
     }
 
@@ -746,7 +844,7 @@ const jni::java_function *conversion_helper::find_matching_function(const Napi::
         const jni::java_function *generic = nullptr;
         uint32_t numObjects = 0;
 
-        for (const auto &f : functions) {
+        for (const auto &f: functions) {
             if (args_match_java_types(args, f.parameterTypes, j_env, false)) {
                 outValues = args_to_java_arguments(args, f.parameterTypes, outArgs, false);
 
@@ -772,7 +870,7 @@ const jni::java_function *conversion_helper::find_matching_function(const Napi::
     std::stringstream ss;
     ss << "Could not find a matching function with arguments: ";
     ss << js_args_to_string(args) << ". Options were:";
-    for (const auto &f : functions) {
+    for (const auto &f: functions) {
         ss << std::endl << '\t' << f.to_string();
     }
     error = ss.str();
@@ -791,6 +889,7 @@ jvalue conversion_helper::call_function(const jni::java_function &function,
 
     const java_type &signature = function.returnType;
     jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+    j_env.checkForError();
 
     jvalue val;
     if (signature.isVoid()) {
