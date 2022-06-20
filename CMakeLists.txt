@@ -43,7 +43,7 @@ set(JAVA_SOURCE_DIR "${CMAKE_SOURCE_DIR}/${JAVA_SOURCE_REL_DIR}")
 # Compile the jar file
 add_jar(JavaUtil ${JAVA_SOURCE_DIR}/JavaFunctionCaller.java
         ${JAVA_SOURCE_DIR}/StdoutRedirect.java ${JAVA_SOURCE_DIR}/NativeLibrary.java
-        ${JAVA_SOURCE_DIR}/Util.java)
+        ${JAVA_SOURCE_DIR}/Util.java ${JAVA_SOURCE_DIR}/JavascriptException.java)
 
 # Get the n-api-tools include directory
 execute_process(COMMAND node -p "require('@markusjx/n-api-tools').include"

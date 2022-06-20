@@ -9,7 +9,28 @@
 #include "jvm_lib/io_github_markusjx_bridge_JavaFunctionCaller.h"
 #include "node_classes/java_function_caller.hpp"
 
+#ifdef ENABLE_LOGGING
+#   include <logger.hpp>
+#endif //ENABLE_LOGGING
+
 using namespace node_classes;
+
+std::vector<java_function_caller *> active_proxies;
+
+void add_proxy(java_function_caller *proxy) {
+    active_proxies.push_back(proxy);
+}
+
+bool proxy_exists(java_function_caller *proxy) {
+    return std::find(active_proxies.begin(), active_proxies.end(), proxy) != active_proxies.end();
+}
+
+void remove_proxy(java_function_caller *proxy) {
+    auto to_delete = std::find(active_proxies.begin(), active_proxies.end(), proxy);
+    if (to_delete != active_proxies.end()) {
+        active_proxies.erase(to_delete);
+    }
+}
 
 class node_classes::java_function_caller::value_converter {
 public:
@@ -85,6 +106,14 @@ Java_io_github_markusjx_bridge_JavaFunctionCaller_callNodeFunction(JNIEnv *env, 
     try {
         const auto caller = (java_function_caller *) ptr;
 
+        if (!proxy_exists(caller)) {
+            env->ThrowNew(env->FindClass("java/lang/Exception"), "No javascript proxy with the given address exists");
+            return nullptr;
+        } else if (caller->is_destroyed()) {
+            env->ThrowNew(env->FindClass("java/lang/Exception"), "The javascript proxy has been destroyed");
+            return nullptr;
+        }
+
         // Get the name of the method to invoke
         jclass Method = env->GetObjectClass(method);
         jmethodID getName = env->GetMethodID(Method, "getName", "()Ljava/lang/String;");
@@ -151,7 +180,9 @@ bool java_function_caller::instanceOf(const Napi::Object &object) {
 }
 
 void java_function_caller::init(Napi::Env &env, Napi::Object &exports) {
-    Napi::Function func = DefineClass(env, "java_function_caller", {});
+    Napi::Function func = DefineClass(env, "java_function_caller", {
+            InstanceMethod("destroy", &java_function_caller::destroy_instance, napi_enumerable),
+    });
 
     constructor = new Napi::FunctionReference();
     *constructor = Napi::Persistent(func);
@@ -160,7 +191,8 @@ void java_function_caller::init(Napi::Env &env, Napi::Object &exports) {
     env.SetInstanceData<Napi::FunctionReference>(constructor);
 }
 
-java_function_caller::java_function_caller(const Napi::CallbackInfo &info) : ObjectWrap(info), functions() {
+java_function_caller::java_function_caller(const Napi::CallbackInfo &info) : ObjectWrap(info), functions(),
+                                                                             destroyed(false) {
     CHECK_ARGS(napi_tools::string, napi_tools::object);
 
     TRY
@@ -201,6 +233,8 @@ java_function_caller::java_function_caller(const Napi::CallbackInfo &info) : Obj
                 jvm->CallStaticObjectMethod(Proxy, newProxyInstance, jvm.getClassloader().obj, classes, object.obj),
                 jvm);
         jvm->DeleteLocalRef(classes);
+
+        add_proxy(this);
     CATCH_EXCEPTIONS
 }
 
@@ -208,13 +242,45 @@ const std::string &java_function_caller::getClassName() const {
     return classname;
 }
 
-java_function_caller::~java_function_caller() {
-    try {
+Napi::Value java_function_caller::destroy_instance(const Napi::CallbackInfo &info) {
+    return napi_tools::promises::promise<void>(info.Env(), [this] {
+        if (is_destroyed()) {
+            throw std::runtime_error("The proxy has already been destroyed");
+        }
+
+        destroy();
+        object.reset();
+    });
+}
+
+bool java_function_caller::is_destroyed() const {
+    return destroyed;
+}
+
+void java_function_caller::destroy() {
+    if (!is_destroyed()) {
+        destroyed = true;
+
+#ifdef ENABLE_LOGGING
+        markusjx::logging::StaticLogger::debugStream << "Destroying function caller for class: " << classname;
+#endif //ENABLE_LOGGING
+
         jni::jni_wrapper jvm = node_classes::jvm_container::attachJvm();
         jmethodID destruct = jvm->GetMethodID(clazz, "destruct", "()V");
         jvm.checkForError();
         jvm->CallVoidMethod(object, destruct);
         jvm.checkForError();
+
+#ifdef ENABLE_LOGGING
+        markusjx::logging::StaticLogger::debugStream << "function caller for class '" << classname << "' destroyed";
+#endif //ENABLE_LOGGING
+    }
+}
+
+java_function_caller::~java_function_caller() {
+    try {
+        remove_proxy(this);
+        destroy();
     } catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;
     }
