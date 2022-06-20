@@ -79,7 +79,7 @@ void setCallbacks(const Napi::CallbackInfo &info) {
 
         std::unique_lock lock(mtx);
         classInstance = jni::jobject_wrapper(jvm->NewObject(clazz, ctor, info[0].IsFunction(), info[1].IsFunction()),
-                                             jvm);
+                                             jvm.env);
 
         if (info[0].IsFunction()) {
             stdout_callback = std::make_shared<callback>(info.Env(), info[0].As<Napi::Function>());

@@ -15,9 +15,8 @@ void jvm_container::destroyInstance() {
     }
 }
 
-jvm_container::jvm_container(const std::string &lib_path, jint version) {
-    root_jvm = jni::jvm_wrapper(lib_path, version);
-}
+jvm_container::jvm_container(const std::string &lib_path, jint version) : root_jvm(
+        jni::jvm_wrapper::create_jvm_wrapper(lib_path, version)) {}
 
 jni::jvm_wrapper &jvm_container::getJvm() {
     if (!instance) {
@@ -39,7 +38,7 @@ jvm_container::~jvm_container() {
     // prevent it using this thing.
     // Those crashes only happen occasionally,
     // if not many operations are executed.
-    root_jvm.getEnv().forceReset();
+    root_jvm.env.forceReset();
 }
 
 std::unique_ptr<jvm_container> jvm_container::instance = nullptr;

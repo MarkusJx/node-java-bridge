@@ -30,7 +30,7 @@ public:
      * @param name the name of the function to resolve
      * @return the function's address
      */
-    void *getFunctionAddress(const std::string &name);
+    void *getFunctionAddress(const std::string &name) const;
 
     /**
      * Get a function as a std::function
@@ -40,7 +40,7 @@ public:
      * @return the function
      */
     template<class T>
-    std::function<T> getFunction(const std::string &name) {
+    std::function<T> getFunction(const std::string &name) const {
         return std::function<T>(reinterpret_cast<T*>(getFunctionAddress(name)));
     }
 

@@ -5,6 +5,7 @@
 #include "jvm_lib/jni_wrapper.hpp"
 #include "jvm_lib/java_exception.hpp"
 #include "util/util.hpp"
+#include "node_classes/jvm_container.hpp"
 
 #define CHECK_EXCEPTION() if (env->ExceptionCheck()) throwLastException(__LINE__)
 #define JVM_CHECK_EXCEPTION(jvm) if (jvm->ExceptionCheck()) jvm.throwLastException(__LINE__)
@@ -28,12 +29,14 @@ using namespace jni_types;
  * +-------------+
  */
 
-java_constructor::java_constructor(jobject object, const jni_wrapper &jni) : jobject_wrapper<jobject>(object, jni),
-                                                                             jni(jni), parameterTypes() {
+java_constructor::java_constructor(jobject object, const jni_wrapper &jni) : jobject_wrapper<jobject>(object,
+                                                                                                      jni.env),
+                                                                             parameterTypes() {
     parameterTypes = getParameterTypes();
 }
 
 std::vector<java_type> java_constructor::getParameterTypes() const {
+    const auto jni = node_classes::jvm_container::attachJvm();
     jclass Constructor = jni->FindClass("java/lang/reflect/Constructor");
     JVM_CHECK_EXCEPTION(jni);
 
@@ -52,7 +55,7 @@ std::vector<java_type> java_constructor::getParameterTypes() const {
     jmethodID getName = jni->GetMethodID(Class, "getName", "()Ljava/lang/String;");
     JVM_CHECK_EXCEPTION(jni);
 
-    jobject_wrapper<jobjectArray> parameters(jni->CallObjectMethod(obj, getParameters), jni);
+    jobject_wrapper<jobjectArray> parameters(jni->CallObjectMethod(obj, getParameters), jni.env);
     JVM_CHECK_EXCEPTION(jni);
 
     jint numParams = jni->GetArrayLength(parameters);
@@ -63,10 +66,10 @@ std::vector<java_type> java_constructor::getParameterTypes() const {
         jobject elem = jni->GetObjectArrayElement(parameters, i);
         JVM_CHECK_EXCEPTION(jni);
 
-        jobject_wrapper<jobject> type(jni->CallObjectMethod(elem, getType), jni);
+        jobject_wrapper<jobject> type(jni->CallObjectMethod(elem, getType), jni.env);
         JVM_CHECK_EXCEPTION(jni);
 
-        jobject_wrapper<jstring> name(jni->CallObjectMethod(type, getName), jni);
+        jobject_wrapper<jstring> name(jni->CallObjectMethod(type, getName), jni.env);
         JVM_CHECK_EXCEPTION(jni);
 
         res.push_back(java_type::to_java_type(jni.jstring_to_string(name)));
@@ -76,7 +79,7 @@ std::vector<java_type> java_constructor::getParameterTypes() const {
 }
 
 jobject_wrapper<jobject> java_constructor::newInstance(const std::vector<jobject_wrapper<jobject>> &args) const {
-    jni_wrapper env = jni.attachEnv();
+    jni_wrapper env = node_classes::jvm_container::attachJvm();
     jclass constructor = env->FindClass("java/lang/reflect/Constructor");
     JVM_CHECK_EXCEPTION(env);
 
@@ -86,7 +89,7 @@ jobject_wrapper<jobject> java_constructor::newInstance(const std::vector<jobject
     jclass Object = env->FindClass("java/lang/Object");
     JVM_CHECK_EXCEPTION(env);
     jobject_wrapper<jobjectArray> argArr(env->NewObjectArray(static_cast<jsize>(args.size()), Object, nullptr),
-                                         jni);
+                                         env.env);
     JVM_CHECK_EXCEPTION(env);
 
     for (size_t i = 0; i < args.size(); i++) {
@@ -97,22 +100,18 @@ jobject_wrapper<jobject> java_constructor::newInstance(const std::vector<jobject
     jobject instance = env->CallObjectMethod(obj, newInstance_m, argArr.obj);
     JVM_CHECK_EXCEPTION(env);
 
-    // Note that we pass the jni instance, which is attached
-    // to the default thread, instead of the instance that is
-    // attached to the current thread to the instance wrapper
-    // to prevent the jvm from locking up since the thread is
-    // never detached
-    return jobject_wrapper<jobject>(instance, jni);
+    return {instance, env.env};
 }
 
 std::string java_constructor::to_string() const {
+    const auto jni = node_classes::jvm_container::attachJvm();
     jclass constructor = jni->FindClass("java/lang/reflect/Constructor");
     JVM_CHECK_EXCEPTION(jni);
 
     jmethodID toString = jni->GetMethodID(constructor, "toString", "()Ljava/lang/String;");
     JVM_CHECK_EXCEPTION(jni);
 
-    jobject_wrapper<jstring> string(jni->CallObjectMethod(obj, toString), jni);
+    jobject_wrapper<jstring> string(jni->CallObjectMethod(obj, toString), jni.env);
     JVM_CHECK_EXCEPTION(jni);
 
     return jni.jstring_to_string(string);
@@ -120,9 +119,9 @@ std::string java_constructor::to_string() const {
 
 jobject_wrapper<jobject> jni_wrapper::classLoader;
 
-jni_wrapper::jni_wrapper() noexcept: env(), initialized(false) {}
+jni_wrapper::jni_wrapper() noexcept: initialized(false) {}
 
-jni_wrapper::jni_wrapper(jvm_env env) : env(std::move(env)), initialized(true) {
+jni_wrapper::jni_wrapper(jvm_env &&env) : env(std::move(env)), initialized(true) {
     if (!classLoader.ok()) {
         classLoader.assign(getSystemClassLoader());
     }
@@ -130,13 +129,12 @@ jni_wrapper::jni_wrapper(jvm_env env) : env(std::move(env)), initialized(true) {
 
 jvm_wrapper::jvm_wrapper() noexcept: jni_wrapper() {}
 
-jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version) : jni_wrapper() {
-    initialized = true;
-    library = shared_library(jvmPath);
-    JNI_CreateJavaVM = library.getFunction<JNI_CreateJavaVM_t>("JNI_CreateJavaVM");
-
+jvm_wrapper jvm_wrapper::create_jvm_wrapper(const std::string &jvmPath, jint version) {
     JavaVM *jvm = nullptr;
     JNIEnv *environment = nullptr;
+
+    library = shared_library(jvmPath);
+    std::function<JNI_CreateJavaVM_t> JNI_CreateJavaVM = library.getFunction<JNI_CreateJavaVM_t>("JNI_CreateJavaVM");
 
     JavaVMInitArgs vm_args;
 
@@ -149,9 +147,12 @@ jvm_wrapper::jvm_wrapper(const std::string &jvmPath, jint version) : jni_wrapper
     if (create_code != JNI_OK) {
         throw std::runtime_error("JNI_CreateJavaVM failed: " + util::jni_error_to_string(create_code));
     } else {
-        env = jvm_env(std::make_shared<jvm_jvm>(jvm), environment, version);
+        return {jvm_env(std::make_shared<jvm_jvm>(jvm), environment, version), std::move(JNI_CreateJavaVM)};
     }
+}
 
+jvm_wrapper::jvm_wrapper(jvm_env &&env, std::function<jni_types::JNI_CreateJavaVM_t> &&createVm) : jni_wrapper(
+        std::move(env)), JNI_CreateJavaVM(std::move(createVm)) {
     // The start class loader is the system default one.
     // It may evolve to a more potent one during the
     // execution of the program, just like a pokèmon.
@@ -224,7 +225,7 @@ jobject_wrapper<jobject> jni_wrapper::getClassByName(const std::string &classNam
                                                 classLoader.obj);
     CHECK_EXCEPTION();
 
-    return jobject_wrapper<jobject>(clazz, env);
+    return {clazz, env};
 }
 
 std::vector<java_constructor> jni_wrapper::getClassConstructors(const std::string &className) const {
@@ -371,7 +372,7 @@ std::vector<java_field> jni_wrapper::getClassFields(const std::string &className
             const std::string signature = getFieldSignature(field);
             const std::string name = getFieldName(field);
             jfieldID id = getFieldId(field, name, signature);
-            res.emplace_back(signature, name, id, is_static, is_final, *this);
+            res.emplace_back(signature, name, id, is_static, is_final);
         }
     }
 
@@ -546,7 +547,7 @@ java_class jni_wrapper::getClass(const std::string &className) const {
     const std::vector<java_constructor> constructors = getClassConstructors(className);
     jobject_wrapper<jclass> clazz(getJClass(className), env);
 
-    return java_class(staticFields, fields, staticFunctions, functions, constructors, clazz);
+    return {staticFields, fields, staticFunctions, functions, constructors, clazz};
 }
 
 jclass jni_wrapper::getJClass(const std::string &className) const {
@@ -572,6 +573,10 @@ jclass jni_wrapper::getJClass(const std::string &className) const {
 void jni_wrapper::throwLastException(int line) const {
     if (!env->ExceptionCheck()) {
         throw std::runtime_error("No exception occurred");
+    } else {
+        env->ExceptionDescribe();
+        env->ExceptionClear();
+        throw std::runtime_error("An exception occurred");
     }
 
     auto throwable = jobject_wrapper(env->ExceptionOccurred(), env);
@@ -891,25 +896,17 @@ JNIEnv *jni_wrapper::operator->() const {
     return env.operator->();
 }
 
-jvm_env &jni_wrapper::getEnv() {
-    return env;
-}
-
-const jobject_wrapper<jobject> &jni_wrapper::getClassloader() const {
+const jobject_wrapper<jobject> &jni_wrapper::getClassloader() {
     return classLoader;
-}
-
-jni_wrapper::operator jvm_env() const {
-    return env;
 }
 
 jni_wrapper::operator bool() const {
     return initialized;
 }
 
-java_field::java_field(const std::string &signature, std::string name, jfieldID id, bool isStatic, bool isFinal,
-                       jni_wrapper env) : signature(java_type::to_java_type(signature)), name(std::move(name)), id(id),
-                                          isStatic(isStatic), isFinal(isFinal), env(std::move(env)) {}
+java_field::java_field(const std::string &signature, std::string name, jfieldID id, bool isStatic, bool isFinal)
+        : signature(java_type::to_java_type(signature)), name(std::move(name)), id(id), isStatic(isStatic),
+          isFinal(isFinal) {}
 
 jvalue java_field::get(jobject classInstance, jobject_wrapper<jobject> &data) const {
     if (isStatic) {
@@ -921,35 +918,36 @@ jvalue java_field::get(jobject classInstance, jobject_wrapper<jobject> &data) co
     }
 
     jvalue val;
+    const auto jvm = node_classes::jvm_container::attachJvm();
     if (signature.isInt()) {
         // Value is an integer
-        val.i = env->GetIntField(classInstance, id);
+        val.i = jvm->GetIntField(classInstance, id);
     } else if (signature.isBool()) {
         // Value is a boolean
-        val.z = env->GetBooleanField(classInstance, id);
+        val.z = jvm->GetBooleanField(classInstance, id);
     } else if (signature.isByte()) {
         // Value is a byte
-        val.b = env->GetByteField(classInstance, id);
+        val.b = jvm->GetByteField(classInstance, id);
     } else if (signature.isChar()) {
         // Value is a char
-        val.c = env->GetCharField(classInstance, id);
+        val.c = jvm->GetCharField(classInstance, id);
     } else if (signature.isShort()) {
         // Value is a short
-        val.s = env->GetShortField(classInstance, id);
+        val.s = jvm->GetShortField(classInstance, id);
     } else if (signature.isLong()) {
         // Value is a long
-        val.j = env->GetLongField(classInstance, id);
+        val.j = jvm->GetLongField(classInstance, id);
     } else if (signature.isFloat()) {
         // Value is a float
-        val.f = env->GetFloatField(classInstance, id);
+        val.f = jvm->GetFloatField(classInstance, id);
     } else if (signature.isDouble()) {
         // Value is a double
-        val.d = env->GetDoubleField(classInstance, id);
+        val.d = jvm->GetDoubleField(classInstance, id);
     } else {
-        data = jobject_wrapper<jobject>(env->GetObjectField(classInstance, id), env);
+        data = jobject_wrapper<jobject>(jvm->GetObjectField(classInstance, id), jvm.env);
         val.l = data.obj;
     }
-    JVM_CHECK_EXCEPTION(env);
+    JVM_CHECK_EXCEPTION(jvm);
 
     return val;
 }
@@ -960,35 +958,36 @@ jvalue java_field::getStatic(jclass clazz, jobject_wrapper<jobject> &data) const
     }
 
     jvalue val;
+    const auto jvm = node_classes::jvm_container::attachJvm();
     if (signature.isInt()) {
         // Value is an integer
-        val.i = env->GetStaticIntField(clazz, id);
+        val.i = jvm->GetStaticIntField(clazz, id);
     } else if (signature.isBool()) {
         // Value is a boolean
-        val.z = env->GetStaticBooleanField(clazz, id);
+        val.z = jvm->GetStaticBooleanField(clazz, id);
     } else if (signature.isByte()) {
         // Value is a byte
-        val.b = env->GetStaticByteField(clazz, id);
+        val.b = jvm->GetStaticByteField(clazz, id);
     } else if (signature.isChar()) {
         // Value is a char
-        val.c = env->GetStaticCharField(clazz, id);
+        val.c = jvm->GetStaticCharField(clazz, id);
     } else if (signature.isShort()) {
         // Value is a short
-        val.s = env->GetStaticShortField(clazz, id);
+        val.s = jvm->GetStaticShortField(clazz, id);
     } else if (signature.isLong()) {
         // Value is a long
-        val.j = env->GetStaticLongField(clazz, id);
+        val.j = jvm->GetStaticLongField(clazz, id);
     } else if (signature.isFloat()) {
         // Value is a float
-        val.f = env->GetStaticFloatField(clazz, id);
+        val.f = jvm->GetStaticFloatField(clazz, id);
     } else if (signature.isDouble()) {
         // Value is a double
-        val.d = env->GetStaticDoubleField(clazz, id);
+        val.d = jvm->GetStaticDoubleField(clazz, id);
     } else {
-        data = jobject_wrapper<jobject>(env->GetStaticObjectField(clazz, id), env);
+        data = jobject_wrapper<jobject>(jvm->GetStaticObjectField(clazz, id), jvm.env);
         val.l = data.obj;
     }
-    JVM_CHECK_EXCEPTION(env);
+    JVM_CHECK_EXCEPTION(jvm);
 
     return val;
 }
@@ -998,6 +997,7 @@ void java_field::set(jobject classInstance, jvalue data) const {
         throw std::runtime_error("Tried to access a static field through a class instance");
     }
 
+    const auto env = node_classes::jvm_container::attachJvm();
     if (signature.isInt()) {
         // Value is an integer
         env->SetIntField(classInstance, id, data.i);
@@ -1033,6 +1033,7 @@ void java_field::setStatic(jclass clazz, jvalue data) const {
         throw std::runtime_error("Tried to access a non-static field through a static accessor");
     }
 
+    const auto env = node_classes::jvm_container::attachJvm();
     if (signature.isInt()) {
         // Value is an integer
         env->SetStaticIntField(clazz, id, data.i);

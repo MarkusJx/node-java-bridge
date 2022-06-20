@@ -104,6 +104,10 @@ JAVA_UNUSED jobject
 Java_io_github_markusjx_bridge_JavaFunctionCaller_callNodeFunction(JNIEnv *env, jobject, jlong ptr, jobject method,
                                                                    jobjectArray args) {
     try {
+#ifdef ENABLE_LOGGING
+        markusjx::logging::StaticLogger::debugStream << "Calling caller with address: " << ptr;
+#endif //ENABLE_LOGGING
+
         const auto caller = (java_function_caller *) ptr;
 
         if (!proxy_exists(caller)) {
@@ -221,7 +225,7 @@ java_function_caller::java_function_caller(const Napi::CallbackInfo &info) : Obj
 
         jmethodID ctor = jvm->GetMethodID(clazz, "<init>", "([Ljava/lang/String;J)V");
         jvm.checkForError();
-        object = jni::jobject_wrapper(jvm->NewObject(clazz, ctor, arr, (jlong) this), jvm);
+        object = jni::jobject_wrapper(jvm->NewObject(clazz, ctor, arr, (jlong) this), jvm.env);
         jvm->DeleteLocalRef(arr);
 
         jclass Proxy = jvm->FindClass("java/lang/reflect/Proxy");
@@ -230,8 +234,8 @@ java_function_caller::java_function_caller(const Napi::CallbackInfo &info) : Obj
 
         jobjectArray classes = jvm->NewObjectArray(1, jvm.getJavaLangClass(), jvm.getClassByName(classname).obj);
         proxy = jni::jobject_wrapper(
-                jvm->CallStaticObjectMethod(Proxy, newProxyInstance, jvm.getClassloader().obj, classes, object.obj),
-                jvm);
+                jvm->CallStaticObjectMethod(Proxy, newProxyInstance, jni::jni_wrapper::getClassloader().obj, classes,
+                                            object.obj), jvm.env);
         jvm->DeleteLocalRef(classes);
 
         add_proxy(this);

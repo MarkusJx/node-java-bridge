@@ -190,7 +190,7 @@ Napi::Value conversion_helper::jobject_to_value(const Napi::Env &env, const jni:
                     Napi::Array array = Napi::Array::New(env, static_cast<size_t>(size));
 
                     for (jsize i = 0; i < size; i++) {
-                        auto cur = jni::jobject_wrapper(j_env->GetObjectArrayElement(j_array, i), j_env);
+                        auto cur = jni::jobject_wrapper(j_env->GetObjectArrayElement(j_array, i), j_env.env);
                         array.Set(i, jobject_to_value(env, cur, *signature.inner));
                     }
 
@@ -247,7 +247,7 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
                 jclass clazz = j_env.getJClass("java.lang.Object");
                 jint array_size = static_cast<jint>(array.Length());
 
-                jni::jobject_wrapper<jobjectArray> j_array(j_env->NewObjectArray(array_size, clazz, nullptr), j_env);
+                jni::jobject_wrapper<jobjectArray> j_array(j_env->NewObjectArray(array_size, clazz, nullptr), j_env.env);
                 j_env.checkForError();
 
                 for (jint i = 0; i < array_size; i++) {
@@ -321,7 +321,7 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
 
             jint array_size = static_cast<jint>(array.Length());
 
-            jni::jobject_wrapper<jobjectArray> j_array(j_env->NewObjectArray(array_size, clazz, nullptr), j_env);
+            jni::jobject_wrapper<jobjectArray> j_array(j_env->NewObjectArray(array_size, clazz, nullptr), j_env.env);
             j_env.checkForError();
 
             for (jint i = 0; i < array_size; i++) {
@@ -489,7 +489,7 @@ jvalue conversion_helper::napi_value_to_jvalue(const Napi::Env &env, const Napi:
 
 #define POPULATE_ARRAY(T, U, creator, converter, setter)\
     const auto arrLen = static_cast<jsize>(array.Length());\
-    jni::jobject_wrapper<jarray> res(j_env->creator(arrLen), j_env); \
+    jni::jobject_wrapper<jarray> res(j_env->creator(arrLen), j_env.env); \
     j_env.checkForError();\
     std::vector<U> values(array.Length());\
     for (jsize i = 0; i < arrLen; i++) {\
@@ -538,7 +538,7 @@ jni::jobject_wrapper<jarray> conversion_helper::napi_array_to_jarray(const Napi:
         // Value is a string
         const auto arrLen = static_cast<jsize>(array.Length());
         auto clazz = j_env.getJClass(signature.signature);
-        jni::jobject_wrapper<jarray> res(j_env->NewObjectArray(arrLen, clazz, nullptr), j_env);
+        jni::jobject_wrapper<jarray> res(j_env->NewObjectArray(arrLen, clazz, nullptr), j_env.env);
         j_env.checkForError();
         for (jsize i = 0; i < arrLen; i++) {
             j_env->SetObjectArrayElement((jobjectArray) res.obj, i, j_env.string_to_jstring(array.Get(i).ToString()));
@@ -550,7 +550,7 @@ jni::jobject_wrapper<jarray> conversion_helper::napi_array_to_jarray(const Napi:
         // Expecting an array-array
         const auto arrLen = static_cast<jsize>(array.Length());
         jclass clazz = j_env->FindClass(util::java_type_to_jni_type(signature.signature).substr(1).c_str());
-        jni::jobject_wrapper<jarray> res(j_env->NewObjectArray(arrLen, clazz, nullptr), j_env);
+        jni::jobject_wrapper<jarray> res(j_env->NewObjectArray(arrLen, clazz, nullptr), j_env.env);
         j_env.checkForError();
 
         std::vector<jni::jobject_wrapper<jobject>> tmp;
@@ -570,7 +570,7 @@ jni::jobject_wrapper<jarray> conversion_helper::napi_array_to_jarray(const Napi:
     } else {
         const auto arrLen = static_cast<jsize>(array.Length());
         auto clazz = j_env.getJClass(signature.signature);
-        jni::jobject_wrapper<jarray> res(j_env->NewObjectArray(arrLen, clazz, nullptr), j_env);
+        jni::jobject_wrapper<jarray> res(j_env->NewObjectArray(arrLen, clazz, nullptr), j_env.env);
         j_env.checkForError();
         std::vector<jni::jobject_wrapper<jobject>> tmp;
         for (jsize i = 0; i < arrLen; i++) {
@@ -1095,7 +1095,7 @@ Napi::Value jarray_to_napi_value(jarray array, const java_type &signature, const
         for (uint32_t i = 0; i < length; i++) {
             jobject element = j_env->GetObjectArrayElement((jobjectArray) array, (jsize) i);
             j_env.checkForError();
-            res.Set(i, conversion_helper::jobject_to_value(env, jni::jobject_wrapper<jobject>(element, j_env),
+            res.Set(i, conversion_helper::jobject_to_value(env, jni::jobject_wrapper<jobject>(element, j_env.env),
                                                            signature));
         }
     }
@@ -1138,7 +1138,7 @@ conversion_helper::jvalue_to_napi_value(jvalue value, const java_type &signature
     } else {
         // Value is some kind of object
         jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
-        jni::jobject_wrapper<jobject> obj(value.l, j_env, false);
+        jni::jobject_wrapper<jobject> obj(value.l, j_env.env, false);
 
         j_env->DeleteGlobalRef(value.l);
         return conversion_helper::jobject_to_value(env, obj, signature);
