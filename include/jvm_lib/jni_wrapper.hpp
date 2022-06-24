@@ -62,7 +62,9 @@ namespace jni {
          *
          * @param env the environment to use. Should be valid.
          */
-        explicit jni_wrapper(jvm_env env);
+        explicit jni_wrapper(jvm_env &&env);
+
+        jni_wrapper(const jni_wrapper &other) = delete;
 
         /**
          * Check for a jvm error and
@@ -127,7 +129,8 @@ namespace jni {
          * @param onlyStatic whether to return only static or only non-static methods
          * @return the list of class member functions
          */
-        JAVA_NODISCARD std::vector<java_function> getClassFunctions(const std::string &className, bool onlyStatic) const;
+        JAVA_NODISCARD std::vector<java_function>
+        getClassFunctions(const std::string &className, bool onlyStatic) const;
 
         /**
          * Get a java class instance.
@@ -168,7 +171,7 @@ namespace jni {
          *
          * @param path the jar to append to the class path
          */
-        void appendClasspath(const std::string& path);
+        void appendClasspath(const std::string &path);
 
         /**
          * Append multiple jars to the class path.
@@ -356,25 +359,11 @@ namespace jni {
         JAVA_NODISCARD JNIEnv *operator->() const;
 
         /**
-         * Get the jvm_env instance
-         *
-         * @return a reference to the jvm_env instance
-         */
-        jvm_env &getEnv();
-
-        /**
          * Get the class loader instance
          *
          * @return the class loader instance
          */
-        JAVA_NODISCARD const jobject_wrapper<jobject> &getClassloader() const;
-
-        /**
-         * Get the jvm_env
-         *
-         * @return a copy of the jvm_env instance
-         */
-        operator jvm_env() const;
+        static const jobject_wrapper<jobject> &getClassloader();
 
         /**
          * Check if this jni_wrapper was initialized
@@ -382,6 +371,9 @@ namespace jni {
          * @return true if it was initialized and is ready for use
          */
         operator bool() const;
+
+        // The jvm environment to use
+        const jvm_env env;
 
     protected:
         /**
@@ -391,8 +383,6 @@ namespace jni {
          */
         jobject_wrapper<jobject> getSystemClassLoader();
 
-        // The jvm environment to use
-        jvm_env env;
         // Whether this was initialized with an environment
         bool initialized;
         // The static class loader instance
@@ -427,13 +417,15 @@ namespace jni {
          * @param jvmPath the path to the jvm shared library
          * @param version the jvm version to use
          */
-        jvm_wrapper(const std::string &jvmPath, jint version);
+        static jvm_wrapper create_jvm_wrapper(const std::string &jvmPath, jint version);
 
         /**
          * The JNI_CreateJavaVM version loaded dynamically from the jvm
          */
         std::function<jni_types::JNI_CreateJavaVM_t> JNI_CreateJavaVM = nullptr;
     private:
+        jvm_wrapper(jvm_env &&env, std::function<jni_types::JNI_CreateJavaVM_t> &&createVm);
+
         // The shared library instance
         static shared_library library;
     };
@@ -451,10 +443,8 @@ namespace jni {
          * @param id the fields id
          * @param isStatic whether the field is static
          * @param isFinal whether the field is final
-         * @param env the jni env
          */
-        java_field(const std::string &signature, std::string name, jfieldID id, bool isStatic, bool isFinal,
-                   jni_wrapper env);
+        java_field(const std::string &signature, std::string name, jfieldID id, bool isStatic, bool isFinal);
 
         /**
          * Get the field's value.
@@ -504,10 +494,6 @@ namespace jni {
         bool isFinal;
         // The field's id
         jfieldID id;
-
-    private:
-        // The jni_wrapper instance to use
-        jni_wrapper env;
     };
 
     /**
@@ -584,9 +570,6 @@ namespace jni {
          * @return the parameter types
          */
         JAVA_NODISCARD std::vector<java_type> getParameterTypes() const;
-
-        // The jni_wrapper to use
-        jni_wrapper jni;
     };
 
     /**

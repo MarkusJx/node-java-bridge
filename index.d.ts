@@ -251,6 +251,9 @@ export class java_instance_proxy extends java_object implements ImportedMembers 
     [member: string]: any;
 }
 
+export class JavaClassInstance extends java_instance_proxy {
+}
+
 /**
  * An interface defining the proxy function object layout.
  * See: https://stackoverflow.com/a/56217448
@@ -270,6 +273,12 @@ declare class java_function_caller_class extends java_object {
      * @param methods the methods to override
      */
     public constructor(name: string, methods: ProxyMethods);
+
+    /**
+     * Destroy the proxy class.
+     * Throws an error if the proxy has already been destroyed.
+     */
+    public destroy(): Promise<void>;
 }
 
 /**

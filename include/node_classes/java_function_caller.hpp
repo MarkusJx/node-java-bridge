@@ -62,6 +62,16 @@ namespace node_classes {
         JAVA_NODISCARD const std::string &getClassName() const;
 
         /**
+         * Destroy this instance from node.js
+         */
+        Napi::Value destroy_instance(const Napi::CallbackInfo &info);
+
+        /**
+         * Check if this instance has been destroyed
+         */
+        JAVA_NODISCARD bool is_destroyed() const;
+
+        /**
          * Destroy the java_function_caller instance.
          * Will call destruct() on the JavaFunctionCaller
          * java class instance to render that class instance invalid
@@ -88,6 +98,17 @@ namespace node_classes {
         jni::jobject_wrapper<jobject> object;
         // The class name
         std::string classname;
+        // If the proxy has been destroyed
+        bool destroyed;
+
+        /**
+         * Destroy the java_function_caller instance.
+         * Will call destruct() on the JavaFunctionCaller
+         * java class instance to render that class instance invalid
+         * and useless, it will throw an exception if someone
+         * tries to call a member function from this point on.
+         */
+        void destroy();
 
         // The java_function_caller constructor
         static Napi::FunctionReference *constructor;

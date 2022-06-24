@@ -18,6 +18,8 @@ namespace jni {
          */
         jvm_env() noexcept;
 
+        jvm_env(jvm_env &&other) noexcept = default;
+
         /**
          * Create a java environment
          *
@@ -63,7 +65,7 @@ namespace jni {
          * take a look at that implementation in
          * <jvm_lib/jvm_jvm.hpp>.
          */
-        void forceReset();
+        void forceReset() const;
 
         // The java virtual machine pointer.
         // This is equal on all jvm_env instances.
@@ -83,6 +85,9 @@ namespace jni {
         // the current environment from the jvm
         // (if required)
         shared_releaser envReleaser;
+
+    private:
+        jvm_env(const jvm_env &) = default;
     };
 }
 

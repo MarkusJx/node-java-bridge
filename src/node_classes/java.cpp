@@ -67,7 +67,7 @@ java::java(const Napi::CallbackInfo &info) : ObjectWrap(info), loaded_jars() {
         jvm_container::createInstance(lib_path, version);
 
         // Load the utility library
-        auto jvm = jvm_container::getJvm();
+        auto &jvm = jvm_container::getJvm();
         jvm.appendClasspath(root_dir + "/build/JavaUtil.jar");
         jclass nativeLibClass = jvm.getJClass("io.github.markusjx.bridge.NativeLibrary");
         jmethodID loadLibrary = jvm->GetStaticMethodID(nativeLibClass, "loadLibrary", "(Ljava/lang/String;)V");

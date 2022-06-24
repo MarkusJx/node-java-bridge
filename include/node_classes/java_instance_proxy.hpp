@@ -43,6 +43,8 @@ namespace node_classes {
          */
         explicit java_instance_proxy(const Napi::CallbackInfo &info);
 
+        void Finalize(Napi::Env env) override;
+
         /**
          * The java instance proxy destructor
          */

@@ -7,6 +7,16 @@
 #include "jvm_env.hpp"
 
 namespace jni {
+    namespace jobject_wrapper_util {
+        /**
+         * Delete the reference to the object
+         *
+         * @param object the object to dereference
+         * @param env the environment the object was created in
+         */
+        void deleteRef(jobject object);
+    }
+
     /**
      * A wrapper around any jobject object.
      * Will manage the destruction of the managed element.
@@ -40,9 +50,8 @@ namespace jni {
                 env->DeleteLocalRef(object);
             }
 
-            T obj_cpy = obj;
-            releaser = shared_releaser([obj_cpy, env] {
-                deleteRef(obj_cpy, env);
+            releaser = shared_releaser([obj_cpy = obj] {
+                jobject_wrapper_util::deleteRef(obj_cpy);
             });
         }
 
@@ -64,9 +73,8 @@ namespace jni {
                 env->DeleteLocalRef(object);
             }
 
-            T obj_cpy = obj;
-            releaser = shared_releaser([obj_cpy, env] {
-                deleteRef(obj_cpy, env);
+            releaser = shared_releaser([obj_cpy = obj] {
+                jobject_wrapper_util::deleteRef(obj_cpy);
             });
         }
 
@@ -112,10 +120,9 @@ namespace jni {
          */
         void assign(jobject newObject, const jvm_env &env) {
             obj = reinterpret_cast<T>(env->NewGlobalRef(newObject));
-            T object = obj;
 
-            releaser.reset([object, env] {
-                deleteRef(object, env);
+            releaser.reset([object = obj] {
+                jobject_wrapper_util::deleteRef(object);
             });
         }
 
@@ -159,18 +166,6 @@ namespace jni {
 
     private:
         shared_releaser releaser;
-
-        /**
-         * Delete the reference to the object
-         *
-         * @param object the object to dereference
-         * @param env the environment the object was created in
-         */
-        static void deleteRef(jobject object, const jvm_env &env) {
-            if (object != nullptr && env.valid()) {
-                env.attach_env()->DeleteGlobalRef(object);
-            }
-        }
     };
 
     template<class T = jobject>

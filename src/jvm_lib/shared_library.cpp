@@ -90,7 +90,7 @@ shared_library::shared_library(const std::string &library_name) {
     this->instance = std::make_shared<shared_library::loaded_dll>(loaded);
 }
 
-void *shared_library::getFunctionAddress(const std::string &name) {
+void *shared_library::getFunctionAddress(const std::string &name) const {
 #ifdef JAVA_WINDOWS
     void *symbol = reinterpret_cast<void *>(GetProcAddress(this->instance->module, name.c_str()));
     if (symbol == nullptr) {

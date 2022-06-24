@@ -31,6 +31,10 @@ jint jvm_jvm::DetachCurrentThread() {
         throw std::runtime_error("The vm was destroyed");
 
     std::unique_lock<std::mutex> lock(mtx);
+#ifdef ENABLE_LOGGING
+    markusjx::logging::StaticLogger::debugStream << "Detaching thread: " << std::this_thread::get_id();
+#endif //ENABLE_LOGGING
+
     return jvm->DetachCurrentThread();
 }
 
@@ -39,7 +43,15 @@ void jvm_jvm::forceReset() {
         throw std::runtime_error("The vm was destroyed");
 
     std::unique_lock<std::mutex> lock(mtx);
+
+#ifdef ENABLE_LOGGING
+    markusjx::logging::StaticLogger::debug("Destroying the java vm");;
+#endif //ENABLE_LOGGING
+
     jvm->DestroyJavaVM();
+#ifdef ENABLE_LOGGING
+    markusjx::logging::StaticLogger::debug("Jvm destroyed");
+#endif //ENABLE_LOGGING
     jvm = nullptr;
 }
 

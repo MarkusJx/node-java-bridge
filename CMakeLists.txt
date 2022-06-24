@@ -42,7 +42,8 @@ set(JAVA_SOURCE_DIR "${CMAKE_SOURCE_DIR}/${JAVA_SOURCE_REL_DIR}")
 
 # Compile the jar file
 add_jar(JavaUtil ${JAVA_SOURCE_DIR}/JavaFunctionCaller.java
-        ${JAVA_SOURCE_DIR}/StdoutRedirect.java ${JAVA_SOURCE_DIR}/NativeLibrary.java)
+        ${JAVA_SOURCE_DIR}/StdoutRedirect.java ${JAVA_SOURCE_DIR}/NativeLibrary.java
+        ${JAVA_SOURCE_DIR}/Util.java ${JAVA_SOURCE_DIR}/JavascriptException.java)
 
 # Get the n-api-tools include directory
 execute_process(COMMAND node -p "require('@markusjx/n-api-tools').include"
@@ -77,7 +78,7 @@ set(SRC src/module.cpp src/jvm_lib/shared_library.cpp src/jvm_lib/jni_wrapper.cp
         src/node_classes/java_instance_proxy.cpp src/node_classes/node_jobject_wrapper.cpp
         src/jvm_lib/jvm_env.cpp src/jvm_lib/java_exception.cpp src/jvm_lib/jvm_jvm.cpp src/util/persistent_object.cpp
         src/node_classes/jvm_container.cpp src/node_classes/java_function_caller.cpp src/jvm_lib/java_type.cpp
-        src/node_classes/stdout_redirect.cpp)
+        src/node_classes/stdout_redirect.cpp src/jvm_lib/jobject_wrapper.cpp)
 add_library(${PROJECT_NAME} SHARED ${SRC} ${CMAKE_JS_SRC})
 
 # Print the architecture

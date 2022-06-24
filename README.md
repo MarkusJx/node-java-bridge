@@ -133,7 +133,7 @@ let jsString = JString.valueOf(['s', 'o', 'm', 'e', ' ', 's', 't', 'r', 'i', 'n'
 When trying to create lists and when using typescript, you may want to:
 
 ```ts
-declare class List<T extends java_type> extends java_instance_proxy {
+declare class List<T extends java_type> extends JavaClassInstance {
     size(): Promise<number>;
 
     sizeSync(): number;
@@ -337,7 +337,7 @@ last ``java_class_proxy`` instance, therefore the last imported instance, is gar
 
 **Returns**
 
-``java_instance_proxy_constructor`` - The constructor function of the class
+``JavaConstructor`` - The constructor function of the class
 
 ## importClassAsync
 
@@ -352,7 +352,7 @@ import which may take a while. Optimizations apply.
 
 **Returns**
 
-``Promise<java_instance_proxy_constructor>`` - The constructor function of the class wrapped in a Promise
+``Promise<JavaConstructor>`` - The constructor function of the class wrapped in a Promise
 
 ## getJavaInstance
 
@@ -381,7 +381,14 @@ run in the main thread as v8 doesn't really support multithreading.
 
 **Returns**
 
-``java_function_caller_class`` - The created proxy
+``JavaInterfaceProxy`` - The created proxy
+
+**Notes**
+
+If you want to destroy the interface proxy, you can use the ``destroy`` method on the proxy.
+Also, it may take a while for your program to exit (or until the garbage collector has been triggered, to be precise)
+as the proxy is kept alive until the last instance of the proxy is garbage-collected. So it may be a good idea to
+set you proxy instance to null after you are done with it.
 
 ## Redirecting the program's ``stdout``
 ### stdoutRedirect.enableRedirect

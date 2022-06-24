@@ -1,4 +1,3 @@
-#include "node_classes/conversion_helper.hpp"
 #include "node_classes/java_class_proxy.hpp"
 #include "node_classes/java_instance_proxy.hpp"
 

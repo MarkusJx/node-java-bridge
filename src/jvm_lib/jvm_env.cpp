@@ -62,10 +62,10 @@ bool jvm_env::valid() const {
     return jvm && jvm->valid() && env != nullptr;
 }
 
-void jvm_env::forceReset() {
+void jvm_env::forceReset() const {
     if (!jvm || !jvm->valid()) return;
     try {
-        envReleaser.reset();
+        const_cast<shared_releaser&>(envReleaser).reset();
     } catch (...) {}
 
     try {
