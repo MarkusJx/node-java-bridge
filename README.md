@@ -390,6 +390,10 @@ Also, it may take a while for your program to exit (or until the garbage collect
 as the proxy is kept alive until the last instance of the proxy is garbage-collected. So it may be a good idea to
 set you proxy instance to null after you are done with it.
 
+When using a proxy, you must call any method using the proxy async, as calling it sync will cause the program to
+deadlock, as node.js is single-threaded and your only thread will be waiting on the java method to finish, which will
+prevent this thread from running the defined javascript proxy methods.
+
 ## Redirecting the program's ``stdout``
 ### stdoutRedirect.enableRedirect
 Enable redirecting the program's ``stdout``/``stderr``
