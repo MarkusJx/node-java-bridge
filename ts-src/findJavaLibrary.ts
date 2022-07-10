@@ -1,6 +1,6 @@
-const findJavaHome = require("find-java-home");
-const path = require("path");
-const fs = require("fs");
+import findJavaHome from 'find-java-home';
+import path from 'path';
+import fs from 'fs';
 
 /**
  * Find the java home path
@@ -8,15 +8,15 @@ const fs = require("fs");
  * @param {boolean} allowJre whether to allow runtime environments
  * @returns {Promise<string>} the java home path
  */
-function findHome(allowJre = true) {
+export function findHome(allowJre = true): Promise<string> {
     return new Promise((resolve, reject) => {
-        findJavaHome({allowJre}, (err, res) => {
+        findJavaHome({ allowJre }, (err, res) => {
             if (err) {
                 reject(err);
             } else {
                 resolve(res);
             }
-        });
+        }).then();
     });
 }
 
@@ -26,7 +26,7 @@ function findHome(allowJre = true) {
  * @param {boolean} allowJre whether to allow runtime environments
  * @returns {Promise<string>} the dll path
  */
-async function findJavaLibrary(allowJre = true) {
+export async function findJavaLibrary(allowJre = true): Promise<string> {
     const home = await findHome(allowJre);
     let libPath = 'lib';
     if (process.platform === 'win32') {
@@ -35,11 +35,11 @@ async function findJavaLibrary(allowJre = true) {
 
     let libraryName;
     if (process.platform === 'win32') {
-        libraryName = "jvm.dll";
+        libraryName = 'jvm.dll';
     } else if (process.platform === 'darwin') {
-        libraryName = "libjvm.dylib";
+        libraryName = 'libjvm.dylib';
     } else {
-        libraryName = "libjvm.so";
+        libraryName = 'libjvm.so';
     }
 
     const client = path.join(home, libPath, 'client', libraryName);
@@ -50,11 +50,8 @@ async function findJavaLibrary(allowJre = true) {
     } else if (fs.existsSync(server)) {
         return server;
     } else {
-        throw new Error(`It looks like java is not installed: Neither '${client}' nor '${server}' exists, cannot continue`);
+        throw new Error(
+            `It looks like java is not installed: Neither '${client}' nor '${server}' exists, cannot continue`
+        );
     }
 }
-
-module.exports = {
-    findHome,
-    findJavaLibrary
-};

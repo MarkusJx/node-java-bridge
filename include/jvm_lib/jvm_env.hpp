@@ -52,7 +52,7 @@ namespace jni {
          *
          * @return true if the environment is valid
          */
-        [[nodiscard]] bool valid() const;
+        [[nodiscard]] [[maybe_unused]] bool valid() const;
 
         /**
          * Force reset the java environment.

@@ -1,5 +1,7 @@
 #include <stdexcept>
 #include <util/util.hpp>
+#include <iostream>
+#include "node_classes/java.hpp"
 
 #ifdef ENABLE_LOGGING
 #   include <logger.hpp>
@@ -40,9 +42,10 @@ jvm_env jvm_env::attach_env() const {
     jint create_result = jvm->GetEnv(reinterpret_cast<void **>(&environment), version);
 
     if (create_result == JNI_EDETACHED) {
-        create_result = jvm->AttachCurrentThread(reinterpret_cast<void **>(&environment), nullptr);
+        const bool create_daemon = node_classes::java::use_daemon_threads().load();
+        create_result = jvm->AttachCurrentThread(reinterpret_cast<void **>(&environment), nullptr, create_daemon);
         if (create_result == JNI_OK) {
-            return jvm_env(jvm, environment, version, true);
+            return {jvm, environment, version, !create_daemon};
         } else {
             throw std::runtime_error("AttachCurrentThread failed: " + util::jni_error_to_string(create_result));
         }
@@ -58,14 +61,14 @@ JNIEnv *jvm_env::operator->() const {
     return env;
 }
 
-bool jvm_env::valid() const {
+[[maybe_unused]] bool jvm_env::valid() const {
     return jvm && jvm->valid() && env != nullptr;
 }
 
 void jvm_env::forceReset() const {
     if (!jvm || !jvm->valid()) return;
     try {
-        const_cast<shared_releaser&>(envReleaser).reset();
+        const_cast<shared_releaser &>(envReleaser).reset();
     } catch (...) {}
 
     try {

@@ -1,8 +1,8 @@
-import java, {JavaClass, JavaInterfaceProxy} from "../index";
-import assert from "assert";
+import java, { JavaClassInstance, JavaInterfaceProxy } from '../.';
+import assert from 'assert';
 require('expose-gc');
 
-declare class JThread extends JavaClass {
+declare class JThread extends JavaClassInstance {
     public constructor(proxy: JavaInterfaceProxy);
 
     public startSync(): void;
@@ -15,15 +15,15 @@ describe('ProxyTest', () => {
         java.ensureJVM();
     });
 
-    let thread: JThread = null;
-    let proxy: JavaInterfaceProxy = null;
+    let thread: JThread | null = null;
+    let proxy: JavaInterfaceProxy | null = null;
 
     it('Create a new proxy', (done) => {
         const Thread = java.importClass('java.lang.Thread') as typeof JThread;
         proxy = java.newProxy('java.lang.Runnable', {
             run: () => {
                 done();
-            }
+            },
         });
 
         thread = new Thread(proxy);
@@ -31,22 +31,21 @@ describe('ProxyTest', () => {
     });
 
     it('Join the thread', () => {
-        thread.joinSync();
+        thread!.joinSync();
     });
 
     it('Destroy the proxy', async () => {
-        await proxy.destroy();
+        await proxy!.destroy();
 
         try {
-            await proxy.destroy();
+            await proxy!.destroy();
             assert.fail('The proxy should already be destroyed');
-        } catch (_) {
-        }
+        } catch (_) {}
     });
 
     after(() => {
         proxy = null;
         thread = null;
-        global.gc();
+        global.gc!();
     });
 });

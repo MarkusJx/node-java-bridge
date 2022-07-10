@@ -38,10 +38,11 @@ namespace jni {
          *            pointer of the current thread will be placed
          * @param options can be NULL or a pointer to a JavaVMAttachArgs
          *                structure to specify additional information
+         * @param create_daemon if true, the thread is created as a daemon
          * @return JNI_OK on success; returns a suitable JNI error
          *         code (a negative number) on failure
          */
-        jint AttachCurrentThread(void **env, void *options);
+        jint AttachCurrentThread(void **env, void *options, bool create_daemon);
 
         /**
          * Detaches the current thread from a Java VM.

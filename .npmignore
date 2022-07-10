@@ -1,0 +1,6 @@
+dist/**/*
+.idea/
+.github/
+build/
+jvmLibPath.json
+cmake-build-*/

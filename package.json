@@ -2,23 +2,27 @@
     "name": "@markusjx/java",
     "version": "1.0.1",
     "description": "A bridge between node.js and java",
-    "main": "index.js",
-    "typings": "index.d.ts",
+    "main": "dist/index.js",
+    "typings": "dist/index.d.ts",
     "repository": "https://github.com/MarkusJx/node-java-bridge",
     "engines": {
         "node": ">=10"
     },
     "scripts": {
-        "test": "mocha -r ts-node/register test/**/*.ts",
+        "test": "mocha -r ts-node/register test/**/*.test.ts",
         "pretest": "npm run build",
-        "test:debug": "mocha -r ts-node/register test/**/*.ts --debug",
+        "test:debug": "mocha -r ts-node/register test/**/*.test.ts --debug",
         "pretest:debug": "npm run build:dev",
-        "build": "cmake-js compile",
+        "build": "cmake-js build",
         "build:dev": "cmake-js compile -D --CDLOGGING=ON",
-        "pretest:dev": "npm run build:dev",
-        "test:dev": "node test.js --debug",
-        "postinstall": "node --unhandled-rejections=strict scripts/setJavaDllPath.js && cmake-js build",
-        "clean": "cmake-js clean"
+        "postbuild": "npm run build:ts",
+        "postbuild:dev": "npm run postbuild",
+        "build:ts": "tsc",
+        "postinstall": "ts-node ts-src/setJavaDllPath.ts && npm run build",
+        "clean": "cmake-js clean",
+        "benchmark": "ts-node -P test/tsconfig.json test/benchmark/benchmark.ts",
+        "prebenchmark": "npm run build",
+        "prettier:fix": "prettier --write ."
     },
     "author": "MarkusJx",
     "license": "MIT",
@@ -30,11 +34,14 @@
     },
     "devDependencies": {
         "@types/bindings": "^1.5.1",
+        "@types/java": "^0.9.2",
         "@types/mocha": "^9.0.0",
-        "@types/node": "^18.0.0",
+        "@types/node": "^18.0.3",
         "expose-gc": "^1.0.0",
         "mocha": "^10.0.0",
-        "ts-node": "^10.8.1",
+        "nanobench": "^2.1.1",
+        "prettier": "^2.7.1",
+        "ts-node": "^10.8.2",
         "typescript": "^4.7.4"
     }
 }

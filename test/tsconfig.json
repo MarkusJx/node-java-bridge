@@ -1,5 +1,5 @@
 {
-    "include": ["ts-src/**/*"],
+    "include": ["."],
     "compilerOptions": {
         "allowJs": true,
         "target": "es2020",
@@ -7,13 +7,6 @@
         "esModuleInterop": true,
         "declaration": true,
         "lib": ["ESNext"],
-        "strict": true,
-        "strictFunctionTypes": true,
-        "strictNullChecks": true,
-        "strictBindCallApply": true,
-        "alwaysStrict": true,
-        "strictPropertyInitialization": true,
-        "outDir": "./dist",
         "downlevelIteration": true
     },
     "exclude": ["node_modules"]

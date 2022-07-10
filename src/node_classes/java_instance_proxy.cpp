@@ -11,6 +11,7 @@
 #ifdef ENABLE_LOGGING
 #   include <logger.hpp>
 #endif //ENABLE_LOGGING
+
 #include <utility>
 
 #ifdef JAVA_WINDOWS
@@ -120,7 +121,10 @@ Napi::Value java_instance_proxy::callStaticFunctionAsync(const Napi::CallbackInf
             throw std::runtime_error(error);
         }
 
+        // 3.4s
         jvalue val = conversion_helper::call_static_function(*func, clazz, values);
+        //std::cout << "Thread id: " << std::this_thread::get_id() << std::endl;
+        // ~11s
         return jvalue_converter(val, func->returnType);
     });
 }
@@ -143,7 +147,7 @@ java_instance_proxy::generateProperties(const Napi::Object &class_proxy, const N
     StaticLogger::debugStream << "Setting getters and setters for " << cls->clazz->static_fields.size()
                               << " static fields";
 #endif //ENABLE_LOGGING
-    for (const auto &f : cls->clazz->static_fields) {
+    for (const auto &f: cls->clazz->static_fields) {
         if (f.second.isFinal) {
             properties.push_back(StaticAccessor(f.first.c_str(), &java_instance_proxy::staticGetter, nullptr,
                                                 napi_enumerable, (void *) f.first.c_str()));
@@ -158,7 +162,7 @@ java_instance_proxy::generateProperties(const Napi::Object &class_proxy, const N
     StaticLogger::debugStream << "Setting functions for " << cls->clazz->static_functions.size()
                               << " static functions";
 #endif //ENABLE_LOGGING
-    for (const auto &f : cls->clazz->static_functions) {
+    for (const auto &f: cls->clazz->static_functions) {
         char *name = STRDUP((f.first + "Sync").c_str());
         cls->additionalData.emplace_back(name, free);
 #ifdef ENABLE_LOGGING
@@ -260,7 +264,7 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
 #ifdef ENABLE_LOGGING
     StaticLogger::debugStream << "Setting getters and setters for " << clazz->fields.size() << " fields";
 #endif //ENABLE_LOGGING
-    for (const auto &f : clazz->fields) {
+    for (const auto &f: clazz->fields) {
         const auto getter = [f, this](const Napi::CallbackInfo &info) -> Napi::Value {
             TRY
                 jni::jobject_wrapper<jobject> tmp;
@@ -293,7 +297,7 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
 #ifdef ENABLE_LOGGING
     StaticLogger::debugStream << "Setting functions for " << clazz->functions.size() << " java functions";
 #endif //ENABLE_LOGGING
-    for (const auto &f : clazz->functions) {
+    for (const auto &f: clazz->functions) {
         const auto function = [f, this](const Napi::CallbackInfo &info) -> Napi::Value {
 #ifdef ENABLE_LOGGING
             StaticLogger::debugStream << "Calling instance method '" << f.first << "' with " << info.Length()

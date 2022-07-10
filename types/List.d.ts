@@ -1,15 +1,15 @@
-import { JavaType, java_instance_proxy } from "../index";
+import { JavaClassInstance, JavaType } from '../.';
 
 /**
  * A java list.
  * @see https://docs.oracle.com/javase/8/docs/api/java/util/List.html
  */
-export default class List<T extends JavaType> extends java_instance_proxy {
+export default class List<T extends JavaType> extends JavaClassInstance {
     /**
      * Returns the number of elements in this list.
      * If this list contains more than Integer.MAX_VALUE elements, returns Integer.MAX_VALUE.
      * Async call.
-     * 
+     *
      * @returns the number of elements in this list
      */
     size(): Promise<number>;
@@ -18,7 +18,7 @@ export default class List<T extends JavaType> extends java_instance_proxy {
      * Returns the number of elements in this list.
      * If this list contains more than Integer.MAX_VALUE elements, returns Integer.MAX_VALUE.
      * Sync call.
-     * 
+     *
      * @returns the number of elements in this list
      */
     sizeSync(): number;
@@ -30,7 +30,7 @@ export default class List<T extends JavaType> extends java_instance_proxy {
      * will impose restrictions on the type of elements that may be added.
      * List classes should clearly specify in their documentation any restrictions on what elements may be added.
      * Async call.
-     * 
+     *
      * @param e element to be appended to this list
      */
     add(e: T): Promise<void>;
@@ -42,7 +42,7 @@ export default class List<T extends JavaType> extends java_instance_proxy {
      * will impose restrictions on the type of elements that may be added.
      * List classes should clearly specify in their documentation any restrictions on what elements may be added.
      * Sync call.
-     * 
+     *
      * @param e element to be appended to this list
      */
     addSync(e: T): void;
@@ -50,7 +50,7 @@ export default class List<T extends JavaType> extends java_instance_proxy {
     /**
      * Returns the element at the specified position in this list.
      * Async call.
-     * 
+     *
      * @param index index of the element to return
      * @returns the element at the specified position in this list
      */
@@ -59,7 +59,7 @@ export default class List<T extends JavaType> extends java_instance_proxy {
     /**
      * Returns the element at the specified position in this list.
      * Sync call.
-     * 
+     *
      * @param index index of the element to return
      * @returns the element at the specified position in this list
      */
@@ -69,7 +69,7 @@ export default class List<T extends JavaType> extends java_instance_proxy {
      * Returns an array containing all of the elements in this list
      * in proper sequence (from first to last element).
      * Async call.
-     * 
+     *
      * @returns an array containing all of the elements in this list in proper sequence
      */
     toArray(): Promise<T[]>;
@@ -78,7 +78,7 @@ export default class List<T extends JavaType> extends java_instance_proxy {
      * Returns an array containing all of the elements in this list
      * in proper sequence (from first to last element).
      * Sync call.
-     * 
+     *
      * @returns an array containing all of the elements in this list in proper sequence
      */
     toArraySync(): T[];
@@ -86,7 +86,7 @@ export default class List<T extends JavaType> extends java_instance_proxy {
     /**
      * Returns true if this list contains no elements.
      * Async call.
-     * 
+     *
      * @returns true if this list contains no elements
      */
     isEmpty(): Promise<boolean>;
@@ -94,7 +94,7 @@ export default class List<T extends JavaType> extends java_instance_proxy {
     /**
      * Returns true if this list contains no elements.
      * Sync call.
-     * 
+     *
      * @returns true if this list contains no elements
      */
     isEmptySync(): boolean;
@@ -104,7 +104,7 @@ export default class List<T extends JavaType> extends java_instance_proxy {
      * More formally, returns true if and only if this list contains at least one element
      * e such that (o==null ? e==null : o.equals(e)).
      * Async call.
-     * 
+     *
      * @param o element whose presence in this list is to be tested
      * @returns true if this list contains the specified element
      */
@@ -115,7 +115,7 @@ export default class List<T extends JavaType> extends java_instance_proxy {
      * More formally, returns true if and only if this list contains at least one element
      * e such that (o==null ? e==null : o.equals(e)).
      * Sync call.
-     * 
+     *
      * @param o element whose presence in this list is to be tested
      * @returns true if this list contains the specified element
      */
@@ -141,7 +141,7 @@ export default class List<T extends JavaType> extends java_instance_proxy {
      * returns the highest index i such that
      * (o==null ? get(i)==null : o.equals(get(i))), or -1 if there is no such index.
      * Async call.
-     * 
+     *
      * @param o element to search for
      */
     lastIndexOf(o: T): Promise<number>;
@@ -152,7 +152,7 @@ export default class List<T extends JavaType> extends java_instance_proxy {
      * returns the highest index i such that
      * (o==null ? get(i)==null : o.equals(get(i))), or -1 if there is no such index.
      * Sync call.
-     * 
+     *
      * @param o element to search for
      */
     lastIndexOfSync(o: T): number;
@@ -162,7 +162,7 @@ export default class List<T extends JavaType> extends java_instance_proxy {
      * Shifts any subsequent elements to the left (subtracts one from their indices).
      * Returns the element that was removed from the list.
      * Async call.
-     * 
+     *
      * @param index the index of the element to be removed
      */
     remove(index: number): Promise<T>;
@@ -172,7 +172,7 @@ export default class List<T extends JavaType> extends java_instance_proxy {
      * Shifts any subsequent elements to the left (subtracts one from their indices).
      * Returns the element that was removed from the list.
      * Sync call.
-     * 
+     *
      * @param index the index of the element to be removed
      */
     removeSync(index: number): T;

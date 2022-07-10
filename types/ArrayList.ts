@@ -1,5 +1,5 @@
-import java from "../index";
-import List from "./List";
+import java from '../ts-src';
+import List from './List';
 
 /**
  * A java array list.

@@ -10,3 +10,4 @@ jvmLibPath.json
 *.jar
 .vscode
 *.class
+dist/
