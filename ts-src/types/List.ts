@@ -1,17 +1,10 @@
 import { JavaClassInstance, JavaType } from '../.';
 
-declare class Test extends JavaClassInstance {
-    public static newInstance(a: string): Promise<Test>;
-    public static newInstance(a: string): Promise<Test>;
-    // ================== Constructors ==================
-    constructor(a: string);
-}
-
 /**
  * A java list.
  * @see https://docs.oracle.com/javase/8/docs/api/java/util/List.html
  */
-export default class List<T extends JavaType> extends JavaClassInstance {
+export declare class List<T extends JavaType> extends JavaClassInstance {
     /**
      * Returns the number of elements in this list.
      * If this list contains more than Integer.MAX_VALUE elements, returns Integer.MAX_VALUE.
