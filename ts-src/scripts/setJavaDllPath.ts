@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { findJavaLibrary } from './findJavaLibrary';
+import { findJavaLibrary } from '../findJavaLibrary';
 
 const outFile = path.join(__dirname, '..', 'jvmLibPath.json');
 

@@ -1,4 +1,4 @@
-import java from '../ts-src';
+import java from '../.';
 import List from './List';
 
 /**

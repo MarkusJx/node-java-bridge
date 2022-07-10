@@ -1,5 +1,5 @@
 import bench from 'nanobench';
-import java, { JavaClassInstance } from '../../dist';
+import java, { JavaClassInstance } from '../../.';
 
 declare class StringClass extends JavaClassInstance {
     public static valueOfSync(value: string): String;

@@ -1,13 +1,13 @@
-import java from './java';
-
 export {
+    JavaVersion,
     LogLevel,
     JavaConfig,
-    JavaVersion,
     JavaObject,
     JavaClassInstance,
     JavaInterfaceProxy,
     JavaType,
     JavaConstructor,
 } from './definitions';
+export * from "./java";
+import * as java from './java';
 export default java;
