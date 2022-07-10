@@ -1,10 +1,9 @@
-import java, { JavaType } from '../.';
+import java, { ArrayList, JavaType } from '../.';
 import List from '../ts-src/types/List';
 import assert = require('assert');
 import { it } from 'mocha';
 
 describe('ArrayListTest', () => {
-    let ArrayList: typeof List | null = null;
     let list: List<JavaType> | null = null;
 
     it('Ensure jvm', () => {
@@ -12,11 +11,11 @@ describe('ArrayListTest', () => {
     }).timeout(10000);
 
     it('Import java.util.ArrayList', () => {
-        ArrayList = java.importClass<typeof List>('java.util.ArrayList');
+        java.importClass<typeof List>('java.util.ArrayList');
     });
 
     it('Create a new ArrayList', () => {
-        list = new ArrayList!();
+        list = new ArrayList();
         assert.notStrictEqual(list, null);
         assert.strictEqual(list.isEmptySync(), true);
     });

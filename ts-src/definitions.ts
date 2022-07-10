@@ -169,7 +169,7 @@ export abstract class JavaObject {}
  * {@link JavaClassProxy.getClassConstructor()}
  * function.
  */
-declare class JavaClassProxy {
+export declare class JavaClassProxy {
     /**
      * The class name
      */
@@ -207,6 +207,8 @@ export interface ImportedMembers {
     [member: string]: any;
 }
 
+type Constructor<T> = { new (): T };
+
 /**
  * The java instance proxy class.
  * This class actually does all the magic.
@@ -232,7 +234,11 @@ export declare class JavaClassInstance extends JavaObject {
      * @param args the arguments to create the instance
      * @return the java_instance_proxy instance
      */
-    public static newInstance<T extends JavaClassInstance = JavaClassInstance>(...args: BasicOrJavaType[]): Promise<T>;
+    public static newInstance(this: never, ...args: BasicOrJavaType[]): Promise<unknown>;
+    public static newInstance<T extends JavaClassInstance>(
+        this: Constructor<T>,
+        ...args: BasicOrJavaType[]
+    ): Promise<T>;
 
     /**
      * Create a new java instance of type

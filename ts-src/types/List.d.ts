@@ -1,5 +1,12 @@
 import { JavaClassInstance, JavaType } from '../.';
 
+declare class Test extends JavaClassInstance {
+    public static newInstance(a: string): Promise<Test>;
+    public static newInstance(a: string): Promise<Test>;
+    // ================== Constructors ==================
+    constructor(a: string);
+}
+
 /**
  * A java list.
  * @see https://docs.oracle.com/javase/8/docs/api/java/util/List.html

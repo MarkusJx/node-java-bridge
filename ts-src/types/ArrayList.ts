@@ -6,5 +6,4 @@ import List from './List';
  * Can be created using new.
  * Accepts all types List accepts.
  */
-const ArrayList = importClass<typeof List>('java.util.ArrayList');
-export default ArrayList;
+export default class ArrayList<T> extends importClass<typeof List>('java.util.ArrayList')<T> {}

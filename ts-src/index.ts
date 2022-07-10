@@ -5,6 +5,7 @@ export {
     JavaObject,
     JavaClassInstance,
     JavaInterfaceProxy,
+    JavaClassProxy,
     JavaType,
     JavaConstructor,
     BasicOrJavaType,

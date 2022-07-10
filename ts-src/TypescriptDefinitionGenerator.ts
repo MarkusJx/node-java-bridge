@@ -1,4 +1,4 @@
-import ts from 'typescript';
+import ts, { SyntaxKind } from 'typescript';
 import { importClass } from './java';
 import fs from 'fs';
 import path from 'path';
@@ -61,7 +61,12 @@ export default class TypescriptDefinitionGenerator {
 
         const tsConstructors = types.map((t, i) => {
             const params = t.map(this.convertParameter.bind(this));
-            let declaration = ts.factory.createConstructorDeclaration(undefined, undefined, params, undefined);
+            let declaration = ts.factory.createConstructorDeclaration(
+                undefined,
+                [ts.factory.createModifier(ts.SyntaxKind.PublicKeyword)],
+                params,
+                undefined
+            );
             if (i === 0) {
                 declaration = ts.addSyntheticLeadingComment(
                     declaration,
@@ -99,10 +104,10 @@ export default class TypescriptDefinitionGenerator {
         return [...newInstanceMethods, ...tsConstructors];
     }
 
-    private javaTypeToTypescriptType(javaType: string): ts.TypeNode {
+    private javaTypeToTypescriptType(javaType: string, isParam: boolean): ts.TypeNode {
         if (javaType.endsWith('[]')) {
             return ts.factory.createArrayTypeNode(
-                this.javaTypeToTypescriptType(javaType.substring(0, javaType.length - 2))
+                this.javaTypeToTypescriptType(javaType.substring(0, javaType.length - 2), isParam)
             );
         }
 
@@ -139,8 +144,12 @@ export default class TypescriptDefinitionGenerator {
                 }
 
                 this.importsToResolve.push(javaType);
+                const isSelf = javaType === this.classname && isParam;
+
                 return {
-                    ...ts.factory.createIdentifier(javaType.substring(javaType.lastIndexOf('.') + 1) + 'Class'),
+                    ...ts.factory.createIdentifier(
+                        javaType.substring(javaType.lastIndexOf('.') + 1) + (isSelf ? 'Class' : '')
+                    ),
                     _typeNodeBrand: '',
                 };
         }
@@ -148,7 +157,7 @@ export default class TypescriptDefinitionGenerator {
 
     private convertParameter(param: string, index: number): ts.ParameterDeclaration {
         const name = 'var' + index;
-        const type = this.javaTypeToTypescriptType(param);
+        const type = this.javaTypeToTypescriptType(param, true);
         return ts.factory.createParameterDeclaration(undefined, undefined, undefined, name, undefined, type);
     }
 
@@ -173,7 +182,7 @@ export default class TypescriptDefinitionGenerator {
             modifiers.push(staticMod);
         }
 
-        let returnType = this.javaTypeToTypescriptType(m.returnType);
+        let returnType = this.javaTypeToTypescriptType(m.returnType, false);
         if (!isSync) {
             returnType = ts.factory.createTypeReferenceNode(ts.factory.createIdentifier('Promise'), [returnType]);
         }
@@ -256,14 +265,8 @@ export default class TypescriptDefinitionGenerator {
                     undefined,
                     ts.factory.createImportClause(
                         false,
-                        undefined,
-                        ts.factory.createNamedImports([
-                            ts.factory.createImportSpecifier(
-                                false,
-                                undefined,
-                                ts.factory.createIdentifier(i.substring(i.lastIndexOf('.') + 1) + 'Class')
-                            ),
-                        ])
+                        ts.factory.createIdentifier(i.substring(i.lastIndexOf('.') + 1)),
+                        undefined
                     ),
                     ts.factory.createStringLiteral(getPath(i))
                 )
@@ -292,15 +295,33 @@ export default class TypescriptDefinitionGenerator {
     }
 
     private getExportStatement(simpleName: string) {
-        const exportStatement = ts.factory.createVariableDeclaration(
+        const statement = ts.factory.createClassDeclaration(
+            undefined,
+            undefined,
             simpleName,
             undefined,
-            undefined,
-            ts.factory.createIdentifier(`importClass<typeof ${simpleName}Class>("${this.classname}")`)
+            [
+                ts.factory.createHeritageClause(ts.SyntaxKind.ExtendsKeyword, [
+                    ts.factory.createExpressionWithTypeArguments(
+                        ts.factory.createIdentifier(`importClass<typeof ${simpleName}Class>("${this.classname}")`),
+                        undefined
+                    ),
+                ]),
+            ],
+            []
         );
 
         return [
-            ts.factory.createVariableStatement(undefined, [exportStatement]),
+            ts.addSyntheticLeadingComment(
+                statement,
+                SyntaxKind.MultiLineCommentTrivia,
+                `*\n * Class ${this.classname}.\n *\n` +
+                    ' * This actually imports the java class for further use.\n' +
+                    ` * The class ${simpleName}Class only defines types, this is the class you should actually import.\n` +
+                    ' * Please note that this statement imports the underlying java class at runtime, which may take a while.\n' +
+                    ' * This was generated by @markusjx/java.\n * You should probably not edit this.\n ',
+                true
+            ),
             ts.factory.createExportDefault(ts.factory.createIdentifier(simpleName)),
         ];
     }
@@ -343,7 +364,7 @@ export default class TypescriptDefinitionGenerator {
         const constructors = cls.getDeclaredConstructorsSync();
         classMembers.push(...this.convertConstructors(constructors));
 
-        const tsClass = ts.factory.createClassDeclaration(
+        let tsClass = ts.factory.createClassDeclaration(
             undefined,
             [
                 ts.factory.createModifier(ts.SyntaxKind.ExportKeyword),
@@ -360,6 +381,14 @@ export default class TypescriptDefinitionGenerator {
                 ]),
             ],
             classMembers
+        );
+
+        tsClass = ts.addSyntheticLeadingComment(
+            tsClass,
+            ts.SyntaxKind.MultiLineCommentTrivia,
+            `*\n * This class just defines types, you should import ${simpleName} instead of this.\n` +
+                ' * This was generated by @markusjx/java.\n * You should probably not edit this.\n ',
+            true
         );
 
         const sourceText = this.getText([
