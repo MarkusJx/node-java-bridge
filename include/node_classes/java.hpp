@@ -2,6 +2,7 @@
 #define NODE_JAVA_BRIDGE_JAVA_HPP
 
 #include <napi.h>
+#include <atomic>
 
 #include "jvm_lib/jni_wrapper.hpp"
 #include "util/persistent_object.hpp"
