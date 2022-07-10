@@ -4,7 +4,7 @@ import assert = require('assert');
 import { it } from 'mocha';
 
 describe('ArrayListTest', () => {
-    let list: List<JavaType> | null = null;
+    let list: ArrayList<JavaType> | null = null;
 
     it('Ensure jvm', () => {
         java.ensureJVM();
@@ -98,7 +98,7 @@ describe('ArrayListTest', () => {
         assert.strictEqual(await list!.size(), 3);
     });
 
-    let list_cpy: List<JavaType> | null = null;
+    let list_cpy: ArrayList<JavaType> | null = null;
 
     it('List copy', () => {
         list_cpy = new ArrayList<JavaType>(list!);
