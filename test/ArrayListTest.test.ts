@@ -11,11 +11,11 @@ describe('ArrayListTest', () => {
     }).timeout(10000);
 
     it('Import java.util.ArrayList', () => {
-        java.importClass<typeof List>('java.util.ArrayList');
+        java.importClass<typeof List>('java.util.ArrayList')<JavaType>;
     });
 
     it('Create a new ArrayList', () => {
-        list = new ArrayList();
+        list = new ArrayList<JavaType>();
         assert.notStrictEqual(list, null);
         assert.strictEqual(list!.isEmptySync(), true);
     });
@@ -101,7 +101,7 @@ describe('ArrayListTest', () => {
     let list_cpy: List<JavaType> | null = null;
 
     it('List copy', () => {
-        list_cpy = new ArrayList!(list);
+        list_cpy = new ArrayList<JavaType>(list!);
 
         assert.strictEqual(list!.sizeSync(), list_cpy!.sizeSync());
     });
