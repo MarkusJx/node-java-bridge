@@ -54,7 +54,7 @@ export enum JavaVersion {
 Object.freeze(JavaVersion);
 
 declare type BasicType = string | number | boolean | BigInt | null;
-declare type BasicOrJavaType = BasicType | JavaObject | JavaConstructor;
+export type BasicOrJavaType = BasicType | JavaObject | JavaConstructor;
 
 /**
  * All types accepted by java
@@ -195,6 +195,11 @@ export type JavaConstructor<T extends JavaClassType = JavaClassType> = T & Impor
  */
 export interface ImportedMembers {
     /**
+     * Get the java class instance
+     */
+    get class(): JavaClassInstance;
+
+    /**
      * Any class member imported.
      * We'll need to use 'any' as any is callable.
      * The actual type would be JavaType | ((...args: JavaType[]) => JavaType | Promise<JavaType>)
@@ -213,7 +218,7 @@ export interface ImportedMembers {
  * the actual java instance (that thing isn't visible though)
  * and all (visible) non-static class member methods and properties.
  */
-export declare class JavaClassInstance extends JavaObject implements ImportedMembers {
+export declare class JavaClassInstance extends JavaObject {
     /**
      * The class proxy class instance
      */

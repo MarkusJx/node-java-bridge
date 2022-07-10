@@ -121,10 +121,7 @@ Napi::Value java_instance_proxy::callStaticFunctionAsync(const Napi::CallbackInf
             throw std::runtime_error(error);
         }
 
-        // 3.4s
         jvalue val = conversion_helper::call_static_function(*func, clazz, values);
-        //std::cout << "Thread id: " << std::this_thread::get_id() << std::endl;
-        // ~11s
         return jvalue_converter(val, func->returnType);
     });
 }
@@ -142,6 +139,7 @@ java_instance_proxy::generateProperties(const Napi::Object &class_proxy, const N
 #endif //ENABLE_LOGGING
 
     properties.push_back(StaticValue("class.proxy.instance", class_proxy, napi_enumerable));
+    properties.push_back(StaticAccessor("class", &java_instance_proxy::get_class, nullptr, napi_enumerable));
 
 #ifdef ENABLE_LOGGING
     StaticLogger::debugStream << "Setting getters and setters for " << cls->clazz->static_fields.size()
@@ -179,7 +177,7 @@ java_instance_proxy::generateProperties(const Napi::Object &class_proxy, const N
                                           napi_enumerable, (void *) f.first.c_str()));
     }
 
-    if (cls->clazz->constructors.size() > 0) {
+    if (!cls->clazz->constructors.empty()) {
 #ifdef ENABLE_LOGGING
         StaticLogger::debugStream << "Creating 'newInstance' method";
 #endif //ENABLE_LOGGING
@@ -228,6 +226,19 @@ Napi::Value java_instance_proxy::instanceOf(const Napi::CallbackInfo &info) {
         jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
         jclass j_clazz = j_env.getJClass(info[0].ToString().Utf8Value());
         return Napi::Boolean::New(info.Env(), j_env->IsInstanceOf(object, j_clazz));
+    CATCH_EXCEPTIONS
+}
+
+Napi::Value java_instance_proxy::get_class(const Napi::CallbackInfo &info) {
+    TRY
+        Napi::Object class_proxy = java_class_proxy::createInstance(Napi::String::New(info.Env(), "java.lang.Class"));
+        jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+
+        Napi::Object class_proxy_instance = info.This().ToObject().Get("class.proxy.instance").ToObject();
+        java_class_proxy *class_ptr = Napi::ObjectWrap<java_class_proxy>::Unwrap(class_proxy_instance);
+
+        jni::jobject_wrapper<jobject> class_object = j_env.getClassByName(class_ptr->classname);
+        return java_instance_proxy::fromJObject(info.Env(), class_object, class_proxy);
     CATCH_EXCEPTIONS
 }
 

@@ -1,10 +1,10 @@
-import { JavaType, java_instance_proxy } from '../ts-src';
+import { JavaType, JavaClassInstance } from '../.';
 
 /**
  * A java collection
  * @see https://docs.oracle.com/javase/8/docs/api/java/util/Collection.html
  */
-export default class Collection<E extends JavaType> extends java_instance_proxy {
+export default class Collection<E extends JavaType> extends JavaClassInstance {
     /**
      * Ensures that this collection contains the specified element (optional operation).
      * Returns true if this collection changed as a result of the call.

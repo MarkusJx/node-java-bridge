@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import {findHome} from "../findJavaLibrary";
+import { findHome } from '../findJavaLibrary';
 
 async function run(): Promise<void> {
     const res = await findHome(false);
@@ -10,11 +10,12 @@ async function run(): Promise<void> {
         if (fs.existsSync(os_include_dir)) {
             process.stdout.write(`${include_dir};${os_include_dir}`);
         } else {
-            throw new Error("Could not find the os-specific include directory" +
-                `Expected directory: ${os_include_dir}`);
+            throw new Error(
+                'Could not find the os-specific include directory' + `Expected directory: ${os_include_dir}`
+            );
         }
     } else {
-        throw new Error("The include directory does not exist");
+        throw new Error('The include directory does not exist');
     }
 }
 

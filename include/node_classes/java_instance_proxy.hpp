@@ -110,6 +110,11 @@ namespace node_classes {
         static Napi::Value newInstance(const Napi::CallbackInfo &info);
 
         /**
+         * Get the java class type
+         */
+        static Napi::Value get_class(const Napi::CallbackInfo &info);
+
+        /**
          * Check if this is instance of another class
          * Arguments:
          *      info[0] {string} the name of the class to check if this is an instance of

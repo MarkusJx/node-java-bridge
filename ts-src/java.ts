@@ -9,8 +9,8 @@ import {
     ProxyMethods,
     StdoutCallback,
 } from './definitions';
-import {findJavaLibrary} from './findJavaLibrary';
-import native, {JVM_PATH} from './native';
+import { findJavaLibrary } from './findJavaLibrary';
+import native, { JVM_PATH } from './native';
 
 let javaInstance: JavaVMInstance | null = null;
 

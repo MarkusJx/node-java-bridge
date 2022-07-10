@@ -1,4 +1,4 @@
-import java from '../.';
+import { importClass } from '../.';
 import List from './List';
 
 /**
@@ -6,6 +6,5 @@ import List from './List';
  * Can be created using new.
  * Accepts all types List accepts.
  */
-const ArrayList = java.importClass('java.util.ArrayList') as typeof List;
-
+const ArrayList = importClass<typeof List>('java.util.ArrayList');
 export default ArrayList;

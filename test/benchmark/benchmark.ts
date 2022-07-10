@@ -1,5 +1,8 @@
 import bench from 'nanobench';
 import java, { JavaClassInstance } from '../../.';
+import { ArrayList } from '../../.';
+
+new ArrayList();
 
 declare class StringClass extends JavaClassInstance {
     public static valueOfSync(value: string): String;
