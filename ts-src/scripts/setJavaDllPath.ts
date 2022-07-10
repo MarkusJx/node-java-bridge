@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { findJavaLibrary } from '../findJavaLibrary';
 
-const outFile = path.join(__dirname, '..', 'jvmLibPath.json');
+const outFile = path.join(__dirname, '..', '..', 'jvmLibPath.json');
 
 async function run(): Promise<void> {
     const path = await findJavaLibrary(true);
