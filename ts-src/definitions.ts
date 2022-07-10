@@ -239,6 +239,7 @@ export declare class JavaClassInstance extends JavaObject {
         this: Constructor<T>,
         ...args: BasicOrJavaType[]
     ): Promise<T>;
+    public static newInstance(this: any, ...args: BasicOrJavaType[]): Promise<any>;
 
     /**
      * Create a new java instance of type

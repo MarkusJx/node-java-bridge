@@ -17,7 +17,7 @@ describe('ArrayListTest', () => {
     it('Create a new ArrayList', () => {
         list = new ArrayList();
         assert.notStrictEqual(list, null);
-        assert.strictEqual(list.isEmptySync(), true);
+        assert.strictEqual(list!.isEmptySync(), true);
     });
 
     it('Get the list size', () => {
@@ -103,7 +103,7 @@ describe('ArrayListTest', () => {
     it('List copy', () => {
         list_cpy = new ArrayList!(list);
 
-        assert.strictEqual(list!.sizeSync(), list_cpy.sizeSync());
+        assert.strictEqual(list!.sizeSync(), list_cpy!.sizeSync());
     });
 
     it('List clear', () => {
