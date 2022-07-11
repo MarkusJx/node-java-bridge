@@ -141,6 +141,12 @@ export default class TypescriptDefinitionGenerator {
     }
 
     private javaTypeToTypescriptType(javaType: string, isParam: boolean): ts.TypeNode {
+        switch (javaType) {
+            case 'byte[]':
+            case 'java.lang.Byte[]':
+                return { ...ts.factory.createIdentifier('Buffer'), _typeNodeBrand: '' };
+        }
+
         if (javaType.endsWith('[]')) {
             return ts.factory.createArrayTypeNode(
                 this.javaTypeToTypescriptType(javaType.substring(0, javaType.length - 2), isParam)
@@ -184,7 +190,9 @@ export default class TypescriptDefinitionGenerator {
 
                 return {
                     ...ts.factory.createIdentifier(
-                        javaType.substring(javaType.lastIndexOf('.') + 1) + (isSelf ? 'Class' : '')
+                        javaType === this.classname
+                            ? javaType.substring(javaType.lastIndexOf('.') + 1) + (isSelf ? 'Class' : '')
+                            : javaType.replaceAll('.', '_')
                     ),
                     _typeNodeBrand: '',
                 };
@@ -301,8 +309,14 @@ export default class TypescriptDefinitionGenerator {
                     undefined,
                     ts.factory.createImportClause(
                         false,
-                        ts.factory.createIdentifier(i.substring(i.lastIndexOf('.') + 1)),
-                        undefined
+                        undefined,
+                        ts.factory.createNamedImports([
+                            ts.factory.createImportSpecifier(
+                                false,
+                                ts.factory.createIdentifier(i.substring(i.lastIndexOf('.') + 1)),
+                                ts.factory.createIdentifier(i.replaceAll('.', '_'))
+                            ),
+                        ])
                     ),
                     ts.factory.createStringLiteral(getPath(i))
                 )
@@ -333,7 +347,7 @@ export default class TypescriptDefinitionGenerator {
     private getExportStatement(simpleName: string) {
         const statement = ts.factory.createClassDeclaration(
             undefined,
-            undefined,
+            [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
             simpleName,
             undefined,
             [

@@ -1031,13 +1031,17 @@ Napi::Value jarray_to_napi_value(jarray array, const java_type &signature, const
         j_env->ReleaseBooleanArrayElements((jbooleanArray) array, elements, 0);
     } else if (signature.isByte()) {
         // Value is a byte
-        jbyte *elements = j_env->GetByteArrayElements((jbyteArray) array, nullptr);
+        jni::jobject_wrapper<jbyteArray> byteArray((jbyteArray) array, j_env.env, false);
+        jbyte *elements = j_env->GetByteArrayElements(byteArray, nullptr);
         j_env.checkForError();
-        for (uint32_t i = 0; i < length; i++) {
-            res.Set(i, Napi::Number::From(env, elements[i]));
-        }
 
-        j_env->ReleaseByteArrayElements((jbyteArray) array, elements, 0);
+        const auto releaser = [byteArray](const Napi::Env &, jbyte *arr) {
+            jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+            j_env->ReleaseByteArrayElements(byteArray, arr, JNI_ABORT);
+            j_env.checkForError();
+        };
+
+        return Napi::Buffer<jbyte>::New(env, elements, static_cast<size_t>(length), releaser);
     } else if (signature.isChar()) {
         // Value is a char
         jchar *elements = j_env->GetCharArrayElements((jcharArray) array, nullptr);

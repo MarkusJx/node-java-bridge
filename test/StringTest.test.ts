@@ -19,7 +19,7 @@ declare class JString extends JavaClassInstance {
 
     toCharArray(): Promise<string[]>;
 
-    getBytesSync(): number[];
+    getBytesSync(): Buffer;
 
     splitSync(regex: string): string[];
 }
@@ -96,7 +96,7 @@ describe('StringTest', () => {
     it('String to byte array', async () => {
         let arr = s1.getBytesSync();
         // @ts-ignore
-        let bytes = [...Buffer.from('some text')];
+        let bytes = Buffer.from('some text');
 
         assert.strictEqual(JSON.stringify(arr), JSON.stringify(bytes));
     });

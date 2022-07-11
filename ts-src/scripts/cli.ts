@@ -6,6 +6,7 @@ import path from 'path';
 interface Args {
     classnames: string[];
     output: string;
+    classpath?: string | string[];
 }
 
 const importOra = (): Promise<typeof import('ora').default> => eval("import('ora').then(ora => ora.default)");
@@ -25,12 +26,24 @@ yargs
                 describe: 'The output file',
                 type: 'string',
             });
+
+            command.option('classpath', {
+                alias: 'cp',
+                type: 'string',
+                describe: 'The classpath to use',
+            });
         },
-        async ({ classnames, output }) => {
+        async ({ classnames, output, classpath }) => {
             let destroyJVM: (() => void) | null = null;
             try {
                 const startTime = performance.now();
-                destroyJVM = await import('../.').then(({ destroyJVM }) => destroyJVM);
+                const java = await import('../.');
+                destroyJVM = java.destroyJVM;
+                if (classpath) {
+                    await java.classpath.appendAsync(classpath);
+                }
+
+                java.ensureJVM();
 
                 const chalk = await importChalk();
                 const ora = await importOra();
@@ -43,6 +56,17 @@ yargs
                         'v' + version
                     )} Java definition generator`
                 );
+
+                const javaInstance = java.getJavaInstance()!;
+                const loadedJars = javaInstance.loadedJars;
+                if (loadedJars.length > 0) {
+                    console.log(
+                        `Started JVM with version ${chalk.cyanBright(javaInstance.version)} and classpath '${loadedJars
+                            .map((j) => chalk.cyanBright(j))
+                            .join(';')}'`
+                    );
+                }
+
                 console.log(
                     `Converting classes ${classnames
                         .map((c) => chalk.magentaBright(c))
