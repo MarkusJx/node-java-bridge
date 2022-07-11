@@ -8,6 +8,9 @@
     "engines": {
         "node": ">=14"
     },
+    "bin": {
+        "java-ts-gen": "./dist/scripts/cli.js"
+    },
     "scripts": {
         "test": "mocha -r ts-node/register test/**/*.test.ts",
         "pretest": "npm run build",

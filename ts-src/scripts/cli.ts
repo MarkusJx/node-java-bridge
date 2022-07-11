@@ -1,7 +1,6 @@
+#!/usr/bin/env node
 import yargs from 'yargs';
-import TypescriptDefinitionGenerator from '../TypescriptDefinitionGenerator';
 import { performance } from 'perf_hooks';
-import { version } from '../../package.json';
 import path from 'path';
 
 interface Args {
@@ -36,6 +35,9 @@ yargs
                 const chalk = await importChalk();
                 const ora = await importOra();
 
+                const version = await import(path.join(__dirname, '..', '..', 'package.json')).then(
+                    ({ version }) => version
+                );
                 console.log(
                     `Starting ${chalk.cyanBright('@markusjx/java')} ${chalk.greenBright(
                         'v' + version
@@ -66,6 +68,8 @@ yargs
                         )} Converting class ${chalk.magentaBright(lastClassResolved)}`
                     );
                 };
+
+                const TypescriptDefinitionGenerator = (await import('../TypescriptDefinitionGenerator')).default;
 
                 for (const classname of classnames) {
                     const generator = new TypescriptDefinitionGenerator(

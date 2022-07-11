@@ -15,8 +15,7 @@
         "alwaysStrict": true,
         "strictPropertyInitialization": true,
         "outDir": "./dist",
-        "downlevelIteration": true,
-        "resolveJsonModule": true
+        "downlevelIteration": true
     },
     "exclude": ["node_modules", "dist"]
 }
