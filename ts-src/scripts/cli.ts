@@ -1,6 +1,8 @@
 import yargs from 'yargs';
 import TypescriptDefinitionGenerator from '../TypescriptDefinitionGenerator';
-import {performance} from "perf_hooks";
+import { performance } from 'perf_hooks';
+import { version } from '../../package.json';
+import path from 'path';
 
 interface Args {
     classnames: string[];
@@ -8,6 +10,7 @@ interface Args {
 }
 
 const importOra = (): Promise<typeof import('ora').default> => eval("import('ora').then(ora => ora.default)");
+const importChalk = (): Promise<typeof import('chalk').default> => eval("import('chalk').then(chalk => chalk.default)");
 
 yargs
     .command<Args>(
@@ -30,27 +33,63 @@ yargs
                 const startTime = performance.now();
                 destroyJVM = await import('../.').then(({ destroyJVM }) => destroyJVM);
 
+                const chalk = await importChalk();
                 const ora = await importOra();
+
+                console.log(
+                    `Starting ${chalk.cyanBright('@markusjx/java')} ${chalk.greenBright(
+                        'v' + version
+                    )} Java definition generator`
+                );
+                console.log(
+                    `Converting classes ${classnames
+                        .map((c) => chalk.magentaBright(c))
+                        .join(', ')} to typescript and saving result to ${chalk.cyanBright(path.normalize(output))}`
+                );
+
                 const spinner = ora().start();
 
                 const resolvedImports: string[] = [];
                 let numResolved: number = 0;
 
+                let approximateTimeElapsed: number = 0;
+                let lastClassResolved: string = '';
+                const timeElapsedInterval = setInterval(() => {
+                    approximateTimeElapsed += 1;
+                    setText();
+                }, 1000);
+
+                const setText = () => {
+                    spinner.text = chalk.gray(
+                        `Elapsed time: ${chalk.yellow(approximateTimeElapsed)} seconds ${chalk.white(
+                            '|'
+                        )} Converting class ${chalk.magentaBright(lastClassResolved)}`
+                    );
+                };
+
                 for (const classname of classnames) {
                     const generator = new TypescriptDefinitionGenerator(
                         classname,
                         (name) => {
-                            spinner.text = `Converting class ${name}`;
+                            lastClassResolved = name;
+                            setText();
                         },
                         resolvedImports
                     );
                     const generated = await generator.generate();
                     numResolved += generated.length;
+
+                    spinner.text = 'saving results';
                     await TypescriptDefinitionGenerator.save(generated, output);
                 }
 
+                clearInterval(timeElapsedInterval);
                 const timeElapsed = ((performance.now() - startTime) / 1000).toFixed(1);
-                spinner.succeed(`Converted ${numResolved} classes (${timeElapsed}s)`);
+                spinner.succeed(
+                    `Success - Converted ${chalk.blueBright(numResolved)} classes in ${chalk.blueBright(
+                        timeElapsed
+                    )} seconds`
+                );
             } catch (e) {
                 console.error(e);
                 if (destroyJVM) destroyJVM();

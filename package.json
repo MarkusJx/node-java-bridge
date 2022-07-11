@@ -28,6 +28,7 @@
     "license": "MIT",
     "dependencies": {
         "@markusjx/n-api-tools": "^1.2.0",
+        "chalk": "^5.0.1",
         "cmake-js": "^6.3.2",
         "cpy-cli": "^4.1.0",
         "find-java-home": "^1.2.2",
