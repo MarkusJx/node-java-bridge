@@ -7,6 +7,10 @@
 #include "util/util.hpp"
 #include "node_classes/jvm_container.hpp"
 
+#ifdef ENABLE_LOGGING
+#   include <logger.hpp>
+#endif //ENABLE_LOGGING
+
 #define CHECK_EXCEPTION() if (env->ExceptionCheck()) throwLastException(__LINE__)
 #define JVM_CHECK_EXCEPTION(jvm) if (jvm->ExceptionCheck()) jvm.throwLastException(__LINE__)
 
@@ -573,11 +577,11 @@ jclass jni_wrapper::getJClass(const std::string &className) const {
 void jni_wrapper::throwLastException(int line) const {
     if (!env->ExceptionCheck()) {
         throw std::runtime_error("No exception occurred");
-    } else {
-        env->ExceptionDescribe();
-        env->ExceptionClear();
-        throw std::runtime_error("An exception occurred");
     }
+
+#ifdef ENABLE_LOGGING
+    markusjx::logging::StaticLogger::errorStream << "Exception occurred in line " << line;
+#endif // ENABLE_LOGGING
 
     auto throwable = jobject_wrapper(env->ExceptionOccurred(), env);
     env->ExceptionClear();
@@ -595,7 +599,7 @@ void jni_wrapper::throwLastException(int line) const {
     jmethodID throwable_toString = env->GetMethodID(throwable_class, "toString", "()Ljava/lang/String;");
     if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.Throwable#toString");
 
-    jclass stacktrace_element_class = env->FindClass("java/lang/StackTraceElement");
+    jclass stacktrace_element_class = this->getJClass("java.lang.StackTraceElement");
     if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.StackTraceElement");
     jmethodID stacktrace_toString = env->GetMethodID(stacktrace_element_class, "toString", "()Ljava/lang/String;");
     if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.StackTraceElement#toString");

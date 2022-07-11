@@ -1,12 +1,13 @@
 {
     "include": ["ts-src/**/*"],
     "compilerOptions": {
-        "allowJs": true,
+        "allowJs": false,
         "target": "es2020",
         "module": "commonjs",
+        "moduleResolution": "node",
         "esModuleInterop": true,
         "declaration": true,
-        "lib": ["ESNext"],
+        "lib": ["ESNext", "es2020"],
         "strict": true,
         "strictFunctionTypes": true,
         "strictNullChecks": true,

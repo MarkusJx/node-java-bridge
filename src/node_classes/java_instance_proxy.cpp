@@ -376,9 +376,3 @@ java_instance_proxy::~java_instance_proxy() {
 #endif //ENABLE_LOGGING
     java_class_proxy::cleanup_class(clazz, classname);
 }
-
-void java_instance_proxy::Finalize(Napi::Env env) {
-#ifdef ENABLE_LOGGING
-    StaticLogger::debugStream << "Deleting class instance (finalize): " << classname;
-#endif //ENABLE_LOGGING
-}

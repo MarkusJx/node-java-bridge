@@ -1,5 +1,5 @@
 import ts, { SyntaxKind } from 'typescript';
-import { importClass } from './java';
+import { importClass, importClassAsync, JavaClassInstance } from './.';
 import fs from 'fs';
 import path from 'path';
 
@@ -16,25 +16,60 @@ interface ModuleDeclaration {
     contents: string;
 }
 
+type ProgressCallback = (classname: string) => void;
+
+declare class ModifierClass extends JavaClassInstance {
+    public static isPublic(val: number): Promise<boolean>;
+    public static isStatic(val: number): Promise<boolean>;
+}
+
+declare class TypeClass extends JavaClassInstance {
+    public getTypeName(): Promise<string>;
+}
+
+declare class DeclaredMethodClass extends JavaClassInstance {
+    public getModifiers(): Promise<number>;
+    public getName(): Promise<string>;
+    public getReturnType(): Promise<TypeClass>;
+    public getParameterTypes(): Promise<TypeClass[]>;
+}
+
+declare class DeclaredConstructorClass extends JavaClassInstance {
+    public getModifiers(): Promise<number>;
+    public getParameterTypes(): Promise<TypeClass[]>;
+}
+
+declare class ClassClass extends JavaClassInstance {
+    public getDeclaredMethods(): Promise<DeclaredMethodClass[]>;
+    public getDeclaredConstructors(): Promise<DeclaredConstructorClass[]>;
+}
+
 export default class TypescriptDefinitionGenerator {
     private usesBasicOrJavaType: boolean = false;
     private readonly additionalImports: string[] = [];
     private readonly importsToResolve: string[] = [];
 
-    public constructor(private readonly classname: string, private readonly resolvedImports: string[] = []) {}
+    public constructor(
+        private readonly classname: string,
+        private readonly progressCallback: ProgressCallback | null = null,
+        private readonly resolvedImports: string[] = []
+    ) {}
 
-    private static convertMethods(methods: any[]): Record<string, MethodDeclaration[]> {
-        const Modifier = importClass('java.lang.reflect.Modifier');
+    private static async convertMethods(methods: DeclaredMethodClass[]): Promise<Record<string, MethodDeclaration[]>> {
+        const Modifier = await importClassAsync<typeof ModifierClass>('java.lang.reflect.Modifier');
 
         const result: Record<string, MethodDeclaration[]> = {};
         for (const method of methods) {
-            const modifiers = method.getModifiersSync();
-            if (Modifier.isPublicSync(modifiers)) {
-                const name = method.getNameSync();
+            const modifiers = await method.getModifiers();
+            if (await Modifier.isPublic(modifiers)) {
+                const name = await method.getName();
+                const returnType = await method.getReturnType();
+                const parameterTypes = await method.getParameterTypes();
+
                 const data: MethodDeclaration = {
-                    returnType: method.getReturnTypeSync().getTypeNameSync(),
-                    parameters: method.getParameterTypesSync().map((p: any) => p.getTypeNameSync()),
-                    isStatic: Modifier.isStaticSync(modifiers),
+                    returnType: await returnType.getTypeName(),
+                    parameters: await Promise.all(parameterTypes.map((p) => p.getTypeName())),
+                    isStatic: await Modifier.isStatic(modifiers),
                 };
 
                 if (Object.hasOwn(result, name)) {
@@ -48,14 +83,15 @@ export default class TypescriptDefinitionGenerator {
         return result;
     }
 
-    private convertConstructors(constructors: any[]): ts.ClassElement[] {
-        const Modifier = importClass('java.lang.reflect.Modifier');
+    private async convertConstructors(constructors: DeclaredConstructorClass[]): Promise<ts.ClassElement[]> {
+        const Modifier = await importClassAsync<typeof ModifierClass>('java.lang.reflect.Modifier');
         const types: string[][] = [];
 
         for (const constructor of constructors) {
-            const modifiers = constructor.getModifiersSync();
-            if (Modifier.isPublicSync(modifiers)) {
-                types.push(constructor.getParameterTypesSync().map((p: any) => p.getTypeNameSync()));
+            const modifiers = await constructor.getModifiers();
+            if (await Modifier.isPublic(modifiers)) {
+                const parameterTypes = await constructor.getParameterTypes();
+                types.push(await Promise.all(parameterTypes.map((p) => p.getTypeName())));
             }
         }
 
@@ -339,30 +375,33 @@ export default class TypescriptDefinitionGenerator {
             .join('\n');
     }
 
-    public generate(): ModuleDeclaration[] {
+    public async generate(): Promise<ModuleDeclaration[]> {
         if (this.resolvedImports.includes(this.classname)) {
             return [];
         }
 
         this.resolvedImports.push(this.classname);
-        console.log('Converting class', this.classname);
+        if (this.progressCallback) {
+            this.progressCallback(this.classname);
+        }
 
-        const Class = importClass(this.classname);
-        const cls = Class.class;
+        const Class = await importClassAsync(this.classname);
+        const cls = Class.class as ClassClass;
 
-        const simpleName = cls.getNameSync().substring(cls.getNameSync().lastIndexOf('.') + 1);
-        const methods = cls.getDeclaredMethodsSync();
+        const simpleName = this.classname.substring(this.classname.lastIndexOf('.') + 1);
+        const methods = await cls.getDeclaredMethods();
 
         const classMembers: ts.ClassElement[] = [];
 
-        const convertedMethods = TypescriptDefinitionGenerator.convertMethods(methods);
+        const convertedMethods = await TypescriptDefinitionGenerator.convertMethods(methods);
         for (const key of Object.keys(convertedMethods)) {
             const m = convertedMethods[key];
             classMembers.push(...this.convertMethod(m, key));
         }
 
-        const constructors = cls.getDeclaredConstructorsSync();
-        classMembers.push(...this.convertConstructors(constructors));
+        const constructors = await cls.getDeclaredConstructors();
+        const convertedConstructors = await this.convertConstructors(constructors);
+        classMembers.push(...convertedConstructors);
 
         let tsClass = ts.factory.createClassDeclaration(
             undefined,
@@ -402,7 +441,9 @@ export default class TypescriptDefinitionGenerator {
 
         const res: ModuleDeclaration[] = [];
         for (const imported of this.additionalImports) {
-            res.push(...new TypescriptDefinitionGenerator(imported, this.resolvedImports).generate());
+            const generator = new TypescriptDefinitionGenerator(imported, this.progressCallback, this.resolvedImports);
+            const generated = await generator.generate();
+            res.push(...generated);
         }
 
         res.push({

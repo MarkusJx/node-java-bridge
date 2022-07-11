@@ -1,4 +1,4 @@
-import {importClass, JavaType} from '../.';
+import { importClass, JavaType } from '../.';
 import { List } from './List';
 
 export declare class ArrayListClass<T extends JavaType> extends List<T> {
