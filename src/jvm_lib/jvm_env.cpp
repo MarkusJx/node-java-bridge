@@ -38,12 +38,45 @@ jvm_env jvm_env::attach_env() const {
         throw std::runtime_error("Tried attaching a new env to a non-existent jvm");
     }
 
+    const auto check_exception = [this] {
+        if (env->ExceptionCheck()) {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+
+            jvm->DetachCurrentThread();
+            if (env->ExceptionCheck()) {
+                env->ExceptionDescribe();
+                env->ExceptionClear();
+            }
+
+            throw std::runtime_error("Failed to get current thread");
+        }
+    };
+
     JNIEnv *environment = nullptr;
     jint create_result = jvm->GetEnv(reinterpret_cast<void **>(&environment), version);
 
     if (create_result == JNI_EDETACHED) {
         const bool create_daemon = node_classes::java::use_daemon_threads().load();
         create_result = jvm->AttachCurrentThread(reinterpret_cast<void **>(&environment), nullptr, create_daemon);
+
+        jclass threadClazz = env->FindClass("java/lang/Thread");
+        check_exception();
+
+        jmethodID thread_currentThread = env->GetStaticMethodID(threadClazz, "currentThread", "()Ljava/lang/Thread;");
+        jmethodID thread_setContextClassLoader = env->GetMethodID(threadClazz, "setContextClassLoader",
+                                                                  "(Ljava/lang/ClassLoader;)V");
+        check_exception();
+
+        jobject currentThread = env->CallStaticObjectMethod(threadClazz, thread_currentThread);
+        check_exception();
+
+        env->CallObjectMethod(currentThread, thread_setContextClassLoader, jni_wrapper::getClassloader().obj);
+        check_exception();
+
+        env->DeleteLocalRef(threadClazz);
+        env->DeleteLocalRef(currentThread);
+
         if (create_result == JNI_OK) {
             return {jvm, environment, version, !create_daemon};
         } else {

@@ -41,19 +41,19 @@ java_constructor::java_constructor(jobject object, const jni_wrapper &jni) : job
 
 std::vector<java_type> java_constructor::getParameterTypes() const {
     const auto jni = node_classes::jvm_container::attachJvm();
-    jclass Constructor = jni->FindClass("java/lang/reflect/Constructor");
+    jclass Constructor = jni.find_class("java/lang/reflect/Constructor");
     JVM_CHECK_EXCEPTION(jni);
 
     jmethodID getParameters = jni->GetMethodID(Constructor, "getParameters", "()[Ljava/lang/reflect/Parameter;");
     JVM_CHECK_EXCEPTION(jni);
 
-    jclass Parameter = jni->FindClass("java/lang/reflect/Parameter");
+    jclass Parameter = jni.find_class("java/lang/reflect/Parameter");
     JVM_CHECK_EXCEPTION(jni);
 
     jmethodID getType = jni->GetMethodID(Parameter, "getType", "()Ljava/lang/Class;");
     JVM_CHECK_EXCEPTION(jni);
 
-    jclass Class = jni->FindClass("java/lang/Class");
+    jclass Class = jni.find_class("java/lang/Class");
     JVM_CHECK_EXCEPTION(jni);
 
     jmethodID getName = jni->GetMethodID(Class, "getName", "()Ljava/lang/String;");
@@ -138,7 +138,7 @@ jvm_wrapper jvm_wrapper::create_jvm_wrapper(const std::string &jvmPath, jint ver
     JNIEnv *environment = nullptr;
 
     library = shared_library(jvmPath);
-    std::function<JNI_CreateJavaVM_t> JNI_CreateJavaVM = library.getFunction<JNI_CreateJavaVM_t>("JNI_CreateJavaVM");
+    std::function < JNI_CreateJavaVM_t > JNI_CreateJavaVM = library.getFunction<JNI_CreateJavaVM_t>("JNI_CreateJavaVM");
 
     JavaVMInitArgs vm_args;
 
@@ -336,12 +336,12 @@ std::vector<java_field> jni_wrapper::getClassFields(const std::string &className
         return jstring_to_string(name);
     };
 
+    jclass javaClass = getJClass(className);
+    CHECK_EXCEPTION();
+
     // Get the field id
     const auto getFieldId = [&](const jobject_wrapper<jobject> &field, const std::string &fieldName,
                                 const std::string &sig) -> jfieldID {
-        jclass javaClass = getJClass(className);
-        CHECK_EXCEPTION();
-
         const std::string signature = util::java_type_to_jni_type(sig);
 
         jfieldID id;
@@ -489,12 +489,12 @@ std::vector<java_function> jni_wrapper::getClassFunctions(const std::string &cla
         return res;
     };
 
+    jclass javaClass = getJClass(className);
+    CHECK_EXCEPTION();
+
     // Get the functions id
     const auto get_id = [&](const std::string &name, const java_type &returnType,
                             const std::vector<java_type> &parameterTypes) -> jmethodID {
-        jclass javaClass = getJClass(className);
-        CHECK_EXCEPTION();
-
         std::string signature;
         signature += '(';
         for (const java_type &param: parameterTypes) {
@@ -574,6 +574,25 @@ jclass jni_wrapper::getJClass(const std::string &className) const {
     return reinterpret_cast<jclass>(clazz);
 }
 
+jclass jni_wrapper::find_class(const std::string &className, bool convert_exceptions) const {
+    jclass res = env->FindClass(className.c_str());
+
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        res = env->FindClass(className.c_str());
+
+        if (convert_exceptions) {
+            CHECK_EXCEPTION();
+        } else if (env->ExceptionCheck()) {
+            env->ExceptionDescribe();
+            env->ExceptionClear();
+            throw std::runtime_error("Could not find class " + className);
+        }
+    }
+
+    return res;
+}
+
 void jni_wrapper::throwLastException(int line) const {
     if (!env->ExceptionCheck()) {
         throw std::runtime_error("No exception occurred");
@@ -586,9 +605,7 @@ void jni_wrapper::throwLastException(int line) const {
     auto throwable = jobject_wrapper(env->ExceptionOccurred(), env);
     env->ExceptionClear();
 
-    jclass throwable_class = env->FindClass("java/lang/Throwable");
-    if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.Throwable");
-
+    jclass throwable_class = find_class("java/lang/Throwable", false);
     jmethodID throwable_getCause = env->GetMethodID(throwable_class, "getCause", "()Ljava/lang/Throwable;");
     if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.Throwable#getCause");
 
@@ -599,8 +616,7 @@ void jni_wrapper::throwLastException(int line) const {
     jmethodID throwable_toString = env->GetMethodID(throwable_class, "toString", "()Ljava/lang/String;");
     if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.Throwable#toString");
 
-    jclass stacktrace_element_class = this->getJClass("java.lang.StackTraceElement");
-    if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.StackTraceElement");
+    jclass stacktrace_element_class = find_class("java/lang/StackTraceElement", false);
     jmethodID stacktrace_toString = env->GetMethodID(stacktrace_element_class, "toString", "()Ljava/lang/String;");
     if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.StackTraceElement#toString");
 
@@ -647,7 +663,7 @@ void jni_wrapper::throwLastException(int line) const {
 }
 
 std::string jni_wrapper::getObjectClassName(jobject obj) const {
-    jclass Object = env->FindClass("java/lang/Object");
+    jclass Object = find_class("java/lang/Object");
     CHECK_EXCEPTION();
 
     jmethodID getClass = env->GetMethodID(Object, "getClass", "()Ljava/lang/Class;");
@@ -681,13 +697,13 @@ void jni_wrapper::appendClasspath(const std::string &path) {
      * URLClassLoader newClassLoader = new URLClassLoader(urls, this.classLoader);
      * this.classLoader = newClassLoader;
      */
-    jclass File = env->FindClass("java/io/File");
+    jclass File = find_class("java/io/File");
     CHECK_EXCEPTION();
     jmethodID FileConstructor = env->GetMethodID(File, "<init>", "(Ljava/lang/String;)V");
     CHECK_EXCEPTION();
     jmethodID toURI = env->GetMethodID(File, "toURI", "()Ljava/net/URI;");
     CHECK_EXCEPTION();
-    jclass URI = env->FindClass("java/net/URI");
+    jclass URI = find_class("java/net/URI");
     CHECK_EXCEPTION();
     jmethodID toURL = env->GetMethodID(URI, "toURL", "()Ljava/net/URL;");
     CHECK_EXCEPTION();
@@ -701,12 +717,12 @@ void jni_wrapper::appendClasspath(const std::string &path) {
     jobject_wrapper<jobject> url(env->CallObjectMethod(uri, toURL), env);
     CHECK_EXCEPTION();
 
-    jclass URLClassLoader = env->FindClass("java/net/URLClassLoader");
+    jclass URLClassLoader = find_class("java/net/URLClassLoader");
     CHECK_EXCEPTION();
     jmethodID classLoaderInit = env->GetMethodID(URLClassLoader, "<init>", "([Ljava/net/URL;Ljava/lang/ClassLoader;)V");
     CHECK_EXCEPTION();
 
-    jclass URL = env->FindClass("java/net/URL");
+    jclass URL = find_class("java/net/URL");
     CHECK_EXCEPTION();
     jobject_wrapper<jobjectArray> urls(env->NewObjectArray(1, URL, url), env);
     CHECK_EXCEPTION();
@@ -733,18 +749,18 @@ void jni_wrapper::appendClasspath(const std::vector<std::string> &paths) {
      * URLClassLoader newClassLoader = new URLClassLoader(urls, this.classLoader);
      * this.classLoader = newClassLoader;
      */
-    jclass File = env->FindClass("java/io/File");
+    jclass File = find_class("java/io/File");
     CHECK_EXCEPTION();
     jmethodID FileConstructor = env->GetMethodID(File, "<init>", "(Ljava/lang/String;)V");
     CHECK_EXCEPTION();
     jmethodID toURI = env->GetMethodID(File, "toURI", "()Ljava/net/URI;");
     CHECK_EXCEPTION();
-    jclass URI = env->FindClass("java/net/URI");
+    jclass URI = find_class("java/net/URI");
     CHECK_EXCEPTION();
     jmethodID toURL = env->GetMethodID(URI, "toURL", "()Ljava/net/URL;");
     CHECK_EXCEPTION();
 
-    jclass URL = env->FindClass("java/net/URL");
+    jclass URL = find_class("java/net/URL");
     CHECK_EXCEPTION();
     jobject_wrapper<jobjectArray> urls(env->NewObjectArray((jsize) paths.size(), URL, nullptr), env);
     CHECK_EXCEPTION();
@@ -762,7 +778,7 @@ void jni_wrapper::appendClasspath(const std::vector<std::string> &paths) {
         env->SetObjectArrayElement(urls, (jsize) i, url);
     }
 
-    jclass URLClassLoader = env->FindClass("java/net/URLClassLoader");
+    jclass URLClassLoader = find_class("java/net/URLClassLoader");
     CHECK_EXCEPTION();
     jmethodID classLoaderInit = env->GetMethodID(URLClassLoader, "<init>", "([Ljava/net/URL;Ljava/lang/ClassLoader;)V");
     CHECK_EXCEPTION();
@@ -791,7 +807,7 @@ jobject_wrapper<jobject> jni_wrapper::getSystemClassLoader() {
      *
      * return ClassLoader.getSystemClassLoader();
      */
-    jclass classLoaderCls = env->FindClass("java/lang/ClassLoader");
+    jclass classLoaderCls = find_class("java/lang/ClassLoader");
     CHECK_EXCEPTION();
     jmethodID getSystemClassLoaderMethod = env->GetStaticMethodID(classLoaderCls, "getSystemClassLoader",
                                                                   "()Ljava/lang/ClassLoader;");

@@ -156,6 +156,16 @@ namespace jni {
         JAVA_NODISCARD jclass getJClass(const std::string &className) const;
 
         /**
+         * Find a class by its name.
+         * Does not use the dot notation.
+         *
+         * @param className the class name, e.g. 'java/lang/String'
+         * @param convert_exceptions whether to convert exceptions
+         * @return the found jclass
+         */
+        JAVA_NODISCARD jclass find_class(const std::string &className, bool convert_exceptions = true) const;
+
+        /**
          * Throw the last exception
          *
          * @param line the line number this was called from

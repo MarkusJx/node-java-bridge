@@ -1,5 +1,6 @@
-import java, { ArrayList, JavaType } from '../.';
-import { List } from '../ts-src/types/List';
+import java, { JavaType } from '../.';
+import { List } from '../dist/types/List';
+import ArrayList from '../dist/types/ArrayList';
 import assert = require('assert');
 import { it } from 'mocha';
 
