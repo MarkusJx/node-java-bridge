@@ -8,49 +8,49 @@ java_type java_type::to_java_type(std::string signature, bool convert) {
     }
 
     if (signature == "void") {
-        return java_type(Void, nullptr, signature);
+        return {Void, nullptr, signature};
     } else if (signature == "int") {
-        return java_type(Integer, nullptr, signature);
+        return {Integer, nullptr, signature};
     } else if (signature == "boolean") {
-        return java_type(Boolean, nullptr, signature);
+        return {Boolean, nullptr, signature};
     } else if (signature == "byte") {
-        return java_type(Byte, nullptr, signature);
+        return {Byte, nullptr, signature};
     } else if (signature == "char") {
-        return java_type(Character, nullptr, signature);
+        return {Character, nullptr, signature};
     } else if (signature == "short") {
-        return java_type(Short, nullptr, signature);
+        return {Short, nullptr, signature};
     } else if (signature == "long") {
-        return java_type(Long, nullptr, signature);
+        return {Long, nullptr, signature};
     } else if (signature == "float") {
-        return java_type(Float, nullptr, signature);
+        return {Float, nullptr, signature};
     } else if (signature == "double") {
-        return java_type(Double, nullptr, signature);
+        return {Double, nullptr, signature};
     } else if (signature == "java.lang.Integer") {
-        return java_type(lang_Integer, nullptr, signature);
+        return {lang_Integer, nullptr, signature};
     } else if (signature == "java.lang.Boolean") {
-        return java_type(lang_Boolean, nullptr, signature);
+        return {lang_Boolean, nullptr, signature};
     } else if (signature == "java.lang.Byte") {
-        return java_type(lang_Byte, nullptr, signature);
+        return {lang_Byte, nullptr, signature};
     } else if (signature == "java.lang.Character") {
-        return java_type(lang_Character, nullptr, signature);
+        return {lang_Character, nullptr, signature};
     } else if (signature == "java.lang.Short") {
-        return java_type(lang_Short, nullptr, signature);
+        return {lang_Short, nullptr, signature};
     } else if (signature == "java.lang.Long") {
-        return java_type(lang_Long, nullptr, signature);
+        return {lang_Long, nullptr, signature};
     } else if (signature == "java.lang.Float") {
-        return java_type(lang_Float, nullptr, signature);
+        return {lang_Float, nullptr, signature};
     } else if (signature == "java.lang.Double") {
-        return java_type(lang_Double, nullptr, signature);
+        return {lang_Double, nullptr, signature};
     } else if (signature == "java.lang.String") {
-        return java_type(String, nullptr, signature);
+        return {String, nullptr, signature};
     } else if (util::hasEnding(signature, "[]")) {
-        return java_type(Array,
-                         std::make_shared<java_type>(to_java_type(signature.substr(0, signature.size() - 2), false)),
-                         signature);
+        return {Array,
+                std::make_shared<java_type>(to_java_type(signature.substr(0, signature.size() - 2), false)),
+                signature};
     } else if (signature == "java.lang.Object") {
-        return java_type(lang_Object, nullptr, signature);
+        return {lang_Object, nullptr, signature};
     } else {
-        return java_type(Object, nullptr, signature);
+        return {Object, nullptr, signature};
     }
 }
 

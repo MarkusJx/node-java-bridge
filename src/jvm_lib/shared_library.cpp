@@ -18,7 +18,7 @@ std::string GetLastErrorAsString() {
     //Get the error message ID, if any.
     DWORD errorMessageID = ::GetLastError();
     if (errorMessageID == 0) {
-        return std::string(); //No error message has been recorded
+        return {}; //No error message has been recorded
     }
 
     LPSTR messageBuffer = nullptr;

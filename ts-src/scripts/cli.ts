@@ -125,9 +125,5 @@ const handler: YargsHandler<Args> = async ({ classnames, output, classpath }) =>
 };
 
 yargs
-    .command<Args>('* <output> <classnames..>', false, builder, async (args) => {
-        for (let i = 0; i < 100; i++) {
-            await handler(args);
-        }
-    })
+    .command<Args>('* <output> <classnames..>', false, builder, handler)
     .parse();

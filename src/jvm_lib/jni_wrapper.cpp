@@ -187,7 +187,7 @@ jobject_wrapper<jstring> jni_wrapper::string_to_jstring(const std::string &str) 
     return res;
 }
 
-std::string jni_wrapper::jstring_to_string(jstring str, bool convertErrors) const {
+/*std::string jni_wrapper::jstring_to_string(jstring str, bool convertErrors) const {
     const char *chars = env->GetStringUTFChars(str, nullptr);
     if (env->ExceptionCheck()) {
         if (convertErrors) {
@@ -203,7 +203,7 @@ std::string jni_wrapper::jstring_to_string(jstring str, bool convertErrors) cons
     env->ReleaseStringUTFChars(str, chars);
 
     return res;
-}
+}*/
 
 jclass jni_wrapper::getJavaLangClass() const {
     jclass Class = env->FindClass("java/lang/Class");
@@ -333,7 +333,8 @@ std::vector<java_field> jni_wrapper::getClassFields(const std::string &className
         jobject_wrapper<jstring> name(env->CallObjectMethod(field, field_getName), env);
         CHECK_EXCEPTION();
 
-        return jstring_to_string(name);
+        bool a = env->IsSameObject(name.obj, nullptr);
+        return jstring_to_string<false>(name);
     };
 
     jclass javaClass = getJClass(className);
@@ -574,7 +575,8 @@ jclass jni_wrapper::getJClass(const std::string &className) const {
     return reinterpret_cast<jclass>(clazz);
 }
 
-jclass jni_wrapper::find_class(const std::string &className, bool convert_exceptions) const {
+/*template<bool true>
+jclass jni_wrapper::find_class(const std::string &className) const {
     jclass res = env->FindClass(className.c_str());
 
     if (env->ExceptionCheck()) {
@@ -591,7 +593,7 @@ jclass jni_wrapper::find_class(const std::string &className, bool convert_except
     }
 
     return res;
-}
+}*/
 
 void jni_wrapper::throwLastException(int line) const {
     if (!env->ExceptionCheck()) {
@@ -605,7 +607,7 @@ void jni_wrapper::throwLastException(int line) const {
     auto throwable = jobject_wrapper(env->ExceptionOccurred(), env);
     env->ExceptionClear();
 
-    jclass throwable_class = find_class("java/lang/Throwable", false);
+    jclass throwable_class = find_class<false>("java/lang/Throwable");
     jmethodID throwable_getCause = env->GetMethodID(throwable_class, "getCause", "()Ljava/lang/Throwable;");
     if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.Throwable#getCause");
 
@@ -616,7 +618,7 @@ void jni_wrapper::throwLastException(int line) const {
     jmethodID throwable_toString = env->GetMethodID(throwable_class, "toString", "()Ljava/lang/String;");
     if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.Throwable#toString");
 
-    jclass stacktrace_element_class = find_class("java/lang/StackTraceElement", false);
+    jclass stacktrace_element_class = find_class<false>("java/lang/StackTraceElement");
     jmethodID stacktrace_toString = env->GetMethodID(stacktrace_element_class, "toString", "()Ljava/lang/String;");
     if (env->ExceptionCheck()) throw std::runtime_error("Could not get java.lang.StackTraceElement#toString");
 
@@ -634,7 +636,7 @@ void jni_wrapper::throwLastException(int line) const {
     while (frames != nullptr && throwable.ok()) {
         jobject_wrapper<jstring> throwable_string(env->CallObjectMethod(throwable, throwable_toString), env);
         if (env->ExceptionCheck()) throw std::runtime_error("Could not get the stack trace length");
-        causes.push_back(jstring_to_string(throwable_string, false));
+        causes.push_back(jstring_to_string<false>(throwable_string));
 
         if (numFrames > 0) {
             for (jsize i = 0; i < numFrames; i++) {
@@ -644,7 +646,7 @@ void jni_wrapper::throwLastException(int line) const {
                 if (env->ExceptionCheck())
                     throw std::runtime_error("Could not convert a stack trace element to string");
 
-                stackFrames.push_back(jstring_to_string(frame_string, false));
+                stackFrames.push_back(jstring_to_string<false>(frame_string));
             }
         }
 

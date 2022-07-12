@@ -84,11 +84,28 @@ namespace jni {
          * Convert a java string to a C++ string
          *
          * @param str the string to convert
-         * @param convertErrors whether to convert any thrown errors
+         * @tparam convertErrors whether to convert any thrown errors
          *                      and throw them as java errors or throw C++ errors
          * @return the converted string
          */
-        JAVA_NODISCARD std::string jstring_to_string(jstring str, bool convertErrors = true) const;
+        template<bool convertErrors = true>
+        JAVA_NODISCARD std::string jstring_to_string(jstring str) const {
+            const char *chars = env->GetStringUTFChars(str, nullptr);
+            if (env->ExceptionCheck()) {
+                if constexpr (convertErrors) {
+                    throwLastException(__LINE__);
+                } else {
+                    throw std::runtime_error("Could not get the string characters");
+                }
+            } else if (chars == nullptr) {
+                throw std::runtime_error("Could not get the string characters");
+            }
+
+            std::string res(chars);
+            env->ReleaseStringUTFChars(str, chars);
+
+            return res;
+        }
 
         /**
          * Get all constructors for a class
@@ -159,11 +176,31 @@ namespace jni {
          * Find a class by its name.
          * Does not use the dot notation.
          *
-         * @param className the class name, e.g. 'java/lang/String'
-         * @param convert_exceptions whether to convert exceptions
+         * @param class_name the class name, e.g. 'java/lang/String'
+         * @tparam convert_exceptions whether to convert exceptions
          * @return the found jclass
          */
-        JAVA_NODISCARD jclass find_class(const std::string &className, bool convert_exceptions = true) const;
+        template<bool convert_exceptions = true>
+        JAVA_NODISCARD jclass find_class(const std::string &class_name) const {
+            jclass res = env->FindClass(class_name.c_str());
+
+            if (env->ExceptionCheck()) {
+                env->ExceptionClear();
+                res = env->FindClass(class_name.c_str());
+
+                if constexpr (convert_exceptions) {
+                    if(env->ExceptionCheck()) throwLastException(__LINE__);
+                } else {
+                    if (env->ExceptionCheck()) {
+                        env->ExceptionDescribe();
+                        env->ExceptionClear();
+                        throw std::runtime_error("Could not find class " + class_name);
+                    }
+                }
+            }
+
+            return res;
+        }
 
         /**
          * Throw the last exception
@@ -380,7 +417,7 @@ namespace jni {
          *
          * @return true if it was initialized and is ready for use
          */
-        operator bool() const;
+        explicit operator bool() const;
 
         // The jvm environment to use
         const jvm_env env;
