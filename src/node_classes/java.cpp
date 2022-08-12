@@ -27,6 +27,7 @@ void java::init(Napi::Env env, Napi::Object &exports) {
     Napi::Function func = DefineClass(env, "java", {
             StaticMethod("getClass", &java::getClass, napi_enumerable),
             StaticMethod("getClassAsync", &java::getClassAsync, napi_enumerable),
+            StaticAccessor("config", &java::get_config, &java::set_config, napi_enumerable),
             StaticMethod("destroyJVM", &java::destroyJVM, napi_enumerable),
             InstanceMethod("appendToClasspath", &java::appendToClasspath, napi_enumerable),
             InstanceMethod("appendToClasspathAsync", &java::appendToClasspathAsync, napi_enumerable),
@@ -164,6 +165,29 @@ Napi::Value java::appendToClasspathAsync(const Napi::CallbackInfo &info) {
     }
 }
 
+const std::atomic_bool &java::use_daemon_threads() {
+    return _use_daemon_threads;
+}
+
+Napi::Value java::get_config(const Napi::CallbackInfo &info) {
+    auto obj = Napi::Object::New(info.Env());
+
+    obj["useDaemonThreads"] = Napi::Boolean::New(info.Env(), _use_daemon_threads);
+
+    return obj;
+}
+
+void java::set_config(const Napi::CallbackInfo &info, const Napi::Value &value) {
+    if (!value.IsObject()) {
+        throw Napi::TypeError::New(info.Env(), "Config must be an object");
+    }
+
+    auto obj = value.As<Napi::Object>();
+    if (obj.Has("useDaemonThreads") && obj.Get("useDaemonThreads").IsBoolean()) {
+        _use_daemon_threads.store(obj.Get("useDaemonThreads").As<Napi::Boolean>().Value());
+    }
+}
+
 void java::destroyJVM(const Napi::CallbackInfo &info) {
     TRY
         jvm_container::destroyInstance();
@@ -193,3 +217,4 @@ java::~java() {
 
 std::string java::root_dir;
 std::string java::nativeLibPath;
+std::atomic_bool java::_use_daemon_threads = false;

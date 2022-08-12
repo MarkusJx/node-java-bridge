@@ -1,0 +1,11 @@
+**/.idea
+**/.nyc_output
+**/coverage
+**/dist
+**/main
+**/node_modules
+**/renderer/.next
+**/renderer/out
+*.log
+package-lock.json
+pnpm-lock.yaml

@@ -1,28 +1,28 @@
-import java, {JavaClass} from "../index";
+import java, { JavaClassInstance } from '../.';
 
 interface Stream {
     printlnSync(msg: string): void;
     flushSync(): void;
 }
 
-declare class System extends JavaClass {
+declare class System extends JavaClassInstance {
     public static readonly out: Stream;
     public static readonly err: Stream;
 }
 
 describe('RedirectTest', () => {
-    const system = java.importClass<typeof System>("java.lang.System");
+    const system = java.importClass<typeof System>('java.lang.System');
 
     it('Redirect stdout', (done) => {
-        java.stdoutRedirect.enableRedirect(msg => {
-            if (msg === "test") {
+        java.stdoutRedirect.enableRedirect((msg) => {
+            if (msg === 'test') {
                 done();
             } else {
                 done(msg);
             }
         });
 
-        system.out.printlnSync("test");
+        system.out.printlnSync('test');
         system.out.flushSync();
     }).timeout(10000);
 
@@ -31,16 +31,16 @@ describe('RedirectTest', () => {
     });
 
     it('Redirect stderr', (done) => {
-        java.stdoutRedirect.enableRedirect(null, msg => {
-            if (msg === "test") {
+        java.stdoutRedirect.enableRedirect(null, (msg) => {
+            if (msg === 'test') {
                 done();
             } else {
                 done(msg);
             }
         });
 
-        const system = java.importClass("java.lang.System");
-        system.err.printlnSync("test");
+        const system = java.importClass('java.lang.System');
+        system.err.printlnSync('test');
         system.err.flushSync();
     }).timeout(10000);
 

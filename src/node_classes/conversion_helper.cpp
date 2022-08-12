@@ -22,26 +22,26 @@ java_type get_object_type(const jni::jni_wrapper &j_env, const java_type &signat
     }
 
     if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Integer"))) {
-        return java_type(j_type::lang_Integer, nullptr, "java.lang.Integer");
+        return {j_type::lang_Integer, nullptr, "java.lang.Integer"};
     } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Boolean"))) {
-        return java_type(j_type::lang_Boolean, nullptr, "java.lang.Boolean");
+        return {j_type::lang_Boolean, nullptr, "java.lang.Boolean"};
     } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Byte"))) {
-        return java_type(j_type::lang_Byte, nullptr, "java.lang.Byte");
+        return {j_type::lang_Byte, nullptr, "java.lang.Byte"};
     } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Character"))) {
-        return java_type(j_type::lang_Character, nullptr, "java.lang.Character");
+        return {j_type::lang_Character, nullptr, "java.lang.Character"};
     } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Short"))) {
-        return java_type(j_type::lang_Short, nullptr, "java.lang.Short");
+        return {j_type::lang_Short, nullptr, "java.lang.Short"};
     } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Long"))) {
-        return java_type(j_type::lang_Long, nullptr, "java.lang.Long");
+        return {j_type::lang_Long, nullptr, "java.lang.Long"};
     } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Float"))) {
-        return java_type(j_type::lang_Float, nullptr, "java.lang.Float");
+        return {j_type::lang_Float, nullptr, "java.lang.Float"};
     } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.Double"))) {
-        return java_type(j_type::lang_Double, nullptr, "java.lang.Double");
+        return {j_type::lang_Double, nullptr, "java.lang.Double"};
     } else if (j_env->IsInstanceOf(obj, j_env.getJClass("java.lang.String"))) {
-        return java_type(j_type::String, nullptr, "java.lang.String");
+        return {j_type::String, nullptr, "java.lang.String"};
     } else if (signature.isArray()) {
-        return java_type(j_type::Array, std::make_shared<java_type>(get_object_type(j_env, *signature.inner, obj)),
-                         signature.signature);
+        return {j_type::Array, std::make_shared<java_type>(get_object_type(j_env, *signature.inner, obj)),
+                signature.signature};
     } else if (signature == j_type::lang_Object) {
         return java_type::to_java_type(j_env.getObjectClassName(obj));
     } else {
@@ -247,7 +247,8 @@ jni::jobject_wrapper<jobject> conversion_helper::value_to_jobject(const Napi::En
                 jclass clazz = j_env.getJClass("java.lang.Object");
                 jint array_size = static_cast<jint>(array.Length());
 
-                jni::jobject_wrapper<jobjectArray> j_array(j_env->NewObjectArray(array_size, clazz, nullptr), j_env.env);
+                jni::jobject_wrapper<jobjectArray> j_array(j_env->NewObjectArray(array_size, clazz, nullptr),
+                                                           j_env.env);
                 j_env.checkForError();
 
                 for (jint i = 0; i < array_size; i++) {
@@ -430,6 +431,24 @@ jvalue conversion_helper::napi_value_to_jvalue(const Napi::Env &env, const Napi:
             val.l = object.obj;
         }
     } else if (signature.isArray()) {
+        if ((*signature.inner == j_type::lang_Byte || *signature.inner == j_type::Byte) && value.IsBuffer()) {
+            try {
+                auto buf = value.As<Napi::Buffer<jbyte>>();
+                jni::jobject_wrapper<jbyteArray> array(j_env->NewByteArray(static_cast<jsize>(buf.Length())),
+                                                       j_env.env);
+                j_env.checkForError();
+
+                j_env->SetByteArrayRegion(array.obj, 0, static_cast<jsize>(buf.Length()), buf.Data());
+                j_env.checkForError();
+
+                values.push_back(array.as<jobject>());
+                val.l = array.obj;
+                return val;
+            } catch (const std::exception &e) {
+                throw Napi::Error::New(env, e.what());
+            }
+        }
+
         // Expecting an array
         if (!value.IsArray() && !value.IsNull()) {
             throw Napi::TypeError::New(env, __FILE__ ":" + std::to_string(__LINE__) +
@@ -1031,13 +1050,17 @@ Napi::Value jarray_to_napi_value(jarray array, const java_type &signature, const
         j_env->ReleaseBooleanArrayElements((jbooleanArray) array, elements, 0);
     } else if (signature.isByte()) {
         // Value is a byte
-        jbyte *elements = j_env->GetByteArrayElements((jbyteArray) array, nullptr);
+        jni::jobject_wrapper<jbyteArray> byteArray((jbyteArray) array, j_env.env, false);
+        jbyte *elements = j_env->GetByteArrayElements(byteArray, nullptr);
         j_env.checkForError();
-        for (uint32_t i = 0; i < length; i++) {
-            res.Set(i, Napi::Number::From(env, elements[i]));
-        }
 
-        j_env->ReleaseByteArrayElements((jbyteArray) array, elements, 0);
+        const auto releaser = [byteArray](const Napi::Env &, jbyte *arr) {
+            jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+            j_env->ReleaseByteArrayElements(byteArray, arr, JNI_ABORT);
+            j_env.checkForError();
+        };
+
+        return Napi::Buffer<jbyte>::New(env, elements, static_cast<size_t>(length), releaser);
     } else if (signature.isChar()) {
         // Value is a char
         jchar *elements = j_env->GetCharArrayElements((jcharArray) array, nullptr);

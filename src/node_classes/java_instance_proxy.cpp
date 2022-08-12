@@ -11,6 +11,7 @@
 #ifdef ENABLE_LOGGING
 #   include <logger.hpp>
 #endif //ENABLE_LOGGING
+
 #include <utility>
 
 #ifdef JAVA_WINDOWS
@@ -138,12 +139,13 @@ java_instance_proxy::generateProperties(const Napi::Object &class_proxy, const N
 #endif //ENABLE_LOGGING
 
     properties.push_back(StaticValue("class.proxy.instance", class_proxy, napi_enumerable));
+    properties.push_back(StaticAccessor("class", &java_instance_proxy::get_class, nullptr, napi_enumerable));
 
 #ifdef ENABLE_LOGGING
     StaticLogger::debugStream << "Setting getters and setters for " << cls->clazz->static_fields.size()
                               << " static fields";
 #endif //ENABLE_LOGGING
-    for (const auto &f : cls->clazz->static_fields) {
+    for (const auto &f: cls->clazz->static_fields) {
         if (f.second.isFinal) {
             properties.push_back(StaticAccessor(f.first.c_str(), &java_instance_proxy::staticGetter, nullptr,
                                                 napi_enumerable, (void *) f.first.c_str()));
@@ -158,7 +160,7 @@ java_instance_proxy::generateProperties(const Napi::Object &class_proxy, const N
     StaticLogger::debugStream << "Setting functions for " << cls->clazz->static_functions.size()
                               << " static functions";
 #endif //ENABLE_LOGGING
-    for (const auto &f : cls->clazz->static_functions) {
+    for (const auto &f: cls->clazz->static_functions) {
         char *name = STRDUP((f.first + "Sync").c_str());
         cls->additionalData.emplace_back(name, free);
 #ifdef ENABLE_LOGGING
@@ -175,7 +177,7 @@ java_instance_proxy::generateProperties(const Napi::Object &class_proxy, const N
                                           napi_enumerable, (void *) f.first.c_str()));
     }
 
-    if (cls->clazz->constructors.size() > 0) {
+    if (!cls->clazz->constructors.empty()) {
 #ifdef ENABLE_LOGGING
         StaticLogger::debugStream << "Creating 'newInstance' method";
 #endif //ENABLE_LOGGING
@@ -227,6 +229,19 @@ Napi::Value java_instance_proxy::instanceOf(const Napi::CallbackInfo &info) {
     CATCH_EXCEPTIONS
 }
 
+Napi::Value java_instance_proxy::get_class(const Napi::CallbackInfo &info) {
+    TRY
+        Napi::Object class_proxy = java_class_proxy::createInstance(Napi::String::New(info.Env(), "java.lang.Class"));
+        jni::jni_wrapper j_env = node_classes::jvm_container::attachJvm();
+
+        Napi::Object class_proxy_instance = info.This().ToObject().Get("class.proxy.instance").ToObject();
+        java_class_proxy *class_ptr = Napi::ObjectWrap<java_class_proxy>::Unwrap(class_proxy_instance);
+
+        jni::jobject_wrapper<jobject> class_object = j_env.getClassByName(class_ptr->classname);
+        return java_instance_proxy::fromJObject(info.Env(), class_object, class_proxy);
+    CATCH_EXCEPTIONS
+}
+
 Napi::Value java_instance_proxy::fromJObject(Napi::Env env, const jni::jobject_wrapper<jobject> &obj,
                                              const Napi::Object &class_proxy) {
 #ifdef ENABLE_LOGGING
@@ -260,7 +275,7 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
 #ifdef ENABLE_LOGGING
     StaticLogger::debugStream << "Setting getters and setters for " << clazz->fields.size() << " fields";
 #endif //ENABLE_LOGGING
-    for (const auto &f : clazz->fields) {
+    for (const auto &f: clazz->fields) {
         const auto getter = [f, this](const Napi::CallbackInfo &info) -> Napi::Value {
             TRY
                 jni::jobject_wrapper<jobject> tmp;
@@ -293,7 +308,7 @@ java_instance_proxy::java_instance_proxy(const Napi::CallbackInfo &info) : Objec
 #ifdef ENABLE_LOGGING
     StaticLogger::debugStream << "Setting functions for " << clazz->functions.size() << " java functions";
 #endif //ENABLE_LOGGING
-    for (const auto &f : clazz->functions) {
+    for (const auto &f: clazz->functions) {
         const auto function = [f, this](const Napi::CallbackInfo &info) -> Napi::Value {
 #ifdef ENABLE_LOGGING
             StaticLogger::debugStream << "Calling instance method '" << f.first << "' with " << info.Length()
@@ -360,10 +375,4 @@ java_instance_proxy::~java_instance_proxy() {
     StaticLogger::debugStream << "Deleting class instance: " << classname;
 #endif //ENABLE_LOGGING
     java_class_proxy::cleanup_class(clazz, classname);
-}
-
-void java_instance_proxy::Finalize(Napi::Env env) {
-#ifdef ENABLE_LOGGING
-    StaticLogger::debugStream << "Deleting class instance (finalize): " << classname;
-#endif //ENABLE_LOGGING
 }

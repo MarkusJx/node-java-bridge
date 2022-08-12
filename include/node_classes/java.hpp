@@ -2,6 +2,7 @@
 #define NODE_JAVA_BRIDGE_JAVA_HPP
 
 #include <napi.h>
+#include <atomic>
 
 #include "jvm_lib/jni_wrapper.hpp"
 #include "util/persistent_object.hpp"
@@ -118,6 +119,15 @@ namespace node_classes {
         Napi::Value appendToClasspathAsync(const Napi::CallbackInfo &info);
 
         /**
+         * If set to true, attach new threads as daemon threads
+         */
+        static const std::atomic_bool &use_daemon_threads();
+
+        static void set_config(const Napi::CallbackInfo &info, const Napi::Value &value);
+
+        static Napi::Value get_config(const Napi::CallbackInfo &info);
+
+        /**
          * Destroy the jvm instance.
          * Will release the vm and make all calls to
          * the jvm throw exceptions since the vm is dead now.
@@ -150,6 +160,7 @@ namespace node_classes {
         static std::string root_dir;
         // The path to the native library (node_java_bridge.node)
         static std::string nativeLibPath;
+        static std::atomic_bool _use_daemon_threads;
     };
 }
 

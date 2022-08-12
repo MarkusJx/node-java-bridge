@@ -43,8 +43,6 @@ namespace node_classes {
          */
         explicit java_instance_proxy(const Napi::CallbackInfo &info);
 
-        void Finalize(Napi::Env env) override;
-
         /**
          * The java instance proxy destructor
          */
@@ -108,6 +106,11 @@ namespace node_classes {
          * @return the created class
          */
         static Napi::Value newInstance(const Napi::CallbackInfo &info);
+
+        /**
+         * Get the java class type
+         */
+        static Napi::Value get_class(const Napi::CallbackInfo &info);
 
         /**
          * Check if this is instance of another class

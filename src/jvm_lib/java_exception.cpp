@@ -13,7 +13,6 @@ const char *java_exception::what() const noexcept {
 
 std::string java_exception::generateErrorMessage(const std::vector<std::string> &causes,
                                                  const std::vector<std::string> &frames) {
-    // NOTE: Can't use string streams, the module will crash
     try {
         std::stringstream res;
         for (size_t i = 0; i < causes.size(); i++) {

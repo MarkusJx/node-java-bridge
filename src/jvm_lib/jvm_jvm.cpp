@@ -18,12 +18,16 @@ jint jvm_jvm::GetEnv(void **env, jint version) {
     return jvm->GetEnv(env, version);
 }
 
-jint jvm_jvm::AttachCurrentThread(void **env, void *options) {
+jint jvm_jvm::AttachCurrentThread(void **env, void *options, bool create_daemon) {
     if (!valid())
         throw std::runtime_error("The vm was destroyed");
 
     std::unique_lock<std::mutex> lock(mtx);
-    return jvm->AttachCurrentThread(env, options);
+    if (create_daemon) {
+        return jvm->AttachCurrentThreadAsDaemon(env, options);
+    } else {
+        return jvm->AttachCurrentThread(env, options);
+    }
 }
 
 jint jvm_jvm::DetachCurrentThread() {
