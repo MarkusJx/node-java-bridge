@@ -1,0 +1,540 @@
+import {
+    getClassFields,
+    getField,
+    getStaticField,
+    Java,
+    JavaOptions,
+    setField,
+    setStaticField,
+} from '../native';
+import { JavaClassType, JavaConstructor, JavaVersion } from './definitions';
+import { getJavaLibPath, getNativeLibPath } from './nativeLib';
+
+/**
+ * The static java instance
+ */
+let javaInstance: Java | null = null;
+
+interface ImportedJavaClass {
+    'class.proxy': object;
+    new (...args: any[]): any;
+}
+
+/**
+ * Ensure the java vm is created.
+ * If the jvm is already created, this does nothing.
+ * If the vm is not created yet, the jvm will be created upon this call.
+ * This method is also called every time with no arguments when any call
+ * to the jvm is done in another method.
+ *
+ * ## Examples
+ * Specify the path to jvm.(dylib|dll|so) manually,
+ * specify the java version to use and set to use daemon threads.
+ * ```ts
+ * import { ensureJvm, JavaVersion } from '@markusjx/java';
+ *
+ * ensureJvm('path/to/jvm.dll', JavaVersion.VER_9, null, { useDaemonThreads: true });
+ * ```
+ *
+ * Let the plugin find the jvm.(dylib|dll|so)
+ * ```ts
+ * ensureJvm(null, JavaVersion.VER_9, null, { useDaemonThreads: true });
+ * ```
+ *
+ * Let the plugin find the jvm.(dylib|dll|so) and use the default options
+ * ```ts
+ * ensureJvm();
+ * ```
+ *
+ * @param libPath the path to jvm.(dylib|dll|so). Pass null to let the plugin find the library.
+ * @param version the java version to request, this may not have any effect. Defaults to version 1.8.
+ * @param opts options for the java vm
+ * @param javaOptions additional options for the java vm
+ */
+export function ensureJvm(
+    libPath?: string | null,
+    version?: string | JavaVersion | null,
+    opts?: Array<string> | null,
+    javaOptions?: JavaOptions | null
+): void {
+    if (!javaInstance) {
+        javaInstance = new Java(
+            libPath,
+            version,
+            opts,
+            javaOptions,
+            getJavaLibPath(),
+            getNativeLibPath()
+        );
+    }
+}
+
+function defineFields(object: Record<string, any>, getStatic: boolean): void {
+    for (const field of getClassFields(object['class.proxy'], getStatic)) {
+        const getter = (): any =>
+            getStatic
+                ? getStaticField(object, field.name)
+                : getField(object, field.name);
+        if (field.isFinal) {
+            Object.defineProperty(object, field.name, {
+                get: getter,
+                enumerable: true,
+            });
+        } else {
+            Object.defineProperty(object, field.name, {
+                get: getter,
+                set: (value: any) =>
+                    getStatic
+                        ? setStaticField(object, field.name, value)
+                        : setField(object, field.name, value),
+                enumerable: true,
+            });
+        }
+    }
+}
+
+/**
+ * Import a class.
+ * Returns the constructor of the class to be created.
+ * For example, import "java.util.ArrayList" for a java Array List.
+ *
+ * Define a custom class type for the imported class and pass the
+ * constructor type of the class as the template parameter to get
+ * the proper type returned. You could also just cast the result.
+ *
+ * ## Examples
+ * ### Import ``java.util.ArrayList`` and create a new instance of it
+ * ```ts
+ * import { importClass } from '@markusjx/java';
+ *
+ * // Import java.util.ArrayList
+ * const ArrayList = importClass('java.util.ArrayList');
+ *
+ * // Create a new instance of ArrayList
+ * const list = new ArrayList();
+ * ```
+ *
+ * ### Import ``java.util.ArrayList`` with types
+ * ```ts
+ * import { importClass, JavaClassInstance, JavaType } from '@markusjx/java';
+ *
+ * /**
+ *  * Definitions for class java.util.List
+ *  *\/
+ * declare class List <T extends JavaType> extends JavaClassInstance {
+ *     size(): Promise<number>;
+ *     sizeSync(): number;
+ *     add(e: T): Promise<void>;
+ *     addSync(e: T): void;
+ *     get(index: number): Promise<T>;
+ *     getSync(index: number): T;
+ *     toArray(): Promise<T[]>;
+ *     toArraySync(): T[];
+ *     isEmpty(): Promise<boolean>;
+ *     isEmptySync(): boolean;
+ * }
+ *
+ * /**
+ *  * Definitions for class java.util.ArrayList
+ *  *\/
+ * declare class ArrayListClass<T extends JavaType> extends List<T> {
+ *     public constructor(other: ArrayListClass<T>);
+ *     public constructor();
+ * }
+ *
+ * // This causes the class to be import when the module is loaded.
+ * class ArrayList<T> extends importClass<typeof ArrayListClass>('java.util.ArrayList')<T> {}
+ *
+ * // Create a new ArrayList instance
+ * const list = new ArrayList<string>();
+ *
+ * // Add some contents to the list
+ * list.add('Hello');
+ * list.add('World');
+ *
+ * // Check the list contents
+ * assert.equals(list.sizeSync(), 2);
+ * assert.equals(list.getSync(0), 'Hello');
+ * assert.equals(list.getSync(1), 'World');
+ * ```
+ *
+ * @template T the type of the java class to import as a js type
+ * @param classname the name of the class to resolve
+ * @return the java class constructor
+ */
+export function importClass<T extends JavaClassType = JavaClassType>(
+    classname: string
+): JavaConstructor<T> {
+    ensureJvm();
+    const constructor = javaInstance!.importClass(
+        classname
+    ) as ImportedJavaClass;
+    defineFields(constructor, true);
+
+    constructor.constructor = function (...args: any[]) {
+        const object = new constructor.prototype.constructor(...args);
+        defineFields(object, false);
+
+        return object;
+    };
+
+    return constructor as unknown as JavaConstructor<T>;
+}
+
+/**
+ * @inheritDoc importClass
+ */
+export async function importClassAsync<T extends JavaClassType = JavaClassType>(
+    classname: string
+): Promise<JavaConstructor<T>> {
+    ensureJvm();
+    const constructor = (await javaInstance!.importClassAsync(
+        classname
+    )) as ImportedJavaClass;
+    defineFields(constructor, true);
+
+    constructor.constructor = function (...args: any[]) {
+        const object = new constructor.prototype.constructor(...args);
+        defineFields(object, false);
+
+        return object;
+    };
+
+    return constructor as unknown as JavaConstructor<T>;
+}
+
+/**
+ * Append a single or multiple jars to the class path.
+ * @example
+ * import { appendClasspath } from '@markusjx/java';
+ *
+ * // Append a single jar to the class path
+ * appendClassPath('/path/to/jar.jar');
+ *
+ * // Append multiple jars to the class path
+ * appendClassPath(['/path/to/jar1.jar', '/path/to/jar2.jar']);
+ *
+ * @param path the path(s) to add
+ */
+export function appendClasspath(path: string | string[]): void {
+    ensureJvm();
+    javaInstance!.appendClasspath(path);
+}
+
+/**
+ * Methods for altering and querying the class path.
+ * @example
+ * import { classpath } from '@markusjx/java';
+ *
+ * // Append a jar to the class path
+ * classpath.append('/path/to/jar.jar');
+ *
+ * assert.equal(classpath.get().length, 1);
+ * assert.equal(classpath.get()[0], '/path/to/jar.jar');
+ */
+export namespace classpath {
+    /**
+     * Append a single or multiple jars to the class path.
+     * @example
+     * import { classpath } from '@markusjx/java';
+     *
+     * // Append a single jar to the class path
+     * classpath.append('/path/to/jar.jar');
+     *
+     * // Append multiple jars to the class path
+     * classpath.append(['/path/to/jar1.jar', '/path/to/jar2.jar']);
+     *
+     * @param path the path(s) to add
+     */
+    export function append(path: string | string[]): void {
+        appendClasspath(path);
+    }
+
+    /**
+     * Get the loaded jars in the class path
+     *
+     * @returns a list of the loaded jars
+     */
+    export function get(): string[] {
+        ensureJvm();
+        return javaInstance!.loadedJars;
+    }
+}
+
+/**
+ * A callback for any output redirected from stdout/stderr from the java process.
+ *
+ * @param err an error if the conversion of the output failed.
+ *            This is null if the output was valid. This will probably never be set.
+ * @param data the data that was converted. This is unset if <code>err</code> is set.
+ */
+export type StdoutCallback = (err: Error | null, data?: string) => void;
+
+/**
+ * The class guarding the stdout redirect.
+ * Keep this instance in scope to not lose the redirect.
+ * As soon as this gets garbage collected, the redirection
+ * of the stdout/stderr will be stopped. Only one instance
+ * of this can exist at a time. Call {@link reset} to stop
+ * redirecting the program output and release this class
+ * instance early.
+ *
+ * This can be created by calling {@link stdout.enableRedirect}.
+ *
+ * ## Example
+ * ```ts
+ * import { stdout } from '@markusjx/java';
+ *
+ * const guard = stdout.enableRedirect((_, data) => {
+ *     console.log('Stdout:', data);
+ * }, (_, data) => {
+ *     console.error('Stderr:', data);
+ * });
+ *
+ * // Change the receiver method
+ * guard.on('stderr', (_, data) => {
+ *     console.warn('Stderr:', data);
+ * });
+ *
+ * // Disable a receiver
+ * guard.on('stdout', null);
+ *
+ * // Disable stdout redirect
+ * guard.reset();
+ * ```
+ */
+export interface StdoutRedirectGuard {
+    /**
+     * Set the stdout/stderr event handler.
+     * Pass <code>null</code> to disable this specific handler.
+     * Only accepts 'stdout' and 'stderr' as the <code>event</code>
+     * argument. Overwrites the previous handler.
+     *
+     * @param event the event to listen on
+     * @param callback the callback
+     */
+    on(event: 'stdout' | 'stderr', callback: StdoutCallback | null): void;
+
+    /**
+     * Reset this <code>StdoutRedirectGuard</code> instance.
+     * After this call, the stdout/stderr will no longer
+     * be redirected to the specified methods and any call
+     * to this class will throw an error as this counts as destroyed.
+     */
+    reset(): void;
+}
+
+/**
+ * A namespace containing methods for redirecting the stdout/stderr of the java process.
+ */
+export namespace stdout {
+    /**
+     * Enable stdout/stderr redirection.
+     *
+     * ## Examples
+     * ### Redirect all data to the js console
+     * ```ts
+     * import { stdout } from '@markusjx/java';
+     *
+     * const guard = stdout.enableRedirect((_, data) => {
+     *     console.log('Stdout:', data);
+     * }, (_, data) => {
+     *     console.error('Stderr:', data);
+     * });
+     * ```
+     *
+     * ### Redirect stdout to the js console
+     * ```ts
+     * const guard = stdout.enableRedirect((_, data) => {
+     *     console.log('Stdout:', data);
+     * });
+     * ```
+     *
+     * ### Redirect stderr to the js console
+     * ```ts
+     * const guard = stdout.enableRedirect(null, (_, data) => {
+     *    console.error('Stderr:', data);
+     * });
+     * ```
+     *
+     * ### Redirect nothing to the js console (y tho)
+     * This enables you to print nothing to nowhere.
+     * ```ts
+     * // Why would you do this?
+     * const guard = stdout.enableRedirect(null, null);
+     *
+     * // Or
+     * const guard = stdout.enableRedirect();
+     * ```
+     *
+     * @see StdoutRedirectGuard
+     * @param stdout the callback to be called when stdout is received
+     * @param stderr the callback to be called when stderr is received
+     * @returns a <code>StdoutRedirectGuard</code> instance. Keep this instance in scope to not lose the redirect.
+     */
+    export function enableRedirect(
+        stdout?: StdoutCallback | null,
+        stderr?: StdoutCallback | null
+    ): StdoutRedirectGuard {
+        ensureJvm();
+        return javaInstance!.setStdoutCallbacks(stdout, stderr);
+    }
+}
+
+/**
+ * The class for implementing java interfaces.
+ * Keep this instance in scope to not destroy the java object.
+ * Call {@link reset} to instantly destroy this instance.
+ *
+ * ## Notes
+ * Keeping this instance alive may cause your process not to exit
+ * early. Thus, you must wait for the javascript garbage collector
+ * to destroy this instance even if you called {@link reset}.
+ *
+ * Once this instance has been destroyed, either by calling {@link reset}
+ * or the garbage collector, any call to any method defined earlier
+ * by {@link newProxy} will throw an error in the java process.
+ *
+ * ## Example
+ * ```ts
+ * import { newProxy, importClass } from '@markusjx/java';
+ *
+ * const proxy = newProxy('path.to.MyInterface', {
+ *     // Define methods...
+ * });
+ *
+ * // Do something with the proxy
+ * instance.someMethod(proxy);
+ *
+ * // Destroy the proxy
+ * proxy.reset();
+ * ```
+ */
+export interface JavaInterfaceProxy {
+    /**
+     * Destroy the proxy class.
+     * Throws an error if the proxy has already been destroyed.
+     */
+    reset(): void;
+}
+
+/**
+ * An interface proxy method.
+ * Any arguments passed to this method are values converted from java values.
+ * The return value will be converted back to a java type.
+ *
+ * @param args the arguments passed from the java process
+ * @return the value to pass back to the java process
+ */
+export type ProxyMethod = (...args: any[]) => any;
+type InternalProxyRecord = Parameters<
+    typeof Java.prototype.createInterfaceProxy
+>[1];
+
+/**
+ * Create a new java interface proxy.
+ * This allows you to implement java interfaces in javascript.
+ *
+ * ## Examples
+ * ### Implement ``java.lang.Runnable``
+ * ```ts
+ * import { newProxy, importClass } from '@markusjx/java';
+ *
+ * // Define the interface
+ * const runnable = newProxy('java.lang.Runnable', {
+ *     run: (): void => {
+ *         console.log('Hello World!');
+ *     }
+ * });
+ *
+ * // Note: You can't do something like this:
+ * // runnable.run();
+ *
+ * // Pass the proxy to a java method instead:
+ * const Thread = importClass('java.lang.Thread');
+ * const thread = new Thread(runnable); // <- Pass the proxy here
+ *
+ * // NOTE: You don't have to call this asynchronously
+ * // as this call instantly returns.
+ * thread.startSync();
+ * ```
+ *
+ * ### Implement ``java.util.function.Function`` to transform a string
+ * ```ts
+ * import { newProxy, importClass } from '@markusjx/java';
+ *
+ * const func = newProxy('java.util.function.Function', {
+ *     // Any parameters and return types will be automatically converted
+ *     apply: (str: string): string => {
+ *         return str.toUpperCase();
+ *     }
+ * });
+ *
+ * // Import the string class
+ * const JString = java.importClass('java.lang.String');
+ * const str = new JString('hello');
+ *
+ * // Pass the proxy.
+ * // NOTE: You must call this method async otherwise your program will hang.
+ * // See notes for more info.
+ * const transformed = await str.transform(func);
+ *
+ * assert.assertEquals(transformed, 'HELLO');
+ * ```
+ *
+ * ## Notes
+ * * Keep this instance in scope to not destroy the interface proxy.
+ * * Call {@link JavaInterfaceProxy.reset} to instantly destroy this instance.
+ * * If any method is queried by the java process and not implemented in here,
+ *   an exception will be thrown in the java process.
+ * * Any errors thrown in the javascript process will be rethrown in the java process.
+ * * **When calling a java method that uses an interface defined by this, you must call
+ *   that method using the interface asynchronously as Node.js is single threaded and can't
+ *   wait for the java method to return while calling the proxy method at the same time.**
+ *
+ * @param interfaceName the name of the java interface to implement
+ * @param methods the methods to implement.
+ * @returns a proxy class to pass back to the java process
+ */
+export function newProxy(
+    interfaceName: string,
+    methods: Record<string, ProxyMethod>
+): JavaInterfaceProxy {
+    ensureJvm();
+    const proxyMethods: InternalProxyRecord = Object.create(null);
+
+    for (const [name, method] of Object.entries(methods)) {
+        proxyMethods[name] = (
+            err: null | Error,
+            callback: (err: Error | null, data?: any | null) => void,
+            ...args: any[]
+        ): void => {
+            if (err) {
+                throw err;
+            }
+
+            try {
+                const res = method(...args);
+                callback(null, res);
+            } catch (e: any) {
+                if (e instanceof Error) {
+                    callback(e);
+                } else {
+                    callback(new Error(e.toString()));
+                }
+            }
+        };
+    }
+
+    return javaInstance!.createInterfaceProxy(
+        interfaceName,
+        proxyMethods
+    ) as JavaInterfaceProxy;
+}
+
+/**
+ * Get the static java instance.
+ */
+export function getJavaInstance(): Java | null {
+    return javaInstance;
+}

@@ -1,0 +1,13 @@
+{
+    "include": ["."],
+    "compilerOptions": {
+        "allowJs": true,
+        "target": "es2020",
+        "module": "commonjs",
+        "esModuleInterop": true,
+        "declaration": true,
+        "lib": ["ESNext"],
+        "downlevelIteration": true
+    },
+    "exclude": ["node_modules"]
+}

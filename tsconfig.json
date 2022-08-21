@@ -1,19 +1,23 @@
 {
-  "include": [
-    "index.js",
-    "index.d.ts",
-    "test/**/*"
-  ],
-  "compilerOptions": {
-    "allowJs": true,
-    "target": "es2020",
-    "module": "commonjs",
-    "esModuleInterop": true,
-    "lib": [
-      "ESNext"
-    ],
-  },
-  "exclude": [
-    "node_modules"
-  ]
+    "include": ["ts-src/**/*"],
+    "compilerOptions": {
+        "allowJs": true,
+        "target": "es2020",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "declaration": false,
+        "lib": ["ESNext", "es2020"],
+        "strict": true,
+        "strictFunctionTypes": true,
+        "strictNullChecks": true,
+        "strictBindCallApply": true,
+        "alwaysStrict": true,
+        "strictPropertyInitialization": true,
+        "outDir": "./dist",
+        "downlevelIteration": true,
+        "sourceMap": true,
+        "resolveJsonModule": true
+    },
+    "exclude": ["node_modules", "dist"]
 }
