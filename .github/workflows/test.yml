@@ -14,6 +14,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Rust Cache
+      uses: Swatinem/rust-cache@v2.0.0
     - name: Build
       run: cargo build --verbose
     - name: Run tests
@@ -27,7 +29,24 @@ jobs:
       uses: actions/setup-node@v3.4.1
       with:
         node-version: 16.x
+    - name: Rust Cache
+      uses: Swatinem/rust-cache@v2.0.0
     - name: Install
       run: npm ci
     - name: Run tests
       run: npm test
+
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3.4.1
+        with:
+          node-version: 16.x
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.0.0
+      - name: Install
+        run: npm ci
+      - name: Run benchmarks
+        run: npm run benchmark

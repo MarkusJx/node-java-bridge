@@ -65,6 +65,7 @@ describe('ProxyTest', () => {
 
             const JString = java.importClass('java.lang.String');
             const str = new JString('hello');
+            console.log(str);
             expect(await str.transform(proxy)).to.equal('HELLO');
         });
 

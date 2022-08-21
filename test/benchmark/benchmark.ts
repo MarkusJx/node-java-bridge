@@ -61,7 +61,7 @@ bench('String constructors async', async (b) => {
 
     b.start();
     for (let i = 0; i < iterations; i++) {
-        await JString.newInstance('Hello World');
+        await JString.newInstanceAsync('Hello World');
     }
     b.end();
 });
