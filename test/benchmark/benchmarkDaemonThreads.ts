@@ -9,7 +9,7 @@ declare class StringClass extends JavaClassInstance {
 }
 
 bench('Create strings async with daemon threads', async (b) => {
-    ensureJvm(null, null, null, { useDaemonThreads: true });
+    ensureJvm({ useDaemonThreads: true });
     const JString = importClass<typeof StringClass>('java.lang.String');
 
     b.start();

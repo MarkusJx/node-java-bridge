@@ -41,8 +41,33 @@ describe('RedirectTest', () => {
             }
         });
 
-        const system = java.importClass('java.lang.System');
         system.err.printlnSync('test');
+        system.err.flushSync();
+    }).timeout(10000);
+
+    it('Change the stdout redirect method', (done) => {
+        redirect!.on('stdout', (_, msg) => {
+            if (msg === 'abc') {
+                done();
+            } else {
+                done(msg);
+            }
+        });
+
+        system.out.printlnSync('abc');
+        system.out.flushSync();
+    }).timeout(10000);
+
+    it('Change the stderr redirect method', (done) => {
+        redirect!.on('stderr', (_, msg) => {
+            if (msg === 'err') {
+                done();
+            } else {
+                done(msg);
+            }
+        });
+
+        system.err.printlnSync('err');
         system.err.flushSync();
     }).timeout(10000);
 

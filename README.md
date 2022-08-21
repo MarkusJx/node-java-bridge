@@ -157,3 +157,35 @@ const guard = stdout.enableRedirect(
 12. `boolean` or `java.lang.Boolean` values will be converted to `boolean`
 13. `char` or `java.lang.Character` values will be converted to `string`
 14. Java arrays will be converted to javascript arrays, applying the rules mentioned above
+
+## Command line interface
+
+This module also ships with a command line interface for creating typescript definitions for Java classes.
+The command line interface will create typescript definitions for all specified classes and their dependencies.
+
+### Installation
+
+```bash
+npm install -g @markusjx/java
+```
+
+### Usage
+
+```
+cli.js <output> <classnames..>
+
+Positionals:
+  classnames  The fully qualified class name(s) to convert              [string]
+  output      The output file                                           [string]
+
+Options:
+  --help             Show help                                         [boolean]
+  --version          Show version number                               [boolean]
+  --classpath, --cp  The classpath to use                               [string]
+```
+
+### Notes
+
+-   The classpath argument can be supplied multiple times to add multiple jars to the classpath
+-   Multiple class names can be supplied to generate definitions for multiple classes
+-   The generated typescript files will automatically import all classes once the module is loaded.
