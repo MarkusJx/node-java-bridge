@@ -29,6 +29,10 @@ jobs:
       uses: actions/setup-node@v3.4.1
       with:
         node-version: 16.x
+    - uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '17'
     - name: Rust Cache
       uses: Swatinem/rust-cache@v2.0.0
     - name: Install
@@ -44,6 +48,10 @@ jobs:
         uses: actions/setup-node@v3.4.1
         with:
           node-version: 16.x
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin' # See 'Supported distributions' for available options
+          java-version: '17'
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2.0.0
       - name: Install

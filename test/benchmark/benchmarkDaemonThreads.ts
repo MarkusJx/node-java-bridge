@@ -1,5 +1,5 @@
 import bench from 'nanobench';
-import { ensureJvm, importClass, JavaClassInstance } from '../../ts-src';
+import { ensureJvm, importClass, JavaClassInstance } from '../../.';
 
 const iterations = 100000;
 
