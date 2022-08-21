@@ -27,5 +27,7 @@ jobs:
       uses: actions/setup-node@v3.4.1
       with:
         node-version: 16.x
-    - name: test
+    - name: Install
+      run: npm ci
+    - name: Run tests
       run: npm test
