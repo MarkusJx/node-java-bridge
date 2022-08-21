@@ -21,6 +21,24 @@ interface ImportedJavaClass {
 }
 
 /**
+ * Options for creating the Java VM.
+ */
+export interface JVMOptions extends JavaOptions {
+    /***
+     * The path to the native library
+     */
+    libPath?: string | null;
+    /**
+     * The version of the jvm to request
+     */
+    version?: string | JavaVersion | null;
+    /**
+     * Additional arguments to pass to the JVM
+     */
+    opts?: Array<string> | null;
+}
+
+/**
  * Ensure the java vm is created.
  * If the jvm is already created, this does nothing.
  * If the vm is not created yet, the jvm will be created upon this call.
@@ -33,12 +51,19 @@ interface ImportedJavaClass {
  * ```ts
  * import { ensureJvm, JavaVersion } from '@markusjx/java';
  *
- * ensureJvm('path/to/jvm.dll', JavaVersion.VER_9, null, { useDaemonThreads: true });
+ * ensureJvm({
+ *     libPath: 'path/to/jvm.dll',
+ *     version: JavaVersion.VER_9,
+ *     useDaemonThreads: true
+ * });
  * ```
  *
  * Let the plugin find the jvm.(dylib|dll|so)
  * ```ts
- * ensureJvm(null, JavaVersion.VER_9, null, { useDaemonThreads: true });
+ * ensureJvm({
+ *     JavaVersion.VER_9,
+ *     useDaemonThreads: true
+ * });
  * ```
  *
  * Let the plugin find the jvm.(dylib|dll|so) and use the default options
@@ -46,23 +71,15 @@ interface ImportedJavaClass {
  * ensureJvm();
  * ```
  *
- * @param libPath the path to jvm.(dylib|dll|so). Pass null to let the plugin find the library.
- * @param version the java version to request, this may not have any effect. Defaults to version 1.8.
- * @param opts options for the java vm
- * @param javaOptions additional options for the java vm
+ * @param options the options to use when creating the jvm
  */
-export function ensureJvm(
-    libPath?: string | null,
-    version?: string | JavaVersion | null,
-    opts?: Array<string> | null,
-    javaOptions?: JavaOptions | null
-): void {
+export function ensureJvm(options?: JVMOptions): void {
     if (!javaInstance) {
         javaInstance = new Java(
-            libPath,
-            version,
-            opts,
-            javaOptions,
+            options?.libPath,
+            options?.version,
+            options?.opts,
+            options,
             getJavaLibPath(),
             getNativeLibPath()
         );
@@ -205,14 +222,28 @@ export async function importClassAsync<T extends JavaClassType = JavaClassType>(
 
 /**
  * Append a single or multiple jars to the class path.
- * @example
+ *
+ * Just replaces the old internal class loader with a new one containing the new jars.
+ * This doesn't check if the jars are valid and/or even exist.
+ * The new classpath will be available to all classes imported after this call.
+ *
+ * ## Example
+ * ```ts
  * import { appendClasspath } from '@markusjx/java';
  *
  * // Append a single jar to the class path
- * appendClassPath('/path/to/jar.jar');
+ * appendClasspath('/path/to/jar.jar');
  *
  * // Append multiple jars to the class path
- * appendClassPath(['/path/to/jar1.jar', '/path/to/jar2.jar']);
+ * appendClasspath(['/path/to/jar1.jar', '/path/to/jar2.jar']);
+ * ```
+ * or
+ * ```ts
+ * import { classpath } from '@markusjx/java';
+ *
+ * // Append a single jar to the class path
+ * classpath.append('/path/to/jar.jar');
+ * ```
  *
  * @param path the path(s) to add
  */
@@ -234,17 +265,7 @@ export function appendClasspath(path: string | string[]): void {
  */
 export namespace classpath {
     /**
-     * Append a single or multiple jars to the class path.
-     * @example
-     * import { classpath } from '@markusjx/java';
-     *
-     * // Append a single jar to the class path
-     * classpath.append('/path/to/jar.jar');
-     *
-     * // Append multiple jars to the class path
-     * classpath.append(['/path/to/jar1.jar', '/path/to/jar2.jar']);
-     *
-     * @param path the path(s) to add
+     * @inheritDoc appendClasspath
      */
     export function append(path: string | string[]): void {
         appendClasspath(path);
@@ -302,6 +323,9 @@ export type StdoutCallback = (err: Error | null, data?: string) => void;
  * // Disable stdout redirect
  * guard.reset();
  * ```
+ *
+ * ## See also
+ * * {@link stdout.enableRedirect}
  */
 export interface StdoutRedirectGuard {
     /**
@@ -326,6 +350,10 @@ export interface StdoutRedirectGuard {
 
 /**
  * A namespace containing methods for redirecting the stdout/stderr of the java process.
+ *
+ * ## See also
+ * * {@link StdoutRedirectGuard}
+ * * {@link stdout.enableRedirect}
  */
 export namespace stdout {
     /**
@@ -397,7 +425,7 @@ export namespace stdout {
  *
  * ## Example
  * ```ts
- * import { newProxy, importClass } from '@markusjx/java';
+ * import { newProxy } from '@markusjx/java';
  *
  * const proxy = newProxy('path.to.MyInterface', {
  *     // Define methods...
@@ -409,6 +437,9 @@ export namespace stdout {
  * // Destroy the proxy
  * proxy.reset();
  * ```
+ *
+ * ## See also
+ * * {@link newProxy}
  */
 export interface JavaInterfaceProxy {
     /**
@@ -461,8 +492,6 @@ type InternalProxyRecord = Parameters<
  *
  * ### Implement ``java.util.function.Function`` to transform a string
  * ```ts
- * import { newProxy, importClass } from '@markusjx/java';
- *
  * const func = newProxy('java.util.function.Function', {
  *     // Any parameters and return types will be automatically converted
  *     apply: (str: string): string => {
@@ -482,6 +511,38 @@ type InternalProxyRecord = Parameters<
  * assert.assertEquals(transformed, 'HELLO');
  * ```
  *
+ * Which is equivalent to the following java code:
+ * ```java
+ * Function<String, String> func = new Function<>() {
+ *     @Override
+ *     public String apply(String str) {
+ *         return str.toUpperCase();
+ *     }
+ * };
+ *
+ * String str = "hello";
+ * String transformed = str.transform(func);
+ * assert.assertEquals(transformed, "HELLO");
+ * ```
+ *
+ * #### Throwing exceptions
+ * Any exceptions thrown by the proxy will be converted to java exceptions
+ * and then rethrown in the java process. This may cause the exception
+ * to again be rethrown in the javascript process.
+ * ```ts
+ * const func = newProxy('java.util.function.Function', {
+ *     apply: (str: string): string => {
+ *         throw new Error('Something went wrong');
+ *     }
+ * });
+ *
+ * const JString = java.importClass('java.lang.String');
+ * const str = new JString('hello');
+ *
+ * // This will re-throw the above error
+ * const transformed: never = await str.transform(func);
+ * ```
+ *
  * ## Notes
  * * Keep this instance in scope to not destroy the interface proxy.
  * * Call {@link JavaInterfaceProxy.reset} to instantly destroy this instance.
@@ -491,6 +552,9 @@ type InternalProxyRecord = Parameters<
  * * **When calling a java method that uses an interface defined by this, you must call
  *   that method using the interface asynchronously as Node.js is single threaded and can't
  *   wait for the java method to return while calling the proxy method at the same time.**
+ *
+ * ## See also
+ * * {@link JavaInterfaceProxy}
  *
  * @param interfaceName the name of the java interface to implement
  * @param methods the methods to implement.

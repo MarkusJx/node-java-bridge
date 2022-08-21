@@ -1,8 +1,9 @@
 {
-    "name": "java",
+    "name": "@markusjx/java",
     "version": "2.0.0-beta.1",
     "main": "dist/index.prod.min.js",
     "typings": "ts-src/index.ts",
+    "description": "A bridge between Node.js and Java APIs",
     "files": [
         "dist",
         "src",
@@ -49,7 +50,7 @@
         "prebuild:debug": "rimraf dist",
         "benchmark": "ts-node -P test/tsconfig.json test/benchmark/benchmark.ts && ts-node -P test/tsconfig.json test/benchmark/benchmarkDaemonThreads.ts",
         "prebenchmark": "npm run build",
-        "readme": "typedoc --out docs ts-src/index.ts"
+        "docs": "typedoc --out docs ts-src/index.ts"
     },
     "dependencies": {
         "chalk": "^5.0.1",
