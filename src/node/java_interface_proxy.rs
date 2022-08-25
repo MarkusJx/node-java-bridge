@@ -29,7 +29,6 @@ type JsCallResult = Result<Result<GlobalJavaObject, JsError>, String>;
 
 lazy_static! {
     static ref PROXIES: Mutex<ProxiesType> = Mutex::new(HashMap::new());
-    static ref VM: Mutex<Option<JavaVM>> = Mutex::new(None);
 }
 
 static OPTIONS: Mutex<Option<InternalJavaOptions>> = Mutex::new(None);
@@ -244,10 +243,6 @@ impl JavaInterfaceProxy {
         methods: HashMap<String, JsFunction>,
     ) -> ResultType<Self> {
         let j_env = vm.attach_thread()?;
-        if VM.lock().unwrap().is_none() {
-            eprintln!("Warning: Using static Java VM instance should be replaced in the future");
-            VM.lock().unwrap().replace(vm.clone());
-        }
 
         let mut options = OPTIONS.lock().unwrap();
         if options.is_none() {
@@ -298,7 +293,7 @@ impl JavaInterfaceProxy {
 
         let mut converted_methods = HashMap::new();
         for (name, method) in methods.into_iter() {
-            //let vm_copy = vm.clone();
+            let vm_copy = vm.clone();
             converted_methods.insert(
                 name,
                 env.create_threadsafe_function(
@@ -306,7 +301,7 @@ impl JavaInterfaceProxy {
                     0,
                     move |ctx: ThreadSafeCallContext<InterfaceCall>| {
                         let args = ctx.value.args.clone();
-                        let callback_vm = VM.lock().unwrap().as_ref().unwrap().clone();
+                        let callback_vm = vm_copy.clone();
                         let mut res = vec![ctx
                             .env
                             .create_function_from_closure("callback", move |ctx1| {
@@ -318,13 +313,7 @@ impl JavaInterfaceProxy {
                                 ctx1.env.get_undefined()
                             })?
                             .into_unknown()];
-                        let env = VM
-                            .lock()
-                            .unwrap()
-                            .as_ref()
-                            .unwrap()
-                            .attach_thread()
-                            .map_napi_err()?;
+                        let env = vm_copy.attach_thread().map_napi_err()?;
 
                         for value in args {
                             res.push(value.to_napi_value(&env, &ctx.env).map_napi_err()?);
