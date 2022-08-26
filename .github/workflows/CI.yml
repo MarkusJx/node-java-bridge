@@ -26,22 +26,22 @@ jobs:
                     - host: macos-latest
                       target: x86_64-apple-darwin
                       build: |
-                          yarn build
+                          npm run build
                           strip -x *.node
                     - host: windows-latest
-                      build: yarn build
+                      build: npm run build
                       target: x86_64-pc-windows-msvc
                     - host: windows-latest
                       build: |
-                          yarn build --target i686-pc-windows-msvc
-                          yarn test
+                          npm run build -- -- --target i686-pc-windows-msvc
+                          npm run test
                       target: i686-pc-windows-msvc
                     - host: ubuntu-latest
                       target: x86_64-unknown-linux-gnu
                       docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
                       build: |-
                           set -e &&
-                          yarn build --target x86_64-unknown-linux-gnu &&
+                          npm run build -- -- --target x86_64-unknown-linux-gnu &&
                           strip *.node
                     - host: macos-latest
                       target: aarch64-apple-darwin
@@ -51,7 +51,7 @@ jobs:
                           export CXX=$(xcrun -f clang++);
                           SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
                           export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
-                          yarn build --target aarch64-apple-darwin
+                          npm run build -- -- --target aarch64-apple-darwin
                           strip -x *.node
         name: stable - ${{ matrix.settings.target }} - node@16
         runs-on: ${{ matrix.settings.host }}
@@ -87,7 +87,7 @@ jobs:
             - name: Cache NPM dependencies
               uses: actions/cache@v3
               with:
-                  path: .yarn/cache
+                  path: node_modules
                   key: npm-cache-build-${{ matrix.settings.target }}-node@16
             - name: Setup toolchain
               run: ${{ matrix.settings.setup }}
@@ -95,10 +95,10 @@ jobs:
               shell: bash
             - name: Setup node x86
               if: matrix.settings.target == 'i686-pc-windows-msvc'
-              run: yarn config set supportedArchitectures.cpu "ia32"
+              run: npm config set supportedArchitectures.cpu "ia32"
               shell: bash
             - name: Install dependencies
-              run: yarn install
+              run: npm install
             - name: Setup node x86
               uses: actions/setup-node@v3
               if: matrix.settings.target == 'i686-pc-windows-msvc'
@@ -150,10 +150,10 @@ jobs:
             - name: Cache NPM dependencies
               uses: actions/cache@v3
               with:
-                  path: .yarn/cache
-                  key: npm-cache-test-${{ matrix.settings.target }}-${{ matrix.node }}-${{ hashFiles('yarn.lock') }}
+                  path: node_modules
+                  key: npm-cache-test-${{ matrix.settings.target }}-${{ matrix.node }}-${{ hashFiles('package-lock.json') }}
             - name: Install dependencies
-              run: yarn install
+              run: npm install
             - name: Download artifacts
               uses: actions/download-artifact@v3
               with:
@@ -163,7 +163,7 @@ jobs:
               run: ls -R .
               shell: bash
             - name: Test bindings
-              run: yarn test
+              run: npm test
     test-linux-x64-gnu-binding:
         name: Test bindings on Linux-x64-gnu - node@${{ matrix.node }}
         needs:
@@ -187,10 +187,10 @@ jobs:
             - name: Cache NPM dependencies
               uses: actions/cache@v3
               with:
-                  path: .yarn/cache
+                  path: node_modules
                   key: npm-cache-test-linux-x64-gnu-${{ matrix.node }}
             - name: Install dependencies
-              run: yarn install
+              run: npm install
             - name: Download artifacts
               uses: actions/download-artifact@v3
               with:
@@ -200,7 +200,7 @@ jobs:
               run: ls -R .
               shell: bash
             - name: Test bindings
-              run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim yarn test
+              run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-slim npm test
     publish:
         name: Publish
         runs-on: ubuntu-latest
@@ -218,16 +218,14 @@ jobs:
             - name: Cache NPM dependencies
               uses: actions/cache@v3
               with:
-                  path: .yarn/cache
+                  path: node_modules
                   key: npm-cache-ubuntu-latest-publish
             - name: Install dependencies
-              run: yarn install
+              run: npm install
             - name: Download all artifacts
               uses: actions/download-artifact@v3
               with:
                   path: artifacts
-            - name: Move artifacts
-              run: yarn artifacts
             - name: List packages
               run: ls -R ./npm
               shell: bash

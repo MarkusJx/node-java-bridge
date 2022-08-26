@@ -31,8 +31,9 @@
     },
     "scripts": {
         "artifacts": "napi artifacts",
-        "build": "npm run build:napi && npm run build:ts && npm run build:java",
+        "build": "npm run build:napi",
         "build:debug": "npm run build:napi:debug && npm run build:ts && npm run build:java",
+        "postbuild": "npm run build:ts && npm run build:java",
         "build:napi": "napi build --platform --release --js native.js --dts native.d.ts",
         "build:napi:debug": "napi build --platform --js native.js --dts native.d.ts",
         "build:ts": "webpack build",
