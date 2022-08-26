@@ -63,7 +63,7 @@ jobs:
               with:
                   node-version: 16
                   check-latest: true
-                  cache: yarn
+                  cache: npm
             - name: Install
               uses: actions-rs/toolchain@v1
               if: ${{ !matrix.settings.docker }}
@@ -105,7 +105,7 @@ jobs:
               with:
                   node-version: 16
                   check-latest: true
-                  cache: yarn
+                  cache: npm
                   architecture: x86
             - name: Build in docker
               uses: addnab/docker-run-action@v3
@@ -146,7 +146,7 @@ jobs:
               with:
                   node-version: ${{ matrix.node }}
                   check-latest: true
-                  cache: yarn
+                  cache: npm
             - name: Cache NPM dependencies
               uses: actions/cache@v3
               with:
@@ -183,7 +183,7 @@ jobs:
               with:
                   node-version: ${{ matrix.node }}
                   check-latest: true
-                  cache: yarn
+                  cache: npm
             - name: Cache NPM dependencies
               uses: actions/cache@v3
               with:
@@ -214,7 +214,7 @@ jobs:
               with:
                   node-version: 16
                   check-latest: true
-                  cache: yarn
+                  cache: npm
             - name: Cache NPM dependencies
               uses: actions/cache@v3
               with:
