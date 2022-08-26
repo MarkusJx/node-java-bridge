@@ -444,6 +444,11 @@ export namespace stdout {
 export interface JavaInterfaceProxy {
     /**
      * Destroy the proxy class.
+     * After this call any call to any method defined by the
+     * interface will throw an error on the java side. This error
+     * may be thrown back to the node process, if you are not
+     * specifically implementing methods that will be called
+     * from another (java) thread.
      * Throws an error if the proxy has already been destroyed.
      */
     reset(): void;
@@ -598,6 +603,7 @@ export function newProxy(
 
 /**
  * Get the static java instance.
+ * This has no real use, all important methods are exported explicitly.
  */
 export function getJavaInstance(): Java | null {
     return javaInstance;
