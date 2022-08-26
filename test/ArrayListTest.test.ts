@@ -21,7 +21,7 @@ declare class List<T extends JavaType> extends JavaClassInstance {
     remove(index: number): Promise<T>;
 }
 
-declare class ArrayListClass<T> extends List<T> {}
+declare class ArrayListClass<T extends JavaType> extends List<T> {}
 
 describe('ArrayListTest', () => {
     let list: ArrayListClass<JavaType> | null = null;
