@@ -34,7 +34,7 @@ jobs:
                     - host: windows-latest
                       build: |
                           npm run build -- -- --target i686-pc-windows-msvc
-                          npm run test
+                      #    npm run test
                       target: i686-pc-windows-msvc
                     - host: ubuntu-latest
                       target: x86_64-unknown-linux-gnu
