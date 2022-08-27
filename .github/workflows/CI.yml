@@ -41,8 +41,6 @@ jobs:
                       #docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
                       build: |-
                           set -e &&
-                          apt-get update && apt-get install openjdk-17-jdk -y &&
-                          npm install &&
                           npm run build -- -- --target x86_64-unknown-linux-gnu &&
                           strip *.node
                     - host: macos-latest
