@@ -14,7 +14,6 @@ tokio = "1.2.0"
 futures = "0.3.21"
 java-locator = "0.1.2"
 lazy_static = "1.4.0"
-process_path = "0.1.4"
 rand = "0.8.5"
 
 [build-dependencies]

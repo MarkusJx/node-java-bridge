@@ -11,7 +11,6 @@ use crate::node::stdout_redirect::StdoutRedirect;
 use futures::future;
 use lazy_static::lazy_static;
 use napi::{Env, JsFunction, JsObject, JsString, JsUnknown};
-use process_path::get_executable_path;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -58,13 +57,6 @@ impl Java {
         native_lib_path: String,
     ) -> napi::Result<Self> {
         let ver = version.unwrap_or("1.8".to_string());
-
-        let path = get_executable_path();
-        match path {
-            None => println!("The process path could not be determined"),
-            Some(path) => println!("{:?}", path),
-        }
-
         let root_vm = JavaVM::new(
             &ver,
             lib_path,
