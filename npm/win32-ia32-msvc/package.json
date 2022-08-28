@@ -1,18 +1,18 @@
 {
-    "name": "@markusjx/java-win32-ia32-msvc",
-    "version": "0.0.0",
-    "os": [
-        "win32"
-    ],
-    "cpu": [
-        "ia32"
-    ],
-    "main": "java.win32-ia32-msvc.node",
-    "files": [
-        "java.win32-ia32-msvc.node"
-    ],
-    "license": "MIT",
-    "engines": {
-        "node": ">= 10"
-    }
+  "name": "@markusjx/java-win32-ia32-msvc",
+  "version": "2.0.0-beta.1",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "ia32"
+  ],
+  "main": "java.win32-ia32-msvc.node",
+  "files": [
+    "java.win32-ia32-msvc.node"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 10"
+  }
 }

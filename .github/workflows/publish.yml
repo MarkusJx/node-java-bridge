@@ -59,11 +59,11 @@ jobs:
       with:
         tag: ${{ steps.version.outputs.version }}
         access: public
-        greater-version-only: true
+        token: ${{ secrets.NPM_TOKEN }}
         package: npm/${{ matrix.package }}/package.json
     - name: NPM Publish
       uses: JS-DevTools/npm-publish@v1
       if: ${{ matrix.os == 'ubuntu-latest' }}
       with:
         access: public
-        greater-version-only: true
+        token: ${{ secrets.NPM_TOKEN }}
