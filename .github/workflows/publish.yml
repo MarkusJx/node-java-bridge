@@ -1,4 +1,4 @@
-name: Manual workflow
+name: Publish
 
 on:
   workflow_dispatch:
@@ -49,3 +49,6 @@ jobs:
     - name: Set version
       run: npm version --no-git-tag-version ${{ steps.version.outputs.version }} -f
       working-directory: npm/${{ matrix.package }}
+    - name: Move binary
+      run: mv java.*.node npm/${{ matrix.package }}
+      shell: bash
