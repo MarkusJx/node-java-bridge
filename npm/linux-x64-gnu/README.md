@@ -1,3 +1,3 @@
-# `java-linux-x64-gnu`
+# `@markusjx/java-linux-x64-gnu`
 
-This is the **x86_64-unknown-linux-gnu** binary for `java`
+This is the **x86_64-unknown-linux-gnu** binary for `@markusjx/java`

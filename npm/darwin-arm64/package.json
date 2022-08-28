@@ -1,5 +1,5 @@
 {
-    "name": "java-darwin-arm64",
+    "name": "@markusjx/java-darwin-arm64",
     "version": "0.0.0",
     "os": [
         "darwin"
