@@ -38,8 +38,8 @@ const config = (entry: string, mode: string, outName: string) => ({
                 test: /native\.js/,
                 loader: 'string-replace-loader',
                 options: {
-                    search: /require\((('@markusjx\/[a-z\-0-9]+')|('.\/java.+'))\)/gi,
-                    replace: '__webpack_require__($1)',
+                    search: /require\(('@markusjx\/[a-z\-0-9]+')\)/gi,
+                    replace: '__non_webpack_require__($1)',
                 },
             },
         ],
