@@ -1,4 +1,13 @@
-A bridge between Node.js programs and Java APIs.
+A bridge between Node.js programs and Java APIs written in Rust using [napi-rs](https://napi.rs/)
+to provide a fast and memory-safe interface between the two languages.
+
+The pre-compiled binaries will be provided with the package, the only thing
+you need to do on your machine is install a Java Runtime Environment (JRE)
+for this package to use. In contrast to other `node.js <-> java` interfaces,
+the binary is not hard linked to the JDK it has been compiled with but rather
+loads the jvm native library dynamically when the program first starts up.
+
+The full documentation of this package is available [here](https://markusjx.github.io/node-java-bridge/).
 
 ## Installation
 
@@ -10,11 +19,15 @@ npm i @markusjx/java
 
 ### Create the JVM
 
+Create a new Java VM using the [`ensureJvm`](https://markusjx.github.io/node-java-bridge/functions/ensureJvm.html) method.
+Calling this after the jvm has already been created will do nothing.
+Destroying the jvm manually is not (yet) supported.
+
 #### Create the JVM with no extra options
 
 This will first search for a suitable `jvm` native library on the system and then
 start the jvm with no extra options. This is also called when any call to the jvm is made
-but the jvm is not yet started. Calling this after the jvm has already been created will do nothing.
+but the jvm is not yet started.
 
 ```ts
 import { ensureJvm } from '@markusjx/java';
@@ -65,6 +78,8 @@ This means, all methods of a class (static and non-static) are generated twice,
 once as a synchronous call and once as an asynchronous call.
 
 If you are looking for asynchronous calls, take a look at the next section.
+In order to import a class synchronously, you can use the [`importClass`](https://markusjx.github.io/node-java-bridge/functions/importClass.html) function.
+Using this method does not affect your ability to call any method of the class asynchronously.
 
 ```ts
 import { importClass } from '@markusjx/java';
@@ -93,6 +108,9 @@ If you want to improve the performance of the asynchronous API, you can force th
 any thread as a daemon thread to the JVM. This allows the program to not constantly attach new threads
 to the JVM as the old ones can be reused and thus improves the performance.
 
+In order to import a class asynchronously, you can use the
+[`importClassAsync`](https://markusjx.github.io/node-java-bridge/functions/importClassAsync.html) function.
+
 ```ts
 import { importClassAsync } from '@markusjx/java';
 
@@ -107,6 +125,12 @@ await str.toString(); // 'Hello World'
 ```
 
 ### Implement a Java interface
+
+You can also implement a Java interface in node.js using the
+[`newProxy`](https://markusjx.github.io/node-java-bridge/functions/newProxy.html) method.
+Please note that when calling a java method that uses an interface defined by this method,
+you must call that method using the interface asynchronously as Node.js is single threaded
+and can't wait for the java method to return while calling the proxy method at the same time.
 
 ```ts
 import { newProxy } from '@markusjx/java';
@@ -123,6 +147,11 @@ proxy.reset();
 ```
 
 ### Redirect the stdout and stderr from the java process
+
+If you want to redirect the stdout and/or stderr from the java
+process to the node.js process, you can use the
+[`enableRedirect`](https://markusjx.github.io/node-java-bridge/functions/stdout.enableRedirect.html)
+method.
 
 ```ts
 import { stdout } from '@markusjx/java';
@@ -156,7 +185,8 @@ const guard = stdout.enableRedirect(
 11. `long` or `java.lang.Long` values will always be converted to `BigInt`
 12. `boolean` or `java.lang.Boolean` values will be converted to `boolean`
 13. `char` or `java.lang.Character` values will be converted to `string`
-14. Java arrays will be converted to javascript arrays, applying the rules mentioned above
+14. Java arrays will be converted to javascript arrays, applying the rules mentioned above except
+15. Byte arrays will be converted to ``Buffer`` and vice-versa
 
 ## Command line interface
 

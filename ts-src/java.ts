@@ -359,6 +359,14 @@ export namespace stdout {
     /**
      * Enable stdout/stderr redirection.
      *
+     * Pass methods for the stdout and stderr output to be redirected to.
+     * These methods must accept an error as the first argument,
+     * although this will probably never be set and can be ignored.
+     * The second argument is the data that was redirected.
+     *
+     * Setting any method to ``null`` or ``undefined`` will disable the redirect for that method.
+     * This also allows you not set any handler which does not make any sense at all.
+     *
      * ## Examples
      * ### Redirect all data to the js console
      * ```ts
@@ -396,6 +404,7 @@ export namespace stdout {
      * ```
      *
      * @see StdoutRedirectGuard
+     * @see StdoutCallback
      * @param stdout the callback to be called when stdout is received
      * @param stderr the callback to be called when stderr is received
      * @returns a <code>StdoutRedirectGuard</code> instance. Keep this instance in scope to not lose the redirect.
@@ -470,6 +479,15 @@ type InternalProxyRecord = Parameters<
 /**
  * Create a new java interface proxy.
  * This allows you to implement java interfaces in javascript.
+ *
+ * Pass an object as the second argument with the names of the
+ * methods you want to implement as keys and the implementations
+ * as values in order to expose these methods to the java process.
+ * Any arguments will be converted to javascript values and
+ * return values will be converted to java values.
+ *
+ * When the java process tries to call any method which is
+ * not implemented by the proxy, an error will be thrown.
  *
  * ## Examples
  * ### Implement ``java.lang.Runnable``

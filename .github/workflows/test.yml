@@ -22,9 +22,9 @@ jobs:
 
     test-npm:
         strategy:
-          matrix:
-            node-version: [ 16.x, 18.x ]
-            os: [ windows-latest, ubuntu-latest, macOs-latest ]
+            matrix:
+                node-version: [16.x, 18.x]
+                os: [windows-latest, ubuntu-latest, macOs-latest]
         runs-on: ${{matrix.os}}
         steps:
             - uses: actions/checkout@v3
