@@ -1,7 +1,13 @@
 import path from 'path';
+import { BannerPlugin } from 'webpack';
 import nodeExternals from 'webpack-node-externals';
 
-const config = (entry: string, mode: string, outName: string) => ({
+const config = (
+    entry: string,
+    mode: string,
+    outName: string,
+    banner?: string
+) => ({
     entry,
     target: 'node',
     mode,
@@ -48,10 +54,23 @@ const config = (entry: string, mode: string, outName: string) => ({
         extensions: ['.ts', '.js'],
     },
     devtool: 'source-map',
+    plugins: banner
+        ? [
+              new BannerPlugin({
+                  banner,
+                  raw: true,
+              }),
+          ]
+        : [],
 });
 
 module.exports = [
     config('./ts-src/index.ts', 'production', 'index.prod.min.js'),
     config('./ts-src/index.ts', 'development', 'index.dev.min.js'),
-    config('./ts-src/scripts/cli.ts', 'production', 'cli.min.js'),
+    config(
+        './ts-src/scripts/cli.ts',
+        'production',
+        'java-ts-gen.js',
+        '#!/usr/bin/env node'
+    ),
 ];

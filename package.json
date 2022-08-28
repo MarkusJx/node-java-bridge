@@ -1,6 +1,6 @@
 {
     "name": "@markusjx/java",
-    "version": "2.0.0-beta.4",
+    "version": "2.0.0-beta.5",
     "main": "dist/index.prod.min.js",
     "typings": "ts-src/index.ts",
     "description": "A bridge between Node.js and Java APIs",
@@ -19,7 +19,7 @@
         }
     },
     "bin": {
-        "java-ts-gen": "./dist/cli.min.js"
+        "java-ts-gen": "./dist/java-ts-gen.js"
     },
     "license": "MIT",
     "prettier": {

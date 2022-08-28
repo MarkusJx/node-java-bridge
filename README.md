@@ -190,7 +190,7 @@ const guard = stdout.enableRedirect(
 
 ## Command line interface
 
-This module also ships with a command line interface for creating typescript definitions for Java classes.
+This module also ships with a command line interface called `java-ts-gen` for creating typescript definitions for Java classes.
 The command line interface will create typescript definitions for all specified classes and their dependencies.
 
 ### Installation
@@ -202,7 +202,7 @@ npm install -g @markusjx/java
 ### Usage
 
 ```
-cli.js <output> <classnames..>
+java-ts-gen <output> <classnames..>
 
 Positionals:
   classnames  The fully qualified class name(s) to convert              [string]
