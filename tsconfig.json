@@ -1,12 +1,12 @@
 {
     "include": ["ts-src/**/*"],
     "compilerOptions": {
-        "allowJs": false,
+        "allowJs": true,
         "target": "es2020",
         "module": "commonjs",
         "moduleResolution": "node",
         "esModuleInterop": true,
-        "declaration": true,
+        "declaration": false,
         "lib": ["ESNext", "es2020"],
         "strict": true,
         "strictFunctionTypes": true,
@@ -15,7 +15,9 @@
         "alwaysStrict": true,
         "strictPropertyInitialization": true,
         "outDir": "./dist",
-        "downlevelIteration": true
+        "downlevelIteration": true,
+        "sourceMap": true,
+        "resolveJsonModule": true
     },
     "exclude": ["node_modules", "dist"]
 }

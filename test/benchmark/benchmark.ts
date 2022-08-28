@@ -1,8 +1,5 @@
 import bench from 'nanobench';
-import java, { JavaClassInstance } from '../../.';
-import { ArrayList } from '../../.';
-
-new ArrayList();
+import { JavaClassInstance, ensureJvm, importClass } from '../../.';
 
 declare class StringClass extends JavaClassInstance {
     public static valueOfSync(value: string): String;
@@ -13,51 +10,58 @@ const iterations = 100000;
 
 bench('Create JVM', (b) => {
     b.start();
-    java.createJVM();
+    ensureJvm();
     b.end();
 });
 
 bench('Import class', (b) => {
     b.start();
-    java.importClass('java.lang.String');
+    importClass('java.lang.String');
     b.end();
 });
 
 bench('Import cached class', (b) => {
     b.start();
-    java.importClass('java.lang.String');
+    importClass('java.lang.String');
     b.end();
 });
 
 bench('Create strings', (b) => {
-    const String = java.importClass<typeof StringClass>('java.lang.String');
+    const JString = importClass<typeof StringClass>('java.lang.String');
 
     b.start();
     for (let i = 0; i < iterations; i++) {
-        String.valueOfSync('Hello World');
+        JString.valueOfSync('Hello World');
     }
     b.end();
 });
 
 bench('Create strings async', async (b) => {
-    const String = java.importClass<typeof StringClass>('java.lang.String');
+    const JString = importClass<typeof StringClass>('java.lang.String');
 
     b.start();
     for (let i = 0; i < iterations; i++) {
-        await String.valueOf('Hello World');
+        await JString.valueOf('Hello World');
     }
     b.end();
 });
 
-bench('Create strings async with daemon threads', async (b) => {
-    java.setConfig({ useDaemonThreads: true });
-    const String = java.importClass<typeof StringClass>('java.lang.String');
+bench('String constructors', (b) => {
+    const JString = importClass<typeof StringClass>('java.lang.String');
 
     b.start();
     for (let i = 0; i < iterations; i++) {
-        await String.valueOf('Hello World');
+        new JString('Hello World');
     }
     b.end();
+});
 
-    java.setConfig({ useDaemonThreads: false });
+bench('String constructors async', async (b) => {
+    const JString = importClass<typeof StringClass>('java.lang.String');
+
+    b.start();
+    for (let i = 0; i < iterations; i++) {
+        await JString.newInstanceAsync('Hello World');
+    }
+    b.end();
 });

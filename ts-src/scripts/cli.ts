@@ -2,6 +2,8 @@
 import yargs from 'yargs';
 import { performance } from 'perf_hooks';
 import path from 'path';
+import java from '..';
+import { version } from '../../package.json';
 
 interface Args {
     classnames: string[];
@@ -11,8 +13,10 @@ interface Args {
 
 type YargsHandler<T> = (args: yargs.ArgumentsCamelCase<T>) => Promise<void>;
 
-const importOra = (): Promise<typeof import('ora').default> => eval("import('ora').then(ora => ora.default)");
-const importChalk = (): Promise<typeof import('chalk').default> => eval("import('chalk').then(chalk => chalk.default)");
+const importOra = (): Promise<typeof import('ora').default> =>
+    eval("import('ora').then(ora => ora.default)");
+const importChalk = (): Promise<typeof import('chalk').default> =>
+    eval("import('chalk').then(chalk => chalk.default)");
 
 const builder: yargs.BuilderCallback<{}, Args> = (command) => {
     command.positional('classnames', {
@@ -32,33 +36,34 @@ const builder: yargs.BuilderCallback<{}, Args> = (command) => {
     });
 };
 
-const handler: YargsHandler<Args> = async ({ classnames, output, classpath }) => {
-    let destroyJVM: (() => void) | null = null;
+const handler: YargsHandler<Args> = async ({
+    classnames,
+    output,
+    classpath,
+}) => {
     try {
         const startTime = performance.now();
-        const java = await import('../.');
-        destroyJVM = java.destroyJVM;
 
         if (classpath) {
-            await java.classpath.appendAsync(classpath);
+            java.classpath.append(classpath);
         }
 
         const chalk = await importChalk();
         const ora = await importOra();
 
-        const version = await import(path.join(__dirname, '..', '..', 'package.json')).then(({ version }) => version);
         console.log(
             `Starting ${chalk.cyanBright('@markusjx/java')} ${chalk.greenBright(
                 'v' + version
             )} Java definition generator`
         );
 
-        java.ensureJVM();
         const javaInstance = java.getJavaInstance()!;
-        const loadedJars = javaInstance.loadedJars;
+        const loadedJars = java.classpath.get();
         if (loadedJars.length > 0) {
             console.log(
-                `Started JVM with version ${chalk.cyanBright(javaInstance.version)} and classpath '${loadedJars
+                `Started JVM with version ${chalk.cyanBright(
+                    javaInstance.version
+                )} and classpath '${loadedJars
                     .map((j) => chalk.cyanBright(j))
                     .join(';')}'`
             );
@@ -67,7 +72,11 @@ const handler: YargsHandler<Args> = async ({ classnames, output, classpath }) =>
         console.log(
             `Converting classes ${classnames
                 .map((c) => chalk.magentaBright(c))
-                .join(', ')} to typescript and saving result to ${chalk.cyanBright(path.normalize(output))}`
+                .join(
+                    ', '
+                )} to typescript and saving result to ${chalk.cyanBright(
+                path.normalize(output)
+            )}`
         );
 
         const spinner = ora().start();
@@ -85,15 +94,19 @@ const handler: YargsHandler<Args> = async ({ classnames, output, classpath }) =>
 
         const setText = () => {
             spinner.text = chalk.gray(
-                `Elapsed time: ${chalk.yellow(approximateTimeElapsed)} seconds ${chalk.white(
-                    '|'
-                )} Converted ${chalk.cyanBright(resolvedCounter)} classes ${chalk.white(
+                `Elapsed time: ${chalk.yellow(
+                    approximateTimeElapsed
+                )} seconds ${chalk.white('|')} Converted ${chalk.cyanBright(
+                    resolvedCounter
+                )} classes ${chalk.white(
                     '|'
                 )} Converting class ${chalk.magentaBright(lastClassResolved)}`
             );
         };
 
-        const TypescriptDefinitionGenerator = (await import('../TypescriptDefinitionGenerator')).default;
+        const TypescriptDefinitionGenerator = (
+            await import('../TypescriptDefinitionGenerator')
+        ).default;
 
         for (const classname of classnames) {
             const generator = new TypescriptDefinitionGenerator(
@@ -115,11 +128,12 @@ const handler: YargsHandler<Args> = async ({ classnames, output, classpath }) =>
         clearInterval(timeElapsedInterval);
         const timeElapsed = ((performance.now() - startTime) / 1000).toFixed(1);
         spinner.succeed(
-            `Success - Converted ${chalk.blueBright(numResolved)} classes in ${chalk.blueBright(timeElapsed)} seconds`
+            `Success - Converted ${chalk.blueBright(
+                numResolved
+            )} classes in ${chalk.blueBright(timeElapsed)} seconds`
         );
     } catch (e) {
         console.error(e);
-        if (destroyJVM) destroyJVM();
         process.exit(1);
     }
 };

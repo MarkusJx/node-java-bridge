@@ -1,22 +1,45 @@
-import java, { JavaType } from '../.';
-import { List } from '../dist/types/List';
-import ArrayList from '../dist/types/ArrayList';
+import java, { JavaClassInstance, JavaConstructor, JavaType } from '../.';
 import assert = require('assert');
 import { it } from 'mocha';
 
+declare class List<T extends JavaType> extends JavaClassInstance {
+    containsSync(element: T): boolean;
+    sizeSync(): number;
+    getSync(index: number): T;
+    lastIndexOfSync(element: T): number;
+    addSync(value: T): void;
+    removeSync(index: number): T;
+    toArraySync(): T[];
+    isEmptySync(): boolean;
+
+    add(value: T): Promise<void>;
+    lastIndexOf(element: T): Promise<number>;
+    contains(element: T): Promise<boolean>;
+    isEmpty(): Promise<boolean>;
+    size(): Promise<number>;
+    get(index: number): Promise<T>;
+    remove(index: number): Promise<T>;
+}
+
+declare class ArrayListClass<T extends JavaType> extends List<T> {}
+
 describe('ArrayListTest', () => {
-    let list: ArrayList<JavaType> | null = null;
+    let list: ArrayListClass<JavaType> | null = null;
+    let ArrayList: JavaConstructor<typeof ArrayListClass<JavaType>> | null =
+        null;
 
     it('Ensure jvm', () => {
-        java.ensureJVM();
+        java.ensureJvm();
     }).timeout(10000);
 
     it('Import java.util.ArrayList', () => {
-        java.importClass<typeof List>('java.util.ArrayList')<JavaType>;
+        ArrayList = java.importClass<typeof ArrayListClass>(
+            'java.util.ArrayList'
+        )<JavaType>;
     });
 
     it('Create a new ArrayList', () => {
-        list = new ArrayList<JavaType>();
+        list = new ArrayList!();
         assert.notStrictEqual(list, null);
         assert.strictEqual(list!.isEmptySync(), true);
     });
@@ -86,7 +109,10 @@ describe('ArrayListTest', () => {
             }
         };
 
-        assert.strictEqual(JSON.stringify(list!.toArraySync(), converter), JSON.stringify(elements, converter));
+        assert.strictEqual(
+            JSON.stringify(list!.toArraySync(), converter),
+            JSON.stringify(elements, converter)
+        );
     });
 
     it('List remove', () => {
@@ -99,10 +125,10 @@ describe('ArrayListTest', () => {
         assert.strictEqual(await list!.size(), 3);
     });
 
-    let list_cpy: ArrayList<JavaType> | null = null;
+    let list_cpy: ArrayListClass<JavaType> | null = null;
 
     it('List copy', () => {
-        list_cpy = new ArrayList<JavaType>(list!);
+        list_cpy = new ArrayList!(list!);
 
         assert.strictEqual(list!.sizeSync(), list_cpy!.sizeSync());
     });

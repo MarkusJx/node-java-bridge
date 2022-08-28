@@ -5,5 +5,8 @@ declare module 'nanobench' {
         end(): void;
     }
 
-    export default function bench(name: string, func: (b: Benchmark) => void): void;
+    export default function bench(
+        name: string,
+        func: (b: Benchmark) => void
+    ): void;
 }

@@ -1,6 +1,5 @@
 import java, { JavaClassInstance } from '../.';
 import assert = require('assert');
-import LogLevel = java.logging.LogLevel;
 
 declare class JString extends JavaClassInstance {
     static valueOf(values: string[]): Promise<JString>;
@@ -24,17 +23,15 @@ declare class JString extends JavaClassInstance {
     splitSync(regex: string): string[];
 }
 
-java.logging.setLogLevel(LogLevel.WARNING);
-
 describe('StringTest', () => {
     it('Ensure jvm', () => {
-        java.ensureJVM();
+        java.ensureJvm();
     });
 
-    it('Check dll path', async () => {
+    /*it('Check dll path', async () => {
         const data = require('../jvmLibPath.json');
         assert.strictEqual(await java.findJVM(), data);
-    });
+    });*/
 
     let JavaString: typeof JString;
     it('Import java.lang.String', () => {
@@ -46,8 +43,12 @@ describe('StringTest', () => {
     });
 
     it('Async class resolve', async () => {
-        const JavaStringAsync = (await java.importClassAsync('java.lang.String')) as typeof JString;
-        const instance = (await JavaStringAsync.newInstance('some text')) as JString;
+        const JavaStringAsync = (await java.importClassAsync(
+            'java.lang.String'
+        )) as typeof JString;
+        const instance = (await JavaStringAsync.newInstanceAsync(
+            'some text'
+        )) as JString;
 
         assert.strictEqual(await instance.toString(), 'some text');
     });
@@ -74,28 +75,43 @@ describe('StringTest', () => {
     });
 
     it('String async create', async function () {
-        let s2 = (await JavaString.newInstance('some text')) as JString;
+        let s2 = (await JavaString.newInstanceAsync('some text')) as JString;
         assert.strictEqual(await s2.equals(s1), true);
     });
 
     it('String from char array', () => {
-        let s2 = JavaString.valueOfSync(['s', 'o', 'm', 'e', ' ', 't', 'e', 'x', 't']);
+        let s2 = JavaString.valueOfSync([
+            's',
+            'o',
+            'm',
+            'e',
+            ' ',
+            't',
+            'e',
+            'x',
+            't',
+        ]);
         assert.strictEqual(s2, s1.toStringSync());
     });
 
     it('String to char array', () => {
         let arr = s1.toCharArraySync();
-        assert.strictEqual(JSON.stringify(arr), JSON.stringify(s1.toStringSync().split('')));
+        assert.strictEqual(
+            JSON.stringify(arr),
+            JSON.stringify(s1.toStringSync().split(''))
+        );
     });
 
     it('String to char array async', async () => {
         let arr = await s1.toCharArray();
-        assert.strictEqual(JSON.stringify(arr), JSON.stringify(s1.toStringSync().split('')));
+        assert.strictEqual(
+            JSON.stringify(arr),
+            JSON.stringify(s1.toStringSync().split(''))
+        );
     });
 
     it('String to byte array', async () => {
         let arr = s1.getBytesSync();
-        // @ts-ignore
         let bytes = Buffer.from('some text');
 
         assert.strictEqual(JSON.stringify(arr), JSON.stringify(bytes));
@@ -103,6 +119,9 @@ describe('StringTest', () => {
 
     it('String split', () => {
         const split = s1.splitSync(' ');
-        assert.strictEqual(JSON.stringify(split), JSON.stringify(['some', 'text']));
+        assert.strictEqual(
+            JSON.stringify(split),
+            JSON.stringify(['some', 'text'])
+        );
     });
 });

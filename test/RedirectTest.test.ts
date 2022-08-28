@@ -1,4 +1,4 @@
-import java, { JavaClassInstance } from '../.';
+import java, { JavaClassInstance, StdoutRedirectGuard } from '../.';
 
 interface Stream {
     printlnSync(msg: string): void;
@@ -12,9 +12,10 @@ declare class System extends JavaClassInstance {
 
 describe('RedirectTest', () => {
     const system = java.importClass<typeof System>('java.lang.System');
+    let redirect: StdoutRedirectGuard | null = null;
 
     it('Redirect stdout', (done) => {
-        java.stdoutRedirect.enableRedirect((msg) => {
+        redirect = java.stdout.enableRedirect((_, msg) => {
             if (msg === 'test') {
                 done();
             } else {
@@ -27,11 +28,12 @@ describe('RedirectTest', () => {
     }).timeout(10000);
 
     it('reset', () => {
-        java.stdoutRedirect.reset();
+        redirect!.reset();
+        redirect = null;
     });
 
     it('Redirect stderr', (done) => {
-        java.stdoutRedirect.enableRedirect(null, (msg) => {
+        redirect = java.stdout.enableRedirect(null, (_, msg) => {
             if (msg === 'test') {
                 done();
             } else {
@@ -39,12 +41,37 @@ describe('RedirectTest', () => {
             }
         });
 
-        const system = java.importClass('java.lang.System');
         system.err.printlnSync('test');
         system.err.flushSync();
     }).timeout(10000);
 
+    it('Change the stdout redirect method', (done) => {
+        redirect!.on('stdout', (_, msg) => {
+            if (msg === 'abc') {
+                done();
+            } else {
+                done(msg);
+            }
+        });
+
+        system.out.printlnSync('abc');
+        system.out.flushSync();
+    }).timeout(10000);
+
+    it('Change the stderr redirect method', (done) => {
+        redirect!.on('stderr', (_, msg) => {
+            if (msg === 'err') {
+                done();
+            } else {
+                done(msg);
+            }
+        });
+
+        system.err.printlnSync('err');
+        system.err.flushSync();
+    }).timeout(10000);
+
     it('reset', () => {
-        java.stdoutRedirect.reset();
+        redirect!.reset();
     });
 });
