@@ -36,9 +36,12 @@ jobs:
         uses: actions/setup-node@v3.4.1
         with:
           node-version: 16.x
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2.0.0
       - name: Build docs
         run: |
           npm ci
+          npm run build
           npm run docs
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
