@@ -57,7 +57,6 @@ jobs:
     - name: NPM Publish Binary
       uses: JS-DevTools/npm-publish@v1
       with:
-        tag: ${{ steps.version.outputs.version }}
         access: public
         token: ${{ secrets.NPM_TOKEN }}
         package: npm/${{ matrix.package }}/package.json
