@@ -16,6 +16,8 @@ jobs:
           uses: actions/setup-node@v3.4.1
           with:
             node-version: 16.x
+        - name: Install Prettier
+          run: npm i -g prettier
         - name: Prettier check
           run: prettier --check .
 
