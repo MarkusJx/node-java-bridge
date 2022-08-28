@@ -1,13 +1,7 @@
-const path = require('path');
-const nodeExternals = require('webpack-node-externals');
+import path from 'path';
+import nodeExternals from 'webpack-node-externals';
 
-/**
- * @param {string} entry
- * @param {string} mode
- * @param {string} outName
- * @return {Object}
- */
-const config = (entry, mode, outName) => ({
+const config = (entry: string, mode: string, outName: string) => ({
     entry,
     target: 'node',
     mode,
@@ -38,6 +32,14 @@ const config = (entry, mode, outName) => ({
                 loader: 'node-loader',
                 options: {
                     name: '[path][name].[ext]',
+                },
+            },
+            {
+                test: /native\.js/,
+                loader: 'string-replace-loader',
+                options: {
+                    search: /require\((('@markusjx\/[a-z\-0-9]+')|('.\/java.+'))\)/gi,
+                    replace: '__webpack_require__($1)',
                 },
             },
         ],

@@ -186,7 +186,7 @@ const guard = stdout.enableRedirect(
 12. `boolean` or `java.lang.Boolean` values will be converted to `boolean`
 13. `char` or `java.lang.Character` values will be converted to `string`
 14. Java arrays will be converted to javascript arrays, applying the rules mentioned above except
-15. Byte arrays will be converted to ``Buffer`` and vice-versa
+15. Byte arrays will be converted to `Buffer` and vice-versa
 
 ## Command line interface
 
