@@ -1,5 +1,5 @@
 {
-    "include": ["."],
+    "include": [".", "../node_modules/webpack/module.d.ts"],
     "compilerOptions": {
         "allowJs": true,
         "target": "es2020",

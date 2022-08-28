@@ -10,7 +10,14 @@ function getModule(base: string): string {
     if (fs.existsSync(local)) {
         return local;
     } else {
-        return require.resolve(base.replaceAll('.', '-'));
+        const module = '@markusjx/' + base.replaceAll('.', '-');
+        // @ts-ignore
+        if (__non_webpack_require__ && __non_webpack_require__.resolve) {
+            // @ts-ignore
+            return __non_webpack_require__.resolve(module);
+        } else {
+            return require.resolve(module);
+        }
     }
 }
 

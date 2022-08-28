@@ -47,7 +47,7 @@ const config = (entry: string, mode: string, outName: string) => ({
     resolve: {
         extensions: ['.ts', '.js'],
     },
-    //devtool: 'source-map',
+    devtool: 'source-map',
 });
 
 module.exports = [
