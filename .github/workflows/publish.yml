@@ -1,0 +1,51 @@
+name: Manual workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            package: linux-x64-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            package: win32-x64-msvc
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+            package: win32-ia32-msvc
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            package: darwin-x64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            package: darwin-arm64
+  
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2.4.2
+    - name: Setup Node.js environment
+      uses: actions/setup-node@v3.4.1
+      with:
+        node-version: 16.x
+    - name: Setup Java JDK
+      uses: actions/setup-java@v3.4.1
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+    - name: Install Dependencies
+      run: npm ci
+    - name: Build
+      run: npm run build -- -- --target ${{ matrix.target }}
+    - name: Get version
+      id: version
+      run: echo "::set-output name=version::$(node -p 'require(`./package.json`).version')"
+      shell: bash
+    - name: Set version
+      run: npm version --no-git-tag-version ${{ steps.version.outputs.version }} -f
+      working-directory: npm/${{ matrix.package }}
