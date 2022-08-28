@@ -1,6 +1,6 @@
 {
   "name": "@markusjx/java",
-  "version": "2.0.0-beta.1",
+  "version": "2.0.0-beta.2",
   "main": "dist/index.prod.min.js",
   "typings": "ts-src/index.ts",
   "description": "A bridge between Node.js and Java APIs",

@@ -56,6 +56,7 @@ jobs:
       shell: bash
     - name: NPM Publish Binary
       uses: JS-DevTools/npm-publish@v1
+      if: ${{ matrix.os != 'ubuntu-latest' }}
       with:
         access: public
         token: ${{ secrets.NPM_TOKEN }}
