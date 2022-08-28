@@ -1,6 +1,6 @@
 {
-    "name": "java-win32-x64-msvc",
-    "version": "0.0.0",
+    "name": "@markusjx/java-win32-x64-msvc",
+    "version": "2.0.0-beta.1",
     "os": [
         "win32"
     ],

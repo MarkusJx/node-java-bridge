@@ -1,13 +1,13 @@
 {
     "name": "@markusjx/java",
-    "version": "2.0.0-beta.1",
+    "version": "2.0.0",
     "main": "dist/index.prod.min.js",
     "typings": "ts-src/index.ts",
     "description": "A bridge between Node.js and Java APIs",
     "files": [
-        "dist",
-        "src",
-        "ts-src"
+        "ts-src",
+        "dist/*.js",
+        "java-src/build/libs/*.jar"
     ],
     "napi": {
         "name": "java",
@@ -17,6 +17,9 @@
                 "i686-pc-windows-msvc"
             ]
         }
+    },
+    "bin": {
+        "java-ts-gen": "./dist/java-ts-gen.js"
     },
     "license": "MIT",
     "prettier": {
@@ -63,6 +66,7 @@
         "@types/chai": "^4.3.3",
         "@types/glob": "^7.2.0",
         "@types/mocha": "^9.1.1",
+        "@types/webpack-node-externals": "^2.5.3",
         "@types/yargs": "^17.0.11",
         "chai": "^4.3.6",
         "expose-gc": "^1.0.0",
@@ -72,6 +76,7 @@
         "prettier": "^2.7.1",
         "rimraf": "^3.0.2",
         "run-script-os": "^1.1.6",
+        "string-replace-loader": "^3.1.0",
         "ts-loader": "^9.3.1",
         "ts-node": "^10.9.1",
         "tslib": "^2.4.0",
@@ -81,10 +86,10 @@
         "webpack-node-externals": "^3.0.0"
     },
     "optionalDependencies": {
-        "java-darwin-arm64": "0.0.0",
-        "java-darwin-x64": "0.0.0",
-        "java-linux-x64-gnu": "0.0.0",
-        "java-win32-ia32-msvc": "0.0.0",
-        "java-win32-x64-msvc": "0.0.0"
+        "@markusjx/java-darwin-arm64": "2.0.0-beta.3",
+        "@markusjx/java-darwin-x64": "2.0.0-beta.3",
+        "@markusjx/java-linux-x64-gnu": "2.0.0-beta.3",
+        "@markusjx/java-win32-ia32-msvc": "2.0.0-beta.3",
+        "@markusjx/java-win32-x64-msvc": "^2.0.0-beta.3"
     }
 }

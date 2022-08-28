@@ -1,3 +1,3 @@
-# `java-win32-ia32-msvc`
+# `@markusjx/java-win32-ia32-msvc`
 
-This is the **i686-pc-windows-msvc** binary for `java`
+This is the **i686-pc-windows-msvc** binary for `@markusjx/java`

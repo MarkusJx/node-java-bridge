@@ -1,13 +1,13 @@
-const path = require('path');
-const nodeExternals = require('webpack-node-externals');
+import path from 'path';
+import { BannerPlugin } from 'webpack';
+import nodeExternals from 'webpack-node-externals';
 
-/**
- * @param {string} entry
- * @param {string} mode
- * @param {string} outName
- * @return {Object}
- */
-const config = (entry, mode, outName) => ({
+const config = (
+    entry: string,
+    mode: string,
+    outName: string,
+    banner?: string
+) => ({
     entry,
     target: 'node',
     mode,
@@ -40,16 +40,37 @@ const config = (entry, mode, outName) => ({
                     name: '[path][name].[ext]',
                 },
             },
+            {
+                test: /native\.js/,
+                loader: 'string-replace-loader',
+                options: {
+                    search: /require\(('@markusjx\/[a-z\-0-9]+')\)/gi,
+                    replace: '__non_webpack_require__($1)',
+                },
+            },
         ],
     },
     resolve: {
         extensions: ['.ts', '.js'],
     },
-    //devtool: 'source-map',
+    devtool: 'source-map',
+    plugins: banner
+        ? [
+              new BannerPlugin({
+                  banner,
+                  raw: true,
+              }),
+          ]
+        : [],
 });
 
 module.exports = [
     config('./ts-src/index.ts', 'production', 'index.prod.min.js'),
     config('./ts-src/index.ts', 'development', 'index.dev.min.js'),
-    config('./ts-src/scripts/cli.ts', 'production', 'cli.min.js'),
+    config(
+        './ts-src/scripts/cli.ts',
+        'production',
+        'java-ts-gen.js',
+        '#!/usr/bin/env node'
+    ),
 ];

@@ -2,11 +2,11 @@ target
 Cargo.lock
 .cargo
 .github
-npm
-.eslintrc
+npm/
 .prettierignore
 rustfmt.toml
-yarn.lock
-*.node
+**/*.node
 java-src/build
 !java-src/build/libs
+src/
+!dist/
