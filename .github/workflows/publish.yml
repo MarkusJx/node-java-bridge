@@ -63,7 +63,7 @@ jobs:
         package: npm/${{ matrix.package }}/package.json
     - name: NPM Publish
       uses: JS-DevTools/npm-publish@v1
-      if: ${{ matrix.os == 'ubuntu-latest' }
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       with:
         access: public
         greater-version-only: true
