@@ -49,7 +49,7 @@ jobs:
       run: echo "::set-output name=version::$(node -p 'require(`./package.json`).version')"
       shell: bash
     - name: Set version
-      run: npm version --no-git-tag-version ${{ steps.version.outputs.version }} -f
+      run: npm version --no-git-tag-version --allow-same-version ${{ steps.version.outputs.version }} -f
       working-directory: npm/${{ matrix.package }}
     - name: Move binary
       run: mv java.*.node npm/${{ matrix.package }}
