@@ -52,3 +52,16 @@ jobs:
     - name: Move binary
       run: mv java.*.node npm/${{ matrix.package }}
       shell: bash
+    - name: NPM Publish Binary
+      uses: JS-DevTools/npm-publish@v1
+      with:
+        tag: ${{ steps.version.outputs.version }}
+        access: public
+        greater-version-only: true
+        package: npm/${{ matrix.package }}/package.json
+    - name: NPM Publish
+      uses: JS-DevTools/npm-publish@v1
+      if: ${{ matrix.os == 'ubuntu-latest' }
+      with:
+        access: public
+        greater-version-only: true
