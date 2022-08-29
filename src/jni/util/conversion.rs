@@ -82,7 +82,7 @@ pub fn get_method_from_signature(
         return_type.to_jni_type()
     );
 
-    let class = JavaClass::by_name(class_name.replace('.', "/").as_str(), env)?;
+    let class = JavaClass::by_java_name(class_name.replace('/', "."), env)?;
     let method = if is_static {
         class
             .get_static_object_method(name, signature.as_str())?
@@ -109,7 +109,7 @@ pub fn get_constructor_from_signature(
             .join("")
     );
 
-    let class = JavaClass::by_name(class_name.replace('.', "/").as_str(), env)?;
+    let class = JavaClass::by_java_name(class_name.replace('/', "."), env)?;
     let constructor = class.get_constructor(signature.as_str())?;
 
     let global_class = GlobalJavaClass::by_name(class_name.as_str(), env)?;
@@ -137,7 +137,7 @@ pub fn get_field_from_signature(
     field_type: JavaType,
     is_static: bool,
 ) -> ResultType<GlobalJavaField> {
-    let class = JavaClass::by_name(class_name.replace('.', "/").as_str(), env)?;
+    let class = JavaClass::by_java_name(class_name.replace('/', "."), env)?;
     let field = class.get_field(field_name, field_type, is_static)?;
     let global_class = GlobalJavaClass::by_name(class_name.as_str(), env)?;
 
