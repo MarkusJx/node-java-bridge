@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import yargs from 'yargs';
 import { performance } from 'perf_hooks';
 import path from 'path';
