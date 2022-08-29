@@ -66,6 +66,34 @@ ensureJvm({
 });
 ```
 
+### Inject a JAR into the class path
+
+In order to import your own classes into the node environment, you need
+to add the JAR file to the class path. You can do that with the
+[`appendClasspath`](https://markusjx.github.io/node-java-bridge/functions/appendClasspath.html)
+or [`classpath.append`](https://markusjx.github.io/node-java-bridge/functions/classpath.append.html)
+methods. After loading a JAR, you can import classes from it like any other class
+from the JVM using [`importClass`](#synchronous-calls) or [`importClassAsync`](#asynchronous-calls).
+
+```ts
+import { appendClasspath } from '@markusjx/java';
+
+// Append a single jar to the class path
+appendClasspath('/path/to/jar.jar');
+
+// Append multiple jars to the class path
+appendClasspath(['/path/to/jar1.jar', '/path/to/jar2.jar']);
+```
+
+or
+
+```ts
+import { classpath } from '@markusjx/java';
+
+// Append a single jar to the class path
+classpath.append('/path/to/jar.jar');
+```
+
 ### Synchronous calls
 
 If you want to use Java APIs in a synchronous way, you can use the synchronous API of this module.
