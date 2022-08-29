@@ -1,6 +1,6 @@
 {
     "name": "@markusjx/java",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "main": "dist/index.prod.min.js",
     "typings": "ts-src/index.ts",
     "description": "A bridge between Node.js and Java APIs",
@@ -86,10 +86,10 @@
         "webpack-node-externals": "^3.0.0"
     },
     "optionalDependencies": {
-        "@markusjx/java-darwin-arm64": "2.0.0-beta.3",
-        "@markusjx/java-darwin-x64": "2.0.0-beta.3",
-        "@markusjx/java-linux-x64-gnu": "2.0.0-beta.3",
-        "@markusjx/java-win32-ia32-msvc": "2.0.0-beta.3",
-        "@markusjx/java-win32-x64-msvc": "^2.0.0-beta.3"
+        "@markusjx/java-darwin-arm64": "2.0.0",
+        "@markusjx/java-darwin-x64": "2.0.0",
+        "@markusjx/java-linux-x64-gnu": "2.0.0",
+        "@markusjx/java-win32-ia32-msvc": "2.0.0",
+        "@markusjx/java-win32-x64-msvc": "^2.0.0"
     }
 }

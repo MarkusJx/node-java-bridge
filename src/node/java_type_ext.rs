@@ -363,7 +363,10 @@ impl NapiToJava for JavaType {
                 JavaBooleanArray::new(env, &res)?.into()
             }
             _ => {
-                let class = JavaClass::by_name(self.get_most_inner_signature().as_str(), env)?;
+                let class = JavaClass::by_java_name(
+                    self.get_most_inner_signature().replace('/', "."),
+                    env,
+                )?;
                 let mut res = JavaObjectArray::new(&class, length as usize)?;
                 for i in 0..length {
                     res.set(

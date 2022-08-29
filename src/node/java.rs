@@ -66,7 +66,7 @@ impl Java {
         .map_err(NapiError::to_napi_error)?;
 
         let env = root_vm.attach_thread().map_napi_err()?;
-        env.append_class_path(&vec![java_lib_path]).map_napi_err()?;
+        env.append_class_path(vec![java_lib_path]).map_napi_err()?;
         let native_library_class =
             JavaClass::by_java_name("io.github.markusjx.bridge.NativeLibrary".to_string(), &env)
                 .map_napi_err()?;
@@ -153,7 +153,7 @@ impl Java {
             paths.push(path.into_utf16()?.as_str()?);
         }
 
-        env.append_class_path(&paths).map_napi_err()?;
+        env.append_class_path(paths.clone()).map_napi_err()?;
         self.loaded_jars.append(&mut paths);
 
         Ok(())

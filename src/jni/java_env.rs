@@ -179,7 +179,7 @@ impl<'a> JavaEnv<'a> {
         self.0.get_java_vm()
     }
 
-    pub fn append_class_path(&self, paths: &Vec<String>) -> ResultType<()> {
+    pub fn append_class_path(&self, paths: Vec<String>) -> ResultType<()> {
         self.0.append_class_path(paths)
     }
 

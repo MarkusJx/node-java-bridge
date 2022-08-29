@@ -113,9 +113,8 @@ impl<'a> JavaEnvWrapper<'a> {
         let class = get_class.call(object, vec![])?;
         let java_class = self.get_java_lang_class()?;
 
-        let get_canonical_name =
-            java_class.get_object_method("getCanonicalName", "()Ljava/lang/String;")?;
-        let java_name = get_canonical_name.call(JavaObject::from(class), JavaArgs::new())?;
+        let get_name = java_class.get_object_method("getName", "()Ljava/lang/String;")?;
+        let java_name = get_name.call(JavaObject::from(class), JavaArgs::new())?;
         let name = JavaString::from(java_name).to_string()?;
 
         Ok(JavaType::new(name, true))
@@ -1227,7 +1226,7 @@ impl<'a> JavaEnvWrapper<'a> {
         }
     }
 
-    pub fn append_class_path(&self, paths: &Vec<String>) -> ResultType<()> {
+    pub fn append_class_path(&self, paths: Vec<String>) -> ResultType<()> {
         let file_class = self.find_class("java/io/File", true)?;
         let file_constructor = file_class.get_constructor("(Ljava/lang/String;)V")?;
         let to_uri = file_class.get_object_method("toURI", "()Ljava/net/URI;")?;
