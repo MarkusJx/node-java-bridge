@@ -137,7 +137,6 @@ impl JavaClassInstance {
             )?;
         }
 
-
         Ok(())
     }
 
