@@ -86,7 +86,9 @@ unsafe fn call_node_function(
         .get(&(id as _))
         .ok_or(format!("No proxy with the id {} exists", id))?
         .lock()
-        .unwrap();
+        .unwrap()
+        .clone();
+    drop(proxies);
     let method = methods
         .get(&name)
         .ok_or(format!("No method with the name {} exists", name))?;
@@ -327,6 +329,7 @@ impl JavaInterfaceProxy {
 
         let converted_methods = Arc::new(Mutex::new(converted_methods));
         proxies.insert(id, converted_methods.clone());
+        drop(proxies);
 
         Ok(Self {
             id,
@@ -384,6 +387,7 @@ impl JavaInterfaceProxy {
 
         let mut proxies = PROXIES.lock().unwrap();
         proxies.remove(&self.id);
+        drop(proxies);
 
         self.proxy_instance.take();
         self.function_caller_instance.take();
