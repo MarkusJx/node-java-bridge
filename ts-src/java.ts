@@ -9,7 +9,6 @@ import {
 } from '../native';
 import {
     JavaClassInstance,
-    JavaClassProxy,
     JavaClassType,
     JavaConstructor,
     JavaVersion,
@@ -141,9 +140,7 @@ function defineFields(object: Record<string, any>, getStatic: boolean): void {
  * ```ts
  * import { importClass, JavaClassInstance, JavaType } from 'java-bridge';
  *
- * /**
- *  * Definitions for class java.util.List
- *  *\/
+ * // Definitions for class java.util.List
  * declare class List <T extends JavaType> extends JavaClassInstance {
  *     size(): Promise<number>;
  *     sizeSync(): number;
@@ -157,9 +154,7 @@ function defineFields(object: Record<string, any>, getStatic: boolean): void {
  *     isEmptySync(): boolean;
  * }
  *
- * /**
- *  * Definitions for class java.util.ArrayList
- *  *\/
+ * // Definitions for class java.util.ArrayList
  * declare class ArrayListClass<T extends JavaType> extends List<T> {
  *     public constructor(other: ArrayListClass<T>);
  *     public constructor();
