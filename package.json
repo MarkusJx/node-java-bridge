@@ -4,6 +4,15 @@
     "main": "dist/index.prod.min.js",
     "typings": "ts-src/index.ts",
     "description": "A bridge between Node.js and Java APIs",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/MarkusJx/node-java-bridge.git"
+    },
+    "author": "MarkusJx",
+    "bugs": {
+        "url": "https://github.com/MarkusJx/node-java-bridge/issues"
+    },
+    "homepage": "https://github.com/MarkusJx/node-java-bridge#readme",
     "files": [
         "ts-src",
         "dist/*.js",
