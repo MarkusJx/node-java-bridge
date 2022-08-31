@@ -1,5 +1,6 @@
-import java, { JavaClassInstance } from '../.';
+import java, { JavaClassInstance, isInstanceOf } from '../.';
 import assert = require('assert');
+import { expect } from 'chai';
 
 declare class JString extends JavaClassInstance {
     static valueOf(values: string[]): Promise<JString>;
@@ -27,11 +28,6 @@ describe('StringTest', () => {
     it('Ensure jvm', () => {
         java.ensureJvm();
     });
-
-    /*it('Check dll path', async () => {
-        const data = require('../jvmLibPath.json');
-        assert.strictEqual(await java.findJVM(), data);
-    });*/
 
     let JavaString: typeof JString;
     it('Import java.lang.String', () => {
@@ -123,5 +119,20 @@ describe('StringTest', () => {
             JSON.stringify(split),
             JSON.stringify(['some', 'text'])
         );
+    });
+
+    it('InstanceOf', () => {
+        const Object = java.importClass('java.lang.Object');
+        expect(s1.instanceOf('java.lang.String')).to.be.true;
+        expect(s1.instanceOf('java.lang.Object')).to.be.true;
+        expect(s1.instanceOf('java.util.List')).to.be.false;
+        expect(s1.instanceOf(JavaString)).to.be.true;
+        expect(s1.instanceOf(Object)).to.be.true;
+
+        expect(isInstanceOf(s1, 'java.lang.String')).to.be.true;
+        expect(isInstanceOf(s1, 'java.lang.Object')).to.be.true;
+        expect(isInstanceOf(s1, 'java.util.List')).to.be.false;
+        expect(isInstanceOf(s1, JavaString)).to.be.true;
+        expect(isInstanceOf(s1, Object)).to.be.true;
     });
 });

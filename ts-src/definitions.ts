@@ -140,12 +140,31 @@ export declare class JavaClassInstance extends JavaObject {
     public constructor(...args: BasicOrJavaType[]);
 
     /**
-     * Check if this is an instance of another class
+     * Check if this is an instance of another class.
+     * Pass either the name of the other class or the class itself
+     * to check if this is an instance of it.
+     * Does not overwrite any existing instanceof operator.
+     * This uses the native java instanceof operator.
      *
-     * @param classname the class to check if this is an instance of
-     * @return true if this is instance of classname
+     * ## Example
+     * ```ts
+     * import { importClass } from '@markusjx/java';
+     *
+     * const JavaString = importClass('java.lang.String');
+     * const str = new JavaString('Hello World');
+     *
+     * str.instanceOf(JavaString); // true
+     * str.instanceOf('java.lang.String'); // true
+     * str.instanceOf('java.lang.Object'); // true
+     * str.instanceOf('java.lang.Integer'); // false
+     * ```
+     *
+     * @param other the class to check if this is an instance of
+     * @return true if this is instance of `other`
      */
-    public instanceOf(classname: string): boolean;
+    public instanceOf<T extends typeof JavaClassInstance>(
+        other: string | T
+    ): boolean;
 
     /**
      * Default java equals implementation.

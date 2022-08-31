@@ -1,8 +1,14 @@
-import java, { JavaClassInstance, JavaConstructor, JavaType } from '../.';
+import java, {
+    JavaClassInstance,
+    JavaConstructor,
+    JavaType,
+    isInstanceOf,
+} from '../.';
 import assert = require('assert');
 import { it } from 'mocha';
+import { expect } from 'chai';
 
-declare class List<T extends JavaType> extends JavaClassInstance {
+declare class ListClass<T extends JavaType> extends JavaClassInstance {
     containsSync(element: T): boolean;
     sizeSync(): number;
     getSync(index: number): T;
@@ -21,7 +27,7 @@ declare class List<T extends JavaType> extends JavaClassInstance {
     remove(index: number): Promise<T>;
 }
 
-declare class ArrayListClass<T extends JavaType> extends List<T> {}
+declare class ArrayListClass<T extends JavaType> extends ListClass<T> {}
 
 describe('ArrayListTest', () => {
     let list: ArrayListClass<JavaType> | null = null;
@@ -143,5 +149,29 @@ describe('ArrayListTest', () => {
         await list_cpy!.clear();
         assert.strictEqual(await list_cpy!.isEmpty(), true);
         assert.strictEqual(await list_cpy!.size(), 0);
+    });
+
+    it('InstanceOf', () => {
+        const List = java.importClass<typeof ListClass>('java.util.List');
+        const Object = java.importClass('java.lang.Object');
+        const JavaString = java.importClass('java.lang.String');
+
+        expect(list!.instanceOf(ArrayList!)).to.be.true;
+        expect(list!.instanceOf(List)).to.be.true;
+        expect(list!.instanceOf(Object)).to.be.true;
+        expect(list!.instanceOf(JavaString)).to.be.false;
+        expect(list!.instanceOf('java.util.List')).to.be.true;
+        expect(list!.instanceOf('java.util.ArrayList')).to.be.true;
+        expect(list!.instanceOf('java.lang.Object')).to.be.true;
+        expect(list!.instanceOf('java.lang.String')).to.be.false;
+
+        expect(isInstanceOf(list!, ArrayList!)).to.be.true;
+        expect(isInstanceOf(list!, List)).to.be.true;
+        expect(isInstanceOf(list!, Object)).to.be.true;
+        expect(isInstanceOf(list!, JavaString)).to.be.false;
+        expect(isInstanceOf(list!, 'java.util.List')).to.be.true;
+        expect(isInstanceOf(list!, 'java.util.ArrayList')).to.be.true;
+        expect(isInstanceOf(list!, 'java.lang.Object')).to.be.true;
+        expect(isInstanceOf(list!, 'java.lang.String')).to.be.false;
     });
 });

@@ -7,7 +7,13 @@ import {
     setField,
     setStaticField,
 } from '../native';
-import { JavaClassType, JavaConstructor, JavaVersion } from './definitions';
+import {
+    JavaClassInstance,
+    JavaClassProxy,
+    JavaClassType,
+    JavaConstructor,
+    JavaVersion,
+} from './definitions';
 import { getJavaLibPath, getNativeLibPath } from './nativeLib';
 
 /**
@@ -250,6 +256,48 @@ export async function importClassAsync<T extends JavaClassType = JavaClassType>(
 export function appendClasspath(path: string | string[]): void {
     ensureJvm();
     javaInstance!.appendClasspath(path);
+}
+
+/**
+ * Check if `this_obj` is instance of `other`.
+ * This uses the native java `instanceof` operator.
+ * You may want to use this if {@link JavaClassInstance.instanceOf}
+ * is overridden, as that method itself does not override
+ * any method defined in the specific java class named 'instanceOf'.
+ *
+ * ## Example
+ * ```ts
+ * import { instanceOf, importClass } from '@markusjx/java';
+ *
+ * const ArrayList = importClass('java.util.ArrayList');
+ * const list = new ArrayList();
+ *
+ * isInstanceOf(list, ArrayList); // true
+ * isInstanceOf(list, 'java.util.ArrayList'); // true
+ * isInstanceOf(list, 'java.util.List'); // true
+ * isInstanceOf(list, 'java.util.Collection'); // true
+ * isInstanceOf(list, 'java.lang.Object'); // true
+ * isInstanceOf(list, 'java.lang.String'); // false
+ *
+ * // You can also use the instanceOf method (if not overridden)
+ * list.instanceOf(ArrayList); // true
+ * list.instanceOf('java.util.ArrayList'); // true
+ * list.instanceOf('java.util.List'); // true
+ * list.instanceOf('java.util.Collection'); // true
+ * list.instanceOf('java.lang.Object'); // true
+ * list.instanceOf('java.lang.String'); // false
+ * ```
+ *
+ * @param this_obj the object to check
+ * @param other the class or class name to check against
+ * @return true if `this_obj` is an instance of `other`
+ */
+export function isInstanceOf<T extends typeof JavaClassInstance>(
+    this_obj: JavaClassInstance,
+    other: string | T
+): boolean {
+    ensureJvm();
+    return javaInstance!.isInstanceOf(this_obj, other);
 }
 
 /**

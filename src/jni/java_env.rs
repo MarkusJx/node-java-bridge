@@ -175,6 +175,10 @@ impl<'a> JavaEnv<'a> {
         }
     }
 
+    pub fn instance_of(&self, this: JavaObject, other: GlobalJavaClass) -> ResultType<bool> {
+        self.0.instance_of(this, other)
+    }
+
     pub fn get_java_vm(&self) -> ResultType<JavaVM> {
         self.0.get_java_vm()
     }

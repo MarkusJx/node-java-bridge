@@ -11,6 +11,10 @@ impl NapiError {
     pub fn to_napi_error(err: Box<dyn Error>) -> napi::Error {
         NapiError::from(err).into()
     }
+
+    pub fn into_napi(self) -> napi::Error {
+        self.0
+    }
 }
 
 impl From<Box<dyn Error>> for NapiError {
@@ -22,6 +26,12 @@ impl From<Box<dyn Error>> for NapiError {
 impl From<String> for NapiError {
     fn from(msg: String) -> Self {
         NapiError::new(napi::Status::GenericFailure, msg)
+    }
+}
+
+impl From<&str> for NapiError {
+    fn from(msg: &str) -> Self {
+        NapiError::new(napi::Status::GenericFailure, msg.to_string())
     }
 }
 

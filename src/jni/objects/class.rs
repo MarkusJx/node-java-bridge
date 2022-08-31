@@ -189,6 +189,12 @@ impl GlobalJavaClass {
     pub fn to_object(self) -> GlobalJavaObject {
         self.0
     }
+
+    pub(in crate::jni) unsafe fn class(&self) -> ResultType<sys::jclass> {
+        self.0
+            .get_raw()
+            .ok_or("Cannot get class of null pointer".into())
+    }
 }
 
 impl From<GlobalJavaObject> for GlobalJavaClass {
