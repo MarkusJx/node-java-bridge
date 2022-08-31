@@ -51,7 +51,7 @@ const handler: YargsHandler<Args> = async ({
         const ora = await importOra();
 
         console.log(
-            `Starting ${chalk.cyanBright('@markusjx/java')} ${chalk.greenBright(
+            `Starting ${chalk.cyanBright('java-bridge')} ${chalk.greenBright(
                 'v' + version
             )} Java definition generator`
         );

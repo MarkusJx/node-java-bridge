@@ -1,5 +1,5 @@
 {
-    "name": "@markusjx/java",
+    "name": "java-bridge",
     "version": "2.1.0",
     "main": "dist/index.prod.min.js",
     "typings": "ts-src/index.ts",
@@ -86,10 +86,10 @@
         "webpack-node-externals": "^3.0.0"
     },
     "optionalDependencies": {
-        "@markusjx/java-darwin-arm64": "2.0.0",
-        "@markusjx/java-darwin-x64": "2.0.0",
-        "@markusjx/java-linux-x64-gnu": "2.0.0",
-        "@markusjx/java-win32-ia32-msvc": "2.0.0",
-        "@markusjx/java-win32-x64-msvc": "^2.0.0"
+        "java-bridge-darwin-arm64": "2.0.0",
+        "java-bridge-darwin-x64": "2.0.0",
+        "java-bridge-linux-x64-gnu": "2.0.0",
+        "java-bridge-win32-ia32-msvc": "2.0.0",
+        "java-bridge-win32-x64-msvc": "^2.0.0"
     }
 }

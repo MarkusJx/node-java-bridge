@@ -1,3 +1,3 @@
-# `@markusjx/java-darwin-x64`
+# `java-bridge-darwin-x64`
 
-This is the **x86_64-apple-darwin** binary for `@markusjx/java`
+This is the **x86_64-apple-darwin** binary for `java-bridge`

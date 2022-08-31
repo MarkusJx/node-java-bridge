@@ -1,5 +1,5 @@
 {
-    "name": "@markusjx/java-darwin-arm64",
+    "name": "java-bridge-darwin-arm64",
     "version": "2.0.0-beta.1",
     "os": [
         "darwin"

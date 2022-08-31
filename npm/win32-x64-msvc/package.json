@@ -1,5 +1,5 @@
 {
-    "name": "@markusjx/java-win32-x64-msvc",
+    "name": "java-bridge-win32-x64-msvc",
     "version": "2.0.0-beta.1",
     "os": [
         "win32"
