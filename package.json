@@ -30,7 +30,7 @@
         "trailingComma": "es5"
     },
     "engines": {
-        "node": ">= 10"
+        "node": ">= 15"
     },
     "scripts": {
         "artifacts": "napi artifacts",
