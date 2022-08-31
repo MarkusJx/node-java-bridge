@@ -44,7 +44,7 @@ const config = (
                 test: /native\.js/,
                 loader: 'string-replace-loader',
                 options: {
-                    search: /require\(('@markusjx\/[a-z\-0-9]+')\)/gi,
+                    search: /require\(('java-bridge-[a-z\-0-9]+')\)/gi,
                     replace: '__non_webpack_require__($1)',
                 },
             },
