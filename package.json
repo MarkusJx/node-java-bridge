@@ -1,9 +1,18 @@
 {
-    "name": "@markusjx/java",
-    "version": "2.1.0",
+    "name": "java-bridge",
+    "version": "2.1.0-beta.1",
     "main": "dist/index.prod.min.js",
     "typings": "ts-src/index.ts",
     "description": "A bridge between Node.js and Java APIs",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/MarkusJx/node-java-bridge.git"
+    },
+    "author": "MarkusJx",
+    "bugs": {
+        "url": "https://github.com/MarkusJx/node-java-bridge/issues"
+    },
+    "homepage": "https://github.com/MarkusJx/node-java-bridge#readme",
     "files": [
         "ts-src",
         "dist/*.js",
@@ -86,10 +95,10 @@
         "webpack-node-externals": "^3.0.0"
     },
     "optionalDependencies": {
-        "@markusjx/java-darwin-arm64": "2.0.0",
-        "@markusjx/java-darwin-x64": "2.0.0",
-        "@markusjx/java-linux-x64-gnu": "2.0.0",
-        "@markusjx/java-win32-ia32-msvc": "2.0.0",
-        "@markusjx/java-win32-x64-msvc": "^2.0.0"
+        "java-bridge-darwin-arm64": "2.0.0",
+        "java-bridge-darwin-x64": "2.0.0",
+        "java-bridge-linux-x64-gnu": "2.0.0",
+        "java-bridge-win32-ia32-msvc": "2.0.0",
+        "java-bridge-win32-x64-msvc": "^2.0.0"
     }
 }

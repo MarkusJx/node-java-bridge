@@ -148,7 +148,7 @@ export declare class JavaClassInstance extends JavaObject {
      *
      * ## Example
      * ```ts
-     * import { importClass } from '@markusjx/java';
+     * import { importClass } from 'java-bridge';
      *
      * const JavaString = importClass('java.lang.String');
      * const str = new JavaString('Hello World');

@@ -1,6 +1,6 @@
 {
-    "name": "@markusjx/java-win32-x64-msvc",
-    "version": "2.0.0-beta.1",
+    "name": "java-bridge-win32-x64-msvc",
+    "version": "2.1.0-beta.1",
     "os": [
         "win32"
     ],
@@ -14,5 +14,14 @@
     "license": "MIT",
     "engines": {
         "node": ">= 10"
-    }
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/MarkusJx/node-java-bridge.git"
+    },
+    "author": "MarkusJx",
+    "bugs": {
+        "url": "https://github.com/MarkusJx/node-java-bridge/issues"
+    },
+    "homepage": "https://github.com/MarkusJx/node-java-bridge#readme"
 }

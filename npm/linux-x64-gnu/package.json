@@ -1,6 +1,6 @@
 {
-    "name": "@markusjx/java-linux-x64-gnu",
-    "version": "2.0.0-beta.1",
+    "name": "java-bridge-linux-x64-gnu",
+    "version": "2.1.0-beta.1",
     "os": [
         "linux"
     ],
@@ -17,5 +17,14 @@
     },
     "libc": [
         "glibc"
-    ]
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/MarkusJx/node-java-bridge.git"
+    },
+    "author": "MarkusJx",
+    "bugs": {
+        "url": "https://github.com/MarkusJx/node-java-bridge/issues"
+    },
+    "homepage": "https://github.com/MarkusJx/node-java-bridge#readme"
 }

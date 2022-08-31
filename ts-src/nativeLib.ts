@@ -10,7 +10,7 @@ function getModule(base: string): string {
     if (fs.existsSync(local)) {
         return local;
     } else {
-        const module = '@markusjx/' + base.replaceAll('.', '-');
+        const module = base.replaceAll('.', '-').replace('java', 'java-bridge');
         // @ts-ignore
         if (__non_webpack_require__ && __non_webpack_require__.resolve) {
             // @ts-ignore

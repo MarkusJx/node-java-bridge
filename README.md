@@ -9,10 +9,12 @@ loads the jvm native library dynamically when the program first starts up.
 
 The full documentation of this package is available [here](https://markusjx.github.io/node-java-bridge/).
 
+**NOTE: As of version `2.1.0`, this package has been renamed from `@markusjx/java` to `java-bridge`.**
+
 ## Installation
 
 ```shell
-npm i @markusjx/java
+npm i java-bridge
 ```
 
 ## Usage
@@ -30,7 +32,7 @@ start the jvm with no extra options. This is also called when any call to the jv
 but the jvm is not yet started.
 
 ```ts
-import { ensureJvm } from '@markusjx/java';
+import { ensureJvm } from 'java-bridge';
 
 ensureJvm();
 ```
@@ -41,7 +43,7 @@ You can pass extra options to the jvm when creating it, for example requesting a
 specifying the location of the jvm native library or passing additional arguments to the jvm.
 
 ```ts
-import { ensureJvm, JavaVersion } from '@markusjx/java';
+import { ensureJvm, JavaVersion } from 'java-bridge';
 
 ensureJvm({
     libPath: 'path/to/jvm.dll',
@@ -76,7 +78,7 @@ methods. After loading a JAR, you can import classes from it like any other clas
 from the JVM using [`importClass`](#synchronous-calls) or [`importClassAsync`](#asynchronous-calls).
 
 ```ts
-import { appendClasspath } from '@markusjx/java';
+import { appendClasspath } from 'java-bridge';
 
 // Append a single jar to the class path
 appendClasspath('/path/to/jar.jar');
@@ -88,7 +90,7 @@ appendClasspath(['/path/to/jar1.jar', '/path/to/jar2.jar']);
 or
 
 ```ts
-import { classpath } from '@markusjx/java';
+import { classpath } from 'java-bridge';
 
 // Append a single jar to the class path
 classpath.append('/path/to/jar.jar');
@@ -110,7 +112,7 @@ In order to import a class synchronously, you can use the [`importClass`](https:
 Using this method does not affect your ability to call any method of the class asynchronously.
 
 ```ts
-import { importClass } from '@markusjx/java';
+import { importClass } from 'java-bridge';
 
 // Import a class
 const JString = importClass('java.lang.String');
@@ -140,7 +142,7 @@ In order to import a class asynchronously, you can use the
 [`importClassAsync`](https://markusjx.github.io/node-java-bridge/functions/importClassAsync.html) function.
 
 ```ts
-import { importClassAsync } from '@markusjx/java';
+import { importClassAsync } from 'java-bridge';
 
 const JString = await importClassAsync('java.lang.String');
 
@@ -161,7 +163,7 @@ you must call that method using the interface asynchronously as Node.js is singl
 and can't wait for the java method to return while calling the proxy method at the same time.
 
 ```ts
-import { newProxy } from '@markusjx/java';
+import { newProxy } from 'java-bridge';
 
 const proxy = newProxy('path.to.MyInterface', {
     // Define methods...
@@ -182,7 +184,7 @@ process to the node.js process, you can use the
 method.
 
 ```ts
-import { stdout } from '@markusjx/java';
+import { stdout } from 'java-bridge';
 
 const guard = stdout.enableRedirect(
     (_, data) => {
@@ -224,7 +226,7 @@ The command line interface will create typescript definitions for all specified 
 ### Installation
 
 ```bash
-npm install -g @markusjx/java
+npm install -g java-bridge
 ```
 
 ### Usage
