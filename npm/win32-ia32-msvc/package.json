@@ -14,5 +14,14 @@
     "license": "MIT",
     "engines": {
         "node": ">= 10"
-    }
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/MarkusJx/node-java-bridge.git"
+    },
+    "author": "MarkusJx",
+    "bugs": {
+        "url": "https://github.com/MarkusJx/node-java-bridge/issues"
+    },
+    "homepage": "https://github.com/MarkusJx/node-java-bridge#readme"
 }
