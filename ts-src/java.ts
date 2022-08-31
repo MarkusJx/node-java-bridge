@@ -7,7 +7,13 @@ import {
     setField,
     setStaticField,
 } from '../native';
-import { JavaClassType, JavaConstructor, JavaVersion } from './definitions';
+import {
+    JavaClassInstance,
+    JavaClassProxy,
+    JavaClassType,
+    JavaConstructor,
+    JavaVersion,
+} from './definitions';
 import { getJavaLibPath, getNativeLibPath } from './nativeLib';
 
 /**
@@ -49,7 +55,7 @@ export interface JVMOptions extends JavaOptions {
  * Specify the path to jvm.(dylib|dll|so) manually,
  * specify the java version to use and set to use daemon threads.
  * ```ts
- * import { ensureJvm, JavaVersion } from '@markusjx/java';
+ * import { ensureJvm, JavaVersion } from 'java-bridge';
  *
  * ensureJvm({
  *     libPath: 'path/to/jvm.dll',
@@ -122,7 +128,7 @@ function defineFields(object: Record<string, any>, getStatic: boolean): void {
  * ## Examples
  * ### Import ``java.util.ArrayList`` and create a new instance of it
  * ```ts
- * import { importClass } from '@markusjx/java';
+ * import { importClass } from 'java-bridge';
  *
  * // Import java.util.ArrayList
  * const ArrayList = importClass('java.util.ArrayList');
@@ -133,7 +139,7 @@ function defineFields(object: Record<string, any>, getStatic: boolean): void {
  *
  * ### Import ``java.util.ArrayList`` with types
  * ```ts
- * import { importClass, JavaClassInstance, JavaType } from '@markusjx/java';
+ * import { importClass, JavaClassInstance, JavaType } from 'java-bridge';
  *
  * /**
  *  * Definitions for class java.util.List
@@ -229,7 +235,7 @@ export async function importClassAsync<T extends JavaClassType = JavaClassType>(
  *
  * ## Example
  * ```ts
- * import { appendClasspath } from '@markusjx/java';
+ * import { appendClasspath } from 'java-bridge';
  *
  * // Append a single jar to the class path
  * appendClasspath('/path/to/jar.jar');
@@ -239,7 +245,7 @@ export async function importClassAsync<T extends JavaClassType = JavaClassType>(
  * ```
  * or
  * ```ts
- * import { classpath } from '@markusjx/java';
+ * import { classpath } from 'java-bridge';
  *
  * // Append a single jar to the class path
  * classpath.append('/path/to/jar.jar');
@@ -253,9 +259,51 @@ export function appendClasspath(path: string | string[]): void {
 }
 
 /**
+ * Check if `this_obj` is instance of `other`.
+ * This uses the native java `instanceof` operator.
+ * You may want to use this if {@link JavaClassInstance.instanceOf}
+ * is overridden, as that method itself does not override
+ * any method defined in the specific java class named 'instanceOf'.
+ *
+ * ## Example
+ * ```ts
+ * import { instanceOf, importClass } from 'java-bridge';
+ *
+ * const ArrayList = importClass('java.util.ArrayList');
+ * const list = new ArrayList();
+ *
+ * isInstanceOf(list, ArrayList); // true
+ * isInstanceOf(list, 'java.util.ArrayList'); // true
+ * isInstanceOf(list, 'java.util.List'); // true
+ * isInstanceOf(list, 'java.util.Collection'); // true
+ * isInstanceOf(list, 'java.lang.Object'); // true
+ * isInstanceOf(list, 'java.lang.String'); // false
+ *
+ * // You can also use the instanceOf method (if not overridden)
+ * list.instanceOf(ArrayList); // true
+ * list.instanceOf('java.util.ArrayList'); // true
+ * list.instanceOf('java.util.List'); // true
+ * list.instanceOf('java.util.Collection'); // true
+ * list.instanceOf('java.lang.Object'); // true
+ * list.instanceOf('java.lang.String'); // false
+ * ```
+ *
+ * @param this_obj the object to check
+ * @param other the class or class name to check against
+ * @return true if `this_obj` is an instance of `other`
+ */
+export function isInstanceOf<T extends typeof JavaClassInstance>(
+    this_obj: JavaClassInstance,
+    other: string | T
+): boolean {
+    ensureJvm();
+    return javaInstance!.isInstanceOf(this_obj, other);
+}
+
+/**
  * Methods for altering and querying the class path.
  * @example
- * import { classpath } from '@markusjx/java';
+ * import { classpath } from 'java-bridge';
  *
  * // Append a jar to the class path
  * classpath.append('/path/to/jar.jar');
@@ -304,7 +352,7 @@ export type StdoutCallback = (err: Error | null, data?: string) => void;
  *
  * ## Example
  * ```ts
- * import { stdout } from '@markusjx/java';
+ * import { stdout } from 'java-bridge';
  *
  * const guard = stdout.enableRedirect((_, data) => {
  *     console.log('Stdout:', data);
@@ -370,7 +418,7 @@ export namespace stdout {
      * ## Examples
      * ### Redirect all data to the js console
      * ```ts
-     * import { stdout } from '@markusjx/java';
+     * import { stdout } from 'java-bridge';
      *
      * const guard = stdout.enableRedirect((_, data) => {
      *     console.log('Stdout:', data);
@@ -434,7 +482,7 @@ export namespace stdout {
  *
  * ## Example
  * ```ts
- * import { newProxy } from '@markusjx/java';
+ * import { newProxy } from 'java-bridge';
  *
  * const proxy = newProxy('path.to.MyInterface', {
  *     // Define methods...
@@ -492,7 +540,7 @@ type InternalProxyRecord = Parameters<
  * ## Examples
  * ### Implement ``java.lang.Runnable``
  * ```ts
- * import { newProxy, importClass } from '@markusjx/java';
+ * import { newProxy, importClass } from 'java-bridge';
  *
  * // Define the interface
  * const runnable = newProxy('java.lang.Runnable', {

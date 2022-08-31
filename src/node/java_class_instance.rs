@@ -3,24 +3,22 @@ use crate::jni::java_type::JavaType;
 use crate::jni::objects::class::GlobalJavaClass;
 use crate::jni::objects::object::GlobalJavaObject;
 use crate::node::arg_convert::{call_context_to_java_args, call_results_to_args};
+use crate::node::java::Java;
 use crate::node::java_class_proxy::JavaClassProxy;
 use crate::node::java_type_ext::NapiToJava;
 use crate::node::napi_error::MapToNapiError;
 use crate::NapiError;
 use futures::future;
 use napi::{
-    CallContext, Env, JsFunction, JsObject, JsString, JsUnknown, Property, PropertyAttributes,
-    Status,
+    CallContext, Env, JsBoolean, JsFunction, JsObject, JsString, JsUnknown, Property,
+    PropertyAttributes, Status,
 };
 use std::sync::Arc;
 
-const CLASS_PROXY_PROPERTY: &str = "class.proxy";
+pub const CLASS_PROXY_PROPERTY: &str = "class.proxy";
 pub const OBJECT_PROPERTY: &str = "class.object";
 
-pub struct JavaClassInstance {
-    //pub(in crate::node) object: GlobalJavaObject,
-    //pub(in crate::node) signature: JavaType,
-}
+pub struct JavaClassInstance {}
 
 impl JavaClassInstance {
     pub fn create_class_instance(
@@ -122,6 +120,23 @@ impl JavaClassInstance {
                 )?,
             )?;
         }
+
+        if !proxy.methods.contains_key("instanceOf") {
+            this.set_named_property(
+                "instanceOf",
+                env.create_function_from_closure(
+                    "instanceOf",
+                    |ctx: CallContext| -> napi::Result<JsBoolean> {
+                        let proxy = Self::get_class_proxy(&ctx, false)?;
+                        let env = proxy.vm.attach_thread().map_napi_err()?;
+                        let res = Java::_is_instance_of(env, ctx.env, ctx.this()?, ctx.get(0)?)?;
+
+                        ctx.env.get_boolean(res)
+                    },
+                )?,
+            )?;
+        }
+
 
         Ok(())
     }

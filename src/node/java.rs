@@ -1,8 +1,11 @@
+use crate::jni::java_env::JavaEnv;
 use crate::jni::java_vm::{InternalJavaOptions, JavaVM};
 use crate::jni::objects::class::JavaClass;
+use crate::jni::objects::java_object::JavaObject;
+use crate::jni::objects::object::GlobalJavaObject;
 use crate::jni::objects::string::JavaString;
 use crate::jni::util::util::ResultType;
-use crate::node::java_class_instance::JavaClassInstance;
+use crate::node::java_class_instance::{JavaClassInstance, CLASS_PROXY_PROPERTY, OBJECT_PROPERTY};
 use crate::node::java_class_proxy::JavaClassProxy;
 use crate::node::java_interface_proxy::JavaInterfaceProxy;
 use crate::node::java_options::JavaOptions;
@@ -10,7 +13,7 @@ use crate::node::napi_error::{MapToNapiError, NapiError};
 use crate::node::stdout_redirect::StdoutRedirect;
 use futures::future;
 use lazy_static::lazy_static;
-use napi::{Env, JsFunction, JsObject, JsString, JsUnknown};
+use napi::{Env, JsFunction, JsObject, JsString, JsUnknown, ValueType};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -193,7 +196,54 @@ impl Java {
         JavaInterfaceProxy::new(self.root_vm.clone(), env, classname, methods).map_napi_err()
     }
 
+    /// Check if `this` is instance of `other`
+    #[napi]
+    pub fn is_instance_of(
+        &self,
+        node_env: Env,
+        this_obj: JsObject,
+        #[napi(ts_arg_type = "string | object")] other: JsUnknown,
+    ) -> napi::Result<bool> {
+        let env = self.root_vm.attach_thread().map_napi_err()?;
+        Self::_is_instance_of(env, &node_env, this_obj, other)
+    }
+
     pub fn vm(&self) -> JavaVM {
         self.root_vm.clone()
+    }
+
+    pub fn _is_instance_of(
+        env: JavaEnv,
+        node_env: &Env,
+        this: JsObject,
+        other: JsUnknown,
+    ) -> napi::Result<bool> {
+        let other = if other.get_type()? == ValueType::String {
+            env.find_global_class_by_java_name(other.coerce_to_string()?.into_utf16()?.as_str()?)
+                .map_napi_err()?
+        } else if other.get_type()? == ValueType::Function || other.get_type()? == ValueType::Object
+        {
+            let err_fn = |_| NapiError::from("'other' is not a java object").into_napi();
+            let obj: JsObject = other
+                .coerce_to_object()?
+                .get_named_property(CLASS_PROXY_PROPERTY)
+                .map_err(err_fn)?;
+            node_env
+                .unwrap::<Arc<JavaClassProxy>>(&obj)
+                .map_err(err_fn)?
+                .class
+                .clone()
+        } else {
+            return Err(NapiError::from("'other' must be either a string or a java object").into());
+        };
+
+        let err_fn = |_| NapiError::from("'this' is not a java object").into_napi();
+        let this_obj: JsObject = this.get_named_property(OBJECT_PROPERTY).map_err(err_fn)?;
+        let this = node_env
+            .unwrap::<GlobalJavaObject>(&this_obj)
+            .map_err(err_fn)?;
+
+        env.instance_of(JavaObject::from(this.clone()), other)
+            .map_napi_err()
     }
 }

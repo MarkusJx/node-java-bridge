@@ -132,11 +132,30 @@ impl<'a> JavaEnvWrapper<'a> {
                 class.class()?,
             )
         };
-        if self.is_err() {
-            return Err(self.get_last_error(file!(), line!(), true, "IsInstanceOf failed")?);
-        }
 
-        Ok(result != 0)
+        if self.is_err() {
+            Err(self.get_last_error(file!(), line!(), true, "IsInstanceOf failed")?)
+        } else {
+            Ok(result != 0)
+        }
+    }
+
+    pub fn instance_of(&self, this: JavaObject, other: GlobalJavaClass) -> ResultType<bool> {
+        let result = unsafe {
+            self.methods.IsInstanceOf.unwrap()(
+                self.env,
+                this.get_raw().ok_or(
+                    "Cannot check if this is instance of class with null object".to_string(),
+                )?,
+                other.class()?,
+            )
+        };
+
+        if self.is_err() {
+            Err(self.get_last_error(file!(), line!(), true, "IsInstanceOf failed")?)
+        } else {
+            Ok(result != 0)
+        }
     }
 
     pub fn throw_error(&self, message: String) {
