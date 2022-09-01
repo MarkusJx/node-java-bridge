@@ -106,17 +106,21 @@ describe('ProxyTest', () => {
         const proxies: JavaInterfaceProxy[] = [];
 
         it('Create Runnable proxy', () => {
-            proxies.push(java.newProxy('java.lang.Runnable', {
-                run: () => {},
-            }));
+            proxies.push(
+                java.newProxy('java.lang.Runnable', {
+                    run: () => {},
+                })
+            );
         });
 
         it('Create Function proxy', () => {
-            proxies.push(java.newProxy('java.util.function.Function', {
-                apply: (arg: string): string => {
-                    return arg.toUpperCase();
-                },
-            }));
+            proxies.push(
+                java.newProxy('java.util.function.Function', {
+                    apply: (arg: string): string => {
+                        return arg.toUpperCase();
+                    },
+                })
+            );
         });
 
         it('Use Runnable proxy', async () => {
@@ -133,7 +137,7 @@ describe('ProxyTest', () => {
         });
 
         after(() => {
-            proxies.forEach(proxy => proxy.reset());
+            proxies.forEach((proxy) => proxy.reset());
             proxies.length = 0;
             global.gc!();
         });
