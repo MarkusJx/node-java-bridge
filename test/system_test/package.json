@@ -7,7 +7,7 @@
         "test": "mocha -r ts-node/register *.test.ts",
         "pretest": "pwd && npm run clean && npm run copy && ls && npm run replace",
         "clean": "rimraf *.test.ts",
-        "copy": "cpy ../*.test.ts .",
+        "copy": "cpy ./../*.test.ts .",
         "replace": "replace \"from '../.';\" \"from 'java-bridge';\" . -r --include=\"*.test.ts\""
     },
     "keywords": [],
