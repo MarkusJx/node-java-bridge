@@ -1,0 +1,42 @@
+name: System Test
+on:
+    push:
+        tags:
+            - '*'
+    workflow_dispatch:
+
+jobs:
+    test:
+        strategy:
+            matrix:
+                node-version: [16.x, 18.x]
+                os: [windows-latest, ubuntu-latest, macOs-latest]
+                java-version: [11, 17, 19]
+        runs-on: ${{matrix.os}}
+        steps:
+            - uses: actions/checkout@v3
+            - name: Setup Node.js ${{matrix.node-version}} environment
+              uses: actions/setup-node@v3.4.1
+              with:
+                  node-version: ${{matrix.node-version}}
+            - name: Setup Java JDK ${{matrix.java-version}}
+              uses: actions/setup-java@v3
+              with:
+                  distribution: 'temurin'
+                  java-version: ${{matrix.java-version}}
+            - name: Create test directory
+              run: |
+                  mkdir system_test
+                  cp -r test/** system_test
+            - name: Setup tests
+              working-directory: system_test
+              run: |
+                  npm init -y
+                  npm i -g ts-node mocha
+                  npm i java-bridge chai mocha expose-gc ts-node
+                  npm i -D @types/chai @types/mocha @types/node typescript
+                  sed -i -E "s/from '..\/.';/from 'java-bridge';/g" *.test.ts
+            - name: Run tests
+              working-directory: system_test
+              run: mocha -r ts-node/register *.test.ts
+              timeout-minutes: 2
