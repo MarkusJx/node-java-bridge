@@ -25,10 +25,9 @@ jobs:
                   distribution: 'temurin'
                   java-version: ${{matrix.java-version}}
             - name: Setup tests
-              working-directory: test/system_test
-              shell: bash
-              run: npm install
+              working-directory: ${{github.workspace}}/test/system_test
+              run: pwd && ls && npm install
             - name: Run tests
-              working-directory: test/system_test
+              working-directory: ${{github.workspace}}/test/system_test
               run: npm run test
               timeout-minutes: 2
