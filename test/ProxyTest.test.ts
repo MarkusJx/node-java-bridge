@@ -17,9 +17,17 @@ declare class JThread extends JavaClassInstance {
     public join(): Promise<void>;
 }
 
-const javaVersion = importClass('java.lang.System')
-    .getPropertySync('java.version')
-    .split('_')[0];
+function getJavaVersion(): string {
+    const version: string = importClass('java.lang.System')
+        .getPropertySync('java.version')
+        .split('_')[0];
+
+    const arr = version.split('.');
+    arr.length = Math.min(arr.length, 3);
+    return arr.join('.');
+}
+
+const javaVersion = getJavaVersion();
 
 describe('ProxyTest', () => {
     describe('java.lang.Runnable proxy', () => {
