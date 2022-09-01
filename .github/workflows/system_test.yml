@@ -24,6 +24,9 @@ jobs:
               with:
                   distribution: 'temurin'
                   java-version: ${{matrix.java-version}}
+            - run: pwd && ls
+              working-directory: test
+            - run: pwd && ls
             - name: Setup tests
               working-directory: ${{github.workspace}}/test/system_test
               run: pwd && ls && npm install
