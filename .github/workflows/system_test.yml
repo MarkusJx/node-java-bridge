@@ -11,7 +11,7 @@ jobs:
             matrix:
                 node-version: [16.x, 18.x]
                 os: [windows-latest, ubuntu-latest, macOs-latest]
-                java-version: [11, 17, 19]
+                java-version: [11, 17, 18]
         runs-on: ${{matrix.os}}
         steps:
             - uses: actions/checkout@v3
@@ -25,11 +25,13 @@ jobs:
                   distribution: 'temurin'
                   java-version: ${{matrix.java-version}}
             - name: Create test directory
+              shell: bash
               run: |
                   mkdir system_test
                   cp -r test/** system_test
             - name: Setup tests
               working-directory: system_test
+              shell: bash
               run: |
                   npm init -y
                   npm i -g ts-node mocha
