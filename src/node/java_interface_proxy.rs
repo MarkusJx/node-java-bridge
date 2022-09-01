@@ -86,9 +86,7 @@ unsafe fn call_node_function(
         .get(&(id as _))
         .ok_or(format!("No proxy with the id {} exists", id))?
         .lock()
-        .unwrap()
-        .clone();
-    drop(proxies);
+        .unwrap();
     let method = methods
         .get(&name)
         .ok_or(format!("No method with the name {} exists", name))?;
@@ -108,6 +106,8 @@ unsafe fn call_node_function(
         Ok(InterfaceCall::new(converted_args, tx)),
         ThreadsafeFunctionCallMode::NonBlocking,
     );
+    drop(methods);
+    drop(proxies);
 
     let res = futures::executor::block_on(rx)??;
     Ok(res.map(|o| o.into_return_value()))
@@ -329,7 +329,6 @@ impl JavaInterfaceProxy {
 
         let converted_methods = Arc::new(Mutex::new(converted_methods));
         proxies.insert(id, converted_methods.clone());
-        drop(proxies);
 
         Ok(Self {
             id,
@@ -387,7 +386,6 @@ impl JavaInterfaceProxy {
 
         let mut proxies = PROXIES.lock().unwrap();
         proxies.remove(&self.id);
-        drop(proxies);
 
         self.proxy_instance.take();
         self.function_caller_instance.take();

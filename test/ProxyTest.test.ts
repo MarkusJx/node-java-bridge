@@ -10,6 +10,10 @@ declare class JThread extends JavaClassInstance {
     public startSync(): void;
 
     public joinSync(): void;
+
+    public start(): Promise<void>;
+
+    public join(): Promise<void>;
 }
 
 describe('ProxyTest', () => {
@@ -94,6 +98,43 @@ describe('ProxyTest', () => {
 
         after(() => {
             proxy = null;
+            global.gc!();
+        });
+    });
+
+    describe('Multiple proxies', () => {
+        const proxies: JavaInterfaceProxy[] = [];
+
+        it('Create Runnable proxy', () => {
+            proxies.push(java.newProxy('java.lang.Runnable', {
+                run: () => {},
+            }));
+        });
+
+        it('Create Function proxy', () => {
+            proxies.push(java.newProxy('java.util.function.Function', {
+                apply: (arg: string): string => {
+                    return arg.toUpperCase();
+                },
+            }));
+        });
+
+        it('Use Runnable proxy', async () => {
+            const Thread = java.importClass<typeof JThread>('java.lang.Thread');
+            const thread = new Thread(proxies[0]);
+            await thread.start();
+            await thread.join();
+        });
+
+        it('Use Function proxy', async () => {
+            const JString = java.importClass('java.lang.String');
+            const str = new JString('hello');
+            expect(await str.transform(proxies[1])).to.equal('HELLO');
+        });
+
+        after(() => {
+            proxies.forEach(proxy => proxy.reset());
+            proxies.length = 0;
             global.gc!();
         });
     });

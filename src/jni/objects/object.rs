@@ -251,6 +251,10 @@ impl GlobalJavaObject {
         env.get_object_class(JavaObject::from(self))
     }
 
+    /// Get this object's raw value in order to pass it
+    /// to the JVM as a method return value.
+    /// Disables automatic freeing of the object
+    /// and allows the returned value to be `null`.
     pub unsafe fn into_return_value(self) -> sys::jobject {
         self.0.lock().unwrap().disable_free();
         self.get_raw_nullable()
