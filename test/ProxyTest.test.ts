@@ -1,7 +1,8 @@
-import java, { JavaClassInstance, JavaInterfaceProxy } from '../.';
+import java, { importClass, JavaClassInstance, JavaInterfaceProxy } from '../.';
 import assert from 'assert';
 import { expect } from 'chai';
 import { afterEach } from 'mocha';
+import semver from 'semver';
 require('expose-gc');
 
 declare class JThread extends JavaClassInstance {
@@ -15,6 +16,10 @@ declare class JThread extends JavaClassInstance {
 
     public join(): Promise<void>;
 }
+
+const javaVersion = importClass('java.lang.System')
+    .getPropertySync('java.version')
+    .split('_')[0];
 
 describe('ProxyTest', () => {
     describe('java.lang.Runnable proxy', () => {
@@ -58,9 +63,12 @@ describe('ProxyTest', () => {
     });
 
     describe('java.util.function.Function proxy', () => {
+        const shouldSkip = semver.lt(javaVersion, '12.0.0');
         let proxy: JavaInterfaceProxy | null = null;
 
-        it('Create a new proxy', async () => {
+        it('Create a new proxy', async function () {
+            if (shouldSkip) this.skip();
+
             proxy = java.newProxy('java.util.function.Function', {
                 apply: (arg: string): string => {
                     return arg.toUpperCase();
@@ -72,7 +80,8 @@ describe('ProxyTest', () => {
             expect(await str.transform(proxy)).to.equal('HELLO');
         });
 
-        it('Proxy with error', async () => {
+        it('Proxy with error', async function () {
+            if (shouldSkip) this.skip();
             proxy = java.newProxy('java.util.function.Function', {
                 apply: (): string => {
                     throw new Error('Error');
@@ -93,7 +102,7 @@ describe('ProxyTest', () => {
         });
 
         afterEach(() => {
-            proxy!.reset();
+            proxy?.reset();
         });
 
         after(() => {
@@ -130,7 +139,11 @@ describe('ProxyTest', () => {
             await thread.join();
         });
 
-        it('Use Function proxy', async () => {
+        it('Use Function proxy', async function () {
+            if (semver.lt(javaVersion, '12.0.0')) {
+                this.skip();
+            }
+
             const JString = java.importClass('java.lang.String');
             const str = new JString('hello');
             expect(await str.transform(proxies[1])).to.equal('HELLO');
