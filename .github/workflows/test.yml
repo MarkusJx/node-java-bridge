@@ -32,6 +32,7 @@ jobs:
               run: cargo build --verbose
             - name: Run tests
               run: cargo test --verbose
+              timeout-minutes: 20
 
     test-npm:
         strategy:
@@ -55,6 +56,7 @@ jobs:
               run: npm ci
             - name: Run tests
               run: npm test
+              timeout-minutes: 20
 
     benchmark:
         runs-on: ubuntu-latest
@@ -74,3 +76,4 @@ jobs:
               run: npm ci
             - name: Run benchmarks
               run: npm run benchmark
+              timeout-minutes: 20
