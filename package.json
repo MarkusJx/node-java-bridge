@@ -1,6 +1,6 @@
 {
     "name": "java-bridge",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "main": "dist/index.prod.min.js",
     "typings": "ts-src/index.ts",
     "description": "A bridge between Node.js and Java APIs",
@@ -54,6 +54,7 @@
         "build:java:win32": "cd java-src && .\\gradlew.bat shadowJar",
         "prepublishOnly": "napi prepublish -t npm",
         "test": "mocha -r ts-node/register test/**/*.test.ts",
+        "testOnly": "mocha -r ts-node/register test/**/*.test.ts",
         "pretest": "npm run build",
         "version": "napi version",
         "prettier": "prettier --write .",

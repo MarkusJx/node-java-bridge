@@ -1,5 +1,10 @@
-import java, { JavaClassInstance, isInstanceOf } from '../.';
-import assert = require('assert');
+import {
+    JavaClassInstance,
+    isInstanceOf,
+    importClass,
+    importClassAsync,
+    ensureJvm,
+} from '../.';
 import { expect } from 'chai';
 
 declare class JString extends JavaClassInstance {
@@ -26,53 +31,53 @@ declare class JString extends JavaClassInstance {
 
 describe('StringTest', () => {
     it('Ensure jvm', () => {
-        java.ensureJvm();
+        ensureJvm();
     });
 
     let JavaString: typeof JString;
     it('Import java.lang.String', () => {
-        JavaString = java.importClass('java.lang.String') as typeof JString;
+        JavaString = importClass('java.lang.String') as typeof JString;
     });
 
     it('Cached import', () => {
-        java.importClass('java.lang.String');
+        importClass('java.lang.String');
     });
 
     it('Async class resolve', async () => {
-        const JavaStringAsync = (await java.importClassAsync(
+        const JavaStringAsync = (await importClassAsync(
             'java.lang.String'
         )) as typeof JString;
         const instance = (await JavaStringAsync.newInstanceAsync(
             'some text'
         )) as JString;
 
-        assert.strictEqual(await instance.toString(), 'some text');
+        expect(await instance.toString()).to.equal('some text');
     });
 
     let s1: JString;
     it('Create string instance', () => {
         s1 = new JavaString('some text');
-        assert.strictEqual(s1.toStringSync(), 'some text');
+        expect(s1.toStringSync()).to.equal('some text');
     });
 
     it('String async match', async function () {
-        assert.strictEqual(await s1.toString(), 'some text');
+        expect(await s1.toString()).to.equal('some text');
     });
 
     it('String equals', () => {
-        assert.strictEqual(new JavaString('some text').equalsSync(s1), true);
-        assert.strictEqual(new JavaString('anything').equalsSync(s1), false);
+        expect(new JavaString('some text').equalsSync(s1)).to.be.true;
+        expect(new JavaString('anything').equalsSync(s1)).to.be.false;
     });
 
     it('String async equals', async () => {
         let s2: JString = new JavaString('some text');
-        assert.strictEqual(await s2.equals(s1), true);
-        assert.strictEqual(await s2.equals(new JavaString('abc')), false);
+        expect(await s2.equals(s1)).to.be.true;
+        expect(await s2.equals(new JavaString('abc'))).to.be.false;
     });
 
     it('String async create', async function () {
         let s2 = (await JavaString.newInstanceAsync('some text')) as JString;
-        assert.strictEqual(await s2.equals(s1), true);
+        expect(await s2.equals(s1)).to.be.true;
     });
 
     it('String from char array', () => {
@@ -87,21 +92,19 @@ describe('StringTest', () => {
             'x',
             't',
         ]);
-        assert.strictEqual(s2, s1.toStringSync());
+        expect(s2).to.equal(s1.toStringSync());
     });
 
     it('String to char array', () => {
         let arr = s1.toCharArraySync();
-        assert.strictEqual(
-            JSON.stringify(arr),
+        expect(JSON.stringify(arr)).to.equal(
             JSON.stringify(s1.toStringSync().split(''))
         );
     });
 
     it('String to char array async', async () => {
         let arr = await s1.toCharArray();
-        assert.strictEqual(
-            JSON.stringify(arr),
+        expect(JSON.stringify(arr)).to.equal(
             JSON.stringify(s1.toStringSync().split(''))
         );
     });
@@ -110,19 +113,18 @@ describe('StringTest', () => {
         let arr = s1.getBytesSync();
         let bytes = Buffer.from('some text');
 
-        assert.strictEqual(JSON.stringify(arr), JSON.stringify(bytes));
+        expect(JSON.stringify(arr)).to.equal(JSON.stringify(bytes));
     });
 
     it('String split', () => {
         const split = s1.splitSync(' ');
-        assert.strictEqual(
-            JSON.stringify(split),
+        expect(JSON.stringify(split)).to.equal(
             JSON.stringify(['some', 'text'])
         );
     });
 
     it('InstanceOf', () => {
-        const Object = java.importClass('java.lang.Object');
+        const Object = importClass('java.lang.Object');
         expect(s1.instanceOf('java.lang.String')).to.be.true;
         expect(s1.instanceOf('java.lang.Object')).to.be.true;
         expect(s1.instanceOf('java.util.List')).to.be.false;

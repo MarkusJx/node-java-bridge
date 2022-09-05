@@ -22,3 +22,10 @@ export * from './java';
 import * as java from './java';
 export default java;
 export { getJavaLibPath } from '../native';
+import TypescriptDefinitionGenerator from './TypescriptDefinitionGenerator';
+export { TypescriptDefinitionGenerator };
+export {
+    ModuleDeclaration,
+    MethodDeclaration,
+    ProgressCallback,
+} from './TypescriptDefinitionGenerator';

@@ -1,5 +1,5 @@
 import ts, { SyntaxKind } from 'typescript';
-import { importClass, importClassAsync, JavaClassInstance } from './.';
+import { importClassAsync, JavaClassInstance } from './.';
 import fs from 'fs';
 import path from 'path';
 
@@ -11,18 +11,18 @@ const sourceFile = ts.createSourceFile(
     ts.ScriptKind.TS
 );
 
-interface MethodDeclaration {
+export interface MethodDeclaration {
     returnType: string;
     parameters: string[];
     isStatic: boolean;
 }
 
-interface ModuleDeclaration {
+export interface ModuleDeclaration {
     name: string;
     contents: string;
 }
 
-type ProgressCallback = (classname: string) => void;
+export type ProgressCallback = (classname: string) => void;
 
 declare class ModifierClass extends JavaClassInstance {
     public static isPublic(val: number): Promise<boolean>;
@@ -118,7 +118,6 @@ export default class TypescriptDefinitionGenerator {
         const tsConstructors = types.map((t, i) => {
             const params = t.map(this.convertParameter.bind(this));
             let declaration = ts.factory.createConstructorDeclaration(
-                undefined,
                 [ts.factory.createModifier(ts.SyntaxKind.PublicKeyword)],
                 params,
                 undefined
@@ -174,10 +173,7 @@ export default class TypescriptDefinitionGenerator {
         switch (javaType) {
             case 'byte[]':
             case 'java.lang.Byte[]':
-                return {
-                    ...ts.factory.createIdentifier('Buffer'),
-                    _typeNodeBrand: '',
-                };
+                return ts.factory.createTypeReferenceNode('Buffer');
         }
 
         if (javaType.endsWith('[]')) {
@@ -223,10 +219,7 @@ export default class TypescriptDefinitionGenerator {
                 );
             case 'java.lang.Object':
                 this.usesBasicOrJavaType = true;
-                return {
-                    ...ts.factory.createIdentifier('BasicOrJavaType'),
-                    _typeNodeBrand: '',
-                };
+                return ts.factory.createTypeReferenceNode('BasicOrJavaType');
             default:
                 if (!this.resolvedImports.includes(javaType)) {
                     this.additionalImports.push(javaType);
@@ -235,16 +228,12 @@ export default class TypescriptDefinitionGenerator {
                 this.importsToResolve.push(javaType);
                 const isSelf = javaType === this.classname && isParam;
 
-                return {
-                    ...ts.factory.createIdentifier(
-                        javaType === this.classname
-                            ? javaType.substring(
-                                  javaType.lastIndexOf('.') + 1
-                              ) + (isSelf ? 'Class' : '')
-                            : javaType.replaceAll('.', '_')
-                    ),
-                    _typeNodeBrand: '',
-                };
+                return ts.factory.createTypeReferenceNode(
+                    javaType === this.classname
+                        ? javaType.substring(javaType.lastIndexOf('.') + 1) +
+                              (isSelf ? 'Class' : '')
+                        : javaType.replaceAll('.', '_')
+                );
         }
     }
 
@@ -255,7 +244,6 @@ export default class TypescriptDefinitionGenerator {
         const name = 'var' + index;
         const type = this.javaTypeToTypescriptType(param, true);
         return ts.factory.createParameterDeclaration(
-            undefined,
             undefined,
             undefined,
             name,
@@ -305,7 +293,6 @@ export default class TypescriptDefinitionGenerator {
         }
 
         let declaration = ts.factory.createMethodDeclaration(
-            undefined,
             modifiers,
             undefined,
             name + (isSync ? 'Sync' : ''),
@@ -385,7 +372,6 @@ export default class TypescriptDefinitionGenerator {
             .map((i) =>
                 ts.factory.createImportDeclaration(
                     undefined,
-                    undefined,
                     ts.factory.createImportClause(
                         false,
                         undefined,
@@ -433,7 +419,6 @@ export default class TypescriptDefinitionGenerator {
         const imports = ts.factory.createNamedImports(importElements);
         return ts.factory.createImportDeclaration(
             undefined,
-            undefined,
             ts.factory.createImportClause(false, undefined, imports),
             ts.factory.createStringLiteral('java-bridge')
         );
@@ -441,7 +426,6 @@ export default class TypescriptDefinitionGenerator {
 
     private getExportStatement(simpleName: string) {
         const statement = ts.factory.createClassDeclaration(
-            undefined,
             [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
             simpleName,
             undefined,
@@ -526,7 +510,6 @@ export default class TypescriptDefinitionGenerator {
         classMembers.push(...convertedConstructors);
 
         let tsClass = ts.factory.createClassDeclaration(
-            undefined,
             [
                 ts.factory.createModifier(ts.SyntaxKind.ExportKeyword),
                 ts.factory.createModifier(ts.SyntaxKind.DeclareKeyword),

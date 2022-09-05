@@ -4,7 +4,6 @@ import java, {
     JavaType,
     isInstanceOf,
 } from '../.';
-import assert = require('assert');
 import { it } from 'mocha';
 import { expect } from 'chai';
 
@@ -46,12 +45,12 @@ describe('ArrayListTest', () => {
 
     it('Create a new ArrayList', () => {
         list = new ArrayList!();
-        assert.notStrictEqual(list, null);
-        assert.strictEqual(list!.isEmptySync(), true);
+        expect(list).to.not.be.null;
+        expect(list!.isEmptySync()).to.be.true;
     });
 
     it('Get the list size', () => {
-        assert.strictEqual(list!.sizeSync(), 0);
+        expect(list!.sizeSync()).to.equal(0);
     });
 
     const elements: any[] = [];
@@ -60,9 +59,9 @@ describe('ArrayListTest', () => {
         list!.addSync(123);
         elements.push(123);
 
-        assert.strictEqual(list!.containsSync(123), true);
-        assert.strictEqual(list!.sizeSync(), 1);
-        assert.strictEqual(list!.getSync(0), 123);
+        expect(list!.containsSync(123)).to.be.true;
+        expect(list!.sizeSync()).to.equal(1);
+        expect(list!.getSync(0)).to.equal(123);
     });
 
     it('Insert string', () => {
@@ -70,9 +69,9 @@ describe('ArrayListTest', () => {
         list!.addSync(val);
         elements.push(val);
 
-        assert.strictEqual(list!.lastIndexOfSync(val), 1);
-        assert.strictEqual(list!.sizeSync(), 2);
-        assert.strictEqual(list!.getSync(1), val);
+        expect(list!.lastIndexOfSync(val)).to.equal(1);
+        expect(list!.sizeSync()).to.equal(2);
+        expect(list!.getSync(1)).to.equal(val);
     });
 
     it('Insert long', () => {
@@ -80,8 +79,8 @@ describe('ArrayListTest', () => {
         list!.addSync(long);
         elements.push(long);
 
-        assert.strictEqual(list!.sizeSync(), 3);
-        assert.strictEqual(list!.getSync(2), long);
+        expect(list!.sizeSync()).to.equal(3);
+        expect(list!.getSync(2)).to.equal(long);
     });
 
     it('Insert double async', async () => {
@@ -89,11 +88,11 @@ describe('ArrayListTest', () => {
         await list!.add(double);
         elements.push(double);
 
-        assert.strictEqual(await list!.lastIndexOf(double), 3);
-        assert.strictEqual(await list!.contains(double), true);
-        assert.strictEqual(await list!.isEmpty(), false);
-        assert.strictEqual(await list!.size(), 4);
-        assert.strictEqual(await list!.get(3), double);
+        expect(await list!.lastIndexOf(double)).to.equal(3);
+        expect(await list!.contains(double)).to.be.true;
+        expect(await list!.isEmpty()).to.be.false;
+        expect(await list!.size()).to.equal(4);
+        expect(await list!.get(3)).to.equal(double);
     });
 
     it('Insert Float', () => {
@@ -102,12 +101,15 @@ describe('ArrayListTest', () => {
 
         list!.addSync(val);
         elements.push(val.doubleValueSync());
+
+        expect(list!.sizeSync()).to.equal(5);
+        expect(list!.getSync(4)).to.equal(val.doubleValueSync());
     });
 
     it('toArray', () => {
         // Create a conversion helper as json
         // doesn't know how to serialize a BigInt
-        const converter = (key: any, value: any) => {
+        const converter = (_: any, value: any) => {
             if (typeof value === 'bigint') {
                 return value.toString();
             } else {
@@ -115,20 +117,19 @@ describe('ArrayListTest', () => {
             }
         };
 
-        assert.strictEqual(
-            JSON.stringify(list!.toArraySync(), converter),
+        expect(JSON.stringify(list!.toArraySync(), converter)).to.equal(
             JSON.stringify(elements, converter)
         );
     });
 
     it('List remove', () => {
-        assert.strictEqual(list!.removeSync(0), 123);
-        assert.strictEqual(list!.sizeSync(), 4);
+        expect(list!.removeSync(0)).to.equal(123);
+        expect(list!.sizeSync()).to.equal(4);
     });
 
     it('List remove async', async () => {
-        assert.strictEqual(await list!.remove(0), 'Some string');
-        assert.strictEqual(await list!.size(), 3);
+        expect(await list!.remove(0)).to.equal('Some string');
+        expect(await list!.size()).to.equal(3);
     });
 
     let list_cpy: ArrayListClass<JavaType> | null = null;
@@ -136,19 +137,21 @@ describe('ArrayListTest', () => {
     it('List copy', () => {
         list_cpy = new ArrayList!(list!);
 
-        assert.strictEqual(list!.sizeSync(), list_cpy!.sizeSync());
+        expect(list!.sizeSync()).to.equal(list_cpy!.sizeSync());
     });
 
     it('List clear', () => {
+        expect(list!.isEmptySync()).to.be.false;
         list!.clearSync();
-        assert.strictEqual(list!.isEmptySync(), true);
-        assert.strictEqual(list!.sizeSync(), 0);
+        expect(list!.isEmptySync()).to.be.true;
+        expect(list!.sizeSync()).to.equal(0);
     });
 
     it('List clear async', async () => {
+        expect(await list_cpy!.isEmpty()).to.be.false;
         await list_cpy!.clear();
-        assert.strictEqual(await list_cpy!.isEmpty(), true);
-        assert.strictEqual(await list_cpy!.size(), 0);
+        expect(await list_cpy!.isEmpty()).to.be.true;
+        expect(await list_cpy!.size()).to.equal(0);
     });
 
     it('InstanceOf', () => {

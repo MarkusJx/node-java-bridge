@@ -249,3 +249,25 @@ Options:
 -   The classpath argument can be supplied multiple times to add multiple jars to the classpath
 -   Multiple class names can be supplied to generate definitions for multiple classes
 -   The generated typescript files will automatically import all classes once the module is loaded.
+
+### Examples
+
+#### Generate definitions for a single class
+
+Generate definitions for the `java.lang.String` class and all its referenced classes and save them to `./project`:
+
+```bash
+java-ts-gen ./project java.lang.String
+```
+
+This will create a directory called `java` containing the definitions for the `java.lang.String` class and all its
+dependencies all inside subdirectories. The `java.lang.String` class will be saved to `./project/java/lang/String.ts`.
+
+#### Generate definitions for multiple classes
+
+Generate definitions for the `java.lang.String` and `java.util.ArrayList` classes and all of their dependencies
+and save them to `./project`:
+
+```bash
+java-ts-gen ./project java.lang.String java.util.ArrayList
+```

@@ -1,8 +1,13 @@
 import yargs from 'yargs';
 import { performance } from 'perf_hooks';
 import path from 'path';
-import java from '..';
+import java, {
+    ensureJvm,
+    getJavaInstance,
+    TypescriptDefinitionGenerator,
+} from '../.';
 import { version } from '../../package.json';
+import type { Ora } from 'ora';
 
 interface Args {
     classnames: string[];
@@ -40,8 +45,12 @@ const handler: YargsHandler<Args> = async ({
     output,
     classpath,
 }) => {
+    let spinner: Ora | null = null;
     try {
         const startTime = performance.now();
+        ensureJvm({
+            useDaemonThreads: true,
+        });
 
         if (classpath) {
             java.classpath.append(classpath);
@@ -56,7 +65,7 @@ const handler: YargsHandler<Args> = async ({
             )} Java definition generator`
         );
 
-        const javaInstance = java.getJavaInstance()!;
+        const javaInstance = getJavaInstance()!;
         const loadedJars = java.classpath.get();
         if (loadedJars.length > 0) {
             console.log(
@@ -78,7 +87,7 @@ const handler: YargsHandler<Args> = async ({
             )}`
         );
 
-        const spinner = ora().start();
+        spinner = ora().start();
 
         const resolvedImports: string[] = [];
         let resolvedCounter: number = 0;
@@ -92,7 +101,7 @@ const handler: YargsHandler<Args> = async ({
         }, 1000);
 
         const setText = () => {
-            spinner.text = chalk.gray(
+            spinner!.text = chalk.gray(
                 `Elapsed time: ${chalk.yellow(
                     approximateTimeElapsed
                 )} seconds ${chalk.white('|')} Converted ${chalk.cyanBright(
@@ -102,10 +111,6 @@ const handler: YargsHandler<Args> = async ({
                 )} Converting class ${chalk.magentaBright(lastClassResolved)}`
             );
         };
-
-        const TypescriptDefinitionGenerator = (
-            await import('../TypescriptDefinitionGenerator')
-        ).default;
 
         for (const classname of classnames) {
             const generator = new TypescriptDefinitionGenerator(
@@ -120,18 +125,19 @@ const handler: YargsHandler<Args> = async ({
             const generated = await generator.generate();
             numResolved += generated.length;
 
-            spinner.text = 'saving results';
+            spinner!.text = 'saving results';
             await TypescriptDefinitionGenerator.save(generated, output);
         }
 
         clearInterval(timeElapsedInterval);
         const timeElapsed = ((performance.now() - startTime) / 1000).toFixed(1);
-        spinner.succeed(
+        spinner!.succeed(
             `Success - Converted ${chalk.blueBright(
                 numResolved
             )} classes in ${chalk.blueBright(timeElapsed)} seconds`
         );
     } catch (e) {
+        spinner?.fail('Failed to convert classes');
         console.error(e);
         process.exit(1);
     }

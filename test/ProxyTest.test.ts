@@ -56,11 +56,7 @@ describe('ProxyTest', () => {
 
         it('Destroy the proxy', async () => {
             proxy!.reset();
-
-            try {
-                proxy!.reset();
-                assert.fail('The proxy should already be destroyed');
-            } catch (_) {}
+            expect(() => proxy!.reset()).to.throw();
         });
 
         after(() => {

@@ -17,7 +17,9 @@
         "outDir": "./dist",
         "downlevelIteration": true,
         "sourceMap": true,
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true
     },
     "exclude": ["node_modules", "dist"]
 }
