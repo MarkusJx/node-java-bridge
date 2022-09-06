@@ -119,5 +119,5 @@ describe('TypescriptDefinitionGenerator test', () => {
             iterator!.instanceOf(Iterator);
             `
         );
-    }).timeout(10000);
+    }).timeout(30000);
 });
