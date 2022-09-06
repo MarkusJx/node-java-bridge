@@ -1,6 +1,6 @@
 {
     "name": "java-bridge",
-    "version": "2.1.2",
+    "version": "2.1.3",
     "main": "dist/index.prod.min.js",
     "typings": "ts-src/index.ts",
     "description": "A bridge between Node.js and Java APIs",
@@ -16,7 +16,8 @@
     "files": [
         "ts-src",
         "dist/*.js",
-        "java-src/build/libs/*.jar"
+        "java-src/build/libs/*.jar",
+        "native.d.ts"
     ],
     "napi": {
         "name": "java",
@@ -99,10 +100,10 @@
         "webpack-node-externals": "^3.0.0"
     },
     "optionalDependencies": {
-        "java-bridge-darwin-arm64": "2.1.0",
-        "java-bridge-darwin-x64": "2.1.0",
-        "java-bridge-linux-x64-gnu": "2.1.0",
-        "java-bridge-win32-ia32-msvc": "2.1.0",
-        "java-bridge-win32-x64-msvc": "^2.1.0"
+        "java-bridge-win32-x64-msvc": "2.1.3",
+        "java-bridge-darwin-x64": "2.1.3",
+        "java-bridge-linux-x64-gnu": "2.1.3",
+        "java-bridge-darwin-arm64": "2.1.3",
+        "java-bridge-win32-ia32-msvc": "2.1.3"
     }
 }

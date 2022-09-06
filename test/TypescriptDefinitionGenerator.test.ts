@@ -65,13 +65,16 @@ async function checkDeclarations(
     indexContents: string
 ) {
     const dir = fs.mkdtempSync('java-bridge');
+    const isSystemTest = path.basename(__dirname) === 'system_test';
     await TypescriptDefinitionGenerator.save(
         declarations.map((d) => ({
             name: d.name,
-            contents: d.contents.replaceAll(
-                'from "java-bridge";',
-                `from ${JSON.stringify(path.join(__dirname, '..'))};`
-            ),
+            contents: isSystemTest
+                ? d.contents
+                : d.contents.replaceAll(
+                      'from "java-bridge";',
+                      `from ${JSON.stringify(path.join(__dirname, '..'))};`
+                  ),
         })),
         dir
     );
