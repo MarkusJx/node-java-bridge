@@ -262,6 +262,21 @@ java-ts-gen ./project java.lang.String
 
 This will create a directory called `java` containing the definitions for the `java.lang.String` class and all its
 dependencies all inside subdirectories. The `java.lang.String` class will be saved to `./project/java/lang/String.ts`.
+Thus, the folder structure of `project` will look something like this:
+
+```
+.
+├── ...
+├── java
+│   ├── lang
+│   │   ├── String.ts
+│   │   ├── Object.ts
+│   │   └── ...
+│   ├── util
+│   │   └── ...
+│   └── ...
+└── ...
+```
 
 #### Generate definitions for multiple classes
 
