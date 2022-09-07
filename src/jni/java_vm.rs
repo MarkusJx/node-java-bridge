@@ -155,7 +155,9 @@ impl JavaVM {
                 .into());
             }
 
-            Ok(JavaEnv::new(ptr.clone(), options.clone(), env))
+            let j_env = JavaEnv::new(ptr.clone(), options.clone(), env);
+            j_env.thread_set_context_classloader()?;
+            Ok(j_env)
         } else if create_result == sys::JNI_OK as i32 {
             drop(jvm_ptr);
             Ok(JavaEnv::new(ptr.clone(), options.clone(), env))
