@@ -39,7 +39,7 @@ describe('ProxyTest', () => {
         let proxy: JavaInterfaceProxy | null = null;
 
         it('Create a new proxy', (done) => {
-            const Thread = java.importClass<typeof JThread>('java.lang.Thread');
+            const Thread = importClass<typeof JThread>('java.lang.Thread');
             proxy = java.newProxy('java.lang.Runnable', {
                 run: () => {
                     done();

@@ -1,6 +1,6 @@
 {
     "name": "java-bridge-linux-x64-gnu",
-    "version": "2.1.3",
+    "version": "2.1.4",
     "os": [
         "linux"
     ],
