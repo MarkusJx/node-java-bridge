@@ -1,11 +1,11 @@
-import java, { JavaClassInstance, StdoutRedirectGuard } from '../.';
+import java, { JavaClass, StdoutRedirectGuard } from '../.';
 
 interface Stream {
     printlnSync(msg: string): void;
     flushSync(): void;
 }
 
-declare class System extends JavaClassInstance {
+declare class System extends JavaClass {
     public static readonly out: Stream;
     public static readonly err: Stream;
 }

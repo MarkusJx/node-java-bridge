@@ -8,10 +8,10 @@ import {
     setStaticField,
 } from '../native';
 import {
-    JavaClassInstance,
-    JavaClassType,
-    JavaConstructor,
+    JavaClass,
+    JavaClassConstructorType,
     JavaVersion,
+    UnknownJavaClassType,
 } from './definitions';
 import { getJavaLibPath, getNativeLibPath } from './nativeLib';
 
@@ -180,9 +180,9 @@ function defineFields(object: Record<string, any>, getStatic: boolean): void {
  * @param classname the name of the class to resolve
  * @return the java class constructor
  */
-export function importClass<T extends JavaClassType = JavaClassType>(
-    classname: string
-): JavaConstructor<T> {
+export function importClass<
+    T extends JavaClassConstructorType = UnknownJavaClassType
+>(classname: string): T {
     ensureJvm();
     const constructor = javaInstance!.importClass(
         classname
@@ -196,15 +196,15 @@ export function importClass<T extends JavaClassType = JavaClassType>(
         return object;
     };
 
-    return constructor as unknown as JavaConstructor<T>;
+    return constructor as unknown as T;
 }
 
 /**
  * @inheritDoc importClass
  */
-export async function importClassAsync<T extends JavaClassType = JavaClassType>(
-    classname: string
-): Promise<JavaConstructor<T>> {
+export async function importClassAsync<
+    T extends JavaClassConstructorType = UnknownJavaClassType
+>(classname: string): Promise<T> {
     ensureJvm();
     const constructor = (await javaInstance!.importClassAsync(
         classname
@@ -218,7 +218,7 @@ export async function importClassAsync<T extends JavaClassType = JavaClassType>(
         return object;
     };
 
-    return constructor as unknown as JavaConstructor<T>;
+    return constructor as unknown as T;
 }
 
 /**
@@ -256,7 +256,7 @@ export function appendClasspath(path: string | string[]): void {
 /**
  * Check if `this_obj` is instance of `other`.
  * This uses the native java `instanceof` operator.
- * You may want to use this if {@link JavaClassInstance.instanceOf}
+ * You may want to use this if {@link JavaClass.instanceOf}
  * is overridden, as that method itself does not override
  * any method defined in the specific java class named 'instanceOf'.
  *
@@ -287,8 +287,8 @@ export function appendClasspath(path: string | string[]): void {
  * @param other the class or class name to check against
  * @return true if `this_obj` is an instance of `other`
  */
-export function isInstanceOf<T extends typeof JavaClassInstance>(
-    this_obj: JavaClassInstance,
+export function isInstanceOf<T extends JavaClassConstructorType>(
+    this_obj: JavaClass,
     other: string | T
 ): boolean {
     ensureJvm();

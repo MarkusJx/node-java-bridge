@@ -1,11 +1,11 @@
-import java, { importClass, JavaClassInstance, JavaInterfaceProxy } from '../.';
+import java, { importClass, JavaClass, JavaInterfaceProxy } from '../.';
 import assert from 'assert';
 import { expect } from 'chai';
 import { afterEach } from 'mocha';
 import semver from 'semver';
 require('expose-gc');
 
-declare class JThread extends JavaClassInstance {
+declare class JThread extends JavaClass {
     public constructor(proxy: JavaInterfaceProxy);
 
     public startSync(): void;
@@ -39,7 +39,7 @@ describe('ProxyTest', () => {
         let proxy: JavaInterfaceProxy | null = null;
 
         it('Create a new proxy', (done) => {
-            const Thread = java.importClass<typeof JThread>('java.lang.Thread');
+            const Thread = importClass<typeof JThread>('java.lang.Thread');
             proxy = java.newProxy('java.lang.Runnable', {
                 run: () => {
                     done();

@@ -1,5 +1,5 @@
 import ts, { SyntaxKind } from 'typescript';
-import { importClassAsync, JavaClassInstance } from './.';
+import { importClassAsync, JavaClass } from './.';
 import fs from 'fs';
 import path from 'path';
 
@@ -17,44 +17,81 @@ export interface MethodDeclaration {
     isStatic: boolean;
 }
 
+/**
+ * A java class declaration converted to typescript
+ */
 export interface ModuleDeclaration {
+    /**
+     * The fully-qualified class name
+     */
     name: string;
+    /**
+     * The generated typescript code
+     */
     contents: string;
 }
 
+/**
+ * A TypescriptDefinitionGenerator progress callback method
+ */
 export type ProgressCallback = (classname: string) => void;
 
-declare class ModifierClass extends JavaClassInstance {
+declare class ModifierClass extends JavaClass {
     public static isPublic(val: number): Promise<boolean>;
     public static isStatic(val: number): Promise<boolean>;
 }
 
-declare class TypeClass extends JavaClassInstance {
+declare class TypeClass extends JavaClass {
     public getTypeName(): Promise<string>;
 }
 
-declare class DeclaredMethodClass extends JavaClassInstance {
+declare class DeclaredMethodClass extends JavaClass {
     public getModifiers(): Promise<number>;
     public getName(): Promise<string>;
     public getReturnType(): Promise<TypeClass>;
     public getParameterTypes(): Promise<TypeClass[]>;
 }
 
-declare class DeclaredConstructorClass extends JavaClassInstance {
+declare class DeclaredConstructorClass extends JavaClass {
     public getModifiers(): Promise<number>;
     public getParameterTypes(): Promise<TypeClass[]>;
 }
 
-declare class ClassClass extends JavaClassInstance {
+declare class ClassClass extends JavaClass {
     public getDeclaredMethods(): Promise<DeclaredMethodClass[]>;
     public getDeclaredConstructors(): Promise<DeclaredConstructorClass[]>;
 }
 
+/**
+ * A class to generate typescript definitions for java classes.
+ * Converts the given class and all of its dependencies to typescript.
+ *
+ * ## Example
+ * ```ts
+ * import { TypescriptDefinitionGenerator } from 'java-bridge';
+ *
+ * const generator = new TypescriptDefinitionGenerator('java.lang.String');
+ * // Generate the typescript definitions
+ * const definitions = await generator.generate();
+ *
+ * // Save the definitions to a directory
+ * await TypescriptDefinitionGenerator.save(definitions, './project');
+ * ```
+ */
 export default class TypescriptDefinitionGenerator {
     private usesBasicOrJavaType: boolean = false;
     private readonly additionalImports: string[] = [];
     private readonly importsToResolve: string[] = [];
 
+    /**
+     * Create a new `TypescriptDefinitionGenerator` instance
+     *
+     * @param classname the fully-qualified name of the class to generate a typescript definition for
+     * @param progressCallback a callback method to be called every time a java class is
+     *                         converted to typescript
+     * @param resolvedImports a list of imports that have already been resolved.
+     *                        This is used to prevent converting a class multiple times
+     */
     public constructor(
         private readonly classname: string,
         private readonly progressCallback: ProgressCallback | null = null,
@@ -402,7 +439,7 @@ export default class TypescriptDefinitionGenerator {
             ts.factory.createImportSpecifier(
                 false,
                 undefined,
-                ts.factory.createIdentifier('JavaClassInstance')
+                ts.factory.createIdentifier('JavaClass')
             ),
         ];
 
@@ -476,6 +513,11 @@ export default class TypescriptDefinitionGenerator {
             .join('\n');
     }
 
+    /**
+     * Generates the typescript definition for the given class.
+     *
+     * @returns the generated typescript definitions
+     */
     public async generate(): Promise<ModuleDeclaration[]> {
         if (this.resolvedImports.includes(this.classname)) {
             return [];
@@ -519,7 +561,7 @@ export default class TypescriptDefinitionGenerator {
             [
                 ts.factory.createHeritageClause(ts.SyntaxKind.ExtendsKeyword, [
                     ts.factory.createExpressionWithTypeArguments(
-                        ts.factory.createIdentifier('JavaClassInstance'),
+                        ts.factory.createIdentifier('JavaClass'),
                         undefined
                     ),
                 ]),
@@ -563,6 +605,12 @@ export default class TypescriptDefinitionGenerator {
         return res;
     }
 
+    /**
+     * Save the converted classes to the given directory.
+     *
+     * @param declarations the declarations to save
+     * @param sourceDir the directory to save the files to
+     */
     public static async save(
         declarations: ModuleDeclaration[],
         sourceDir: string

@@ -6,7 +6,7 @@
         "module": "commonjs",
         "moduleResolution": "node",
         "esModuleInterop": true,
-        "declaration": false,
+        "declaration": true,
         "lib": ["ESNext", "es2020"],
         "strict": true,
         "strictFunctionTypes": true,
