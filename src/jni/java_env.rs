@@ -193,11 +193,16 @@ impl<'a> JavaEnv<'a> {
         }
 
         let thread_class = self.find_class("java/lang/Thread")?;
-        let get_current_thread = thread_class.get_static_object_method("currentThread", "()Ljava/lang/Thread;")?;
-        let set_context_classloader = thread_class.get_void_method("setContextClassLoader", "(Ljava/lang/ClassLoader;)V")?;
+        let get_current_thread =
+            thread_class.get_static_object_method("currentThread", "()Ljava/lang/Thread;")?;
+        let set_context_classloader =
+            thread_class.get_void_method("setContextClassLoader", "(Ljava/lang/ClassLoader;)V")?;
 
         let current_thread = get_current_thread.call(vec![])?;
-        set_context_classloader.call(JavaObject::from(current_thread), vec![Box::new(&self.get_class_loader()?)])
+        set_context_classloader.call(
+            JavaObject::from(current_thread),
+            vec![Box::new(&self.get_class_loader()?)],
+        )
     }
 
     pub(in crate::jni) fn delete_global_ref(&self, object: sys::jobject) -> () {
