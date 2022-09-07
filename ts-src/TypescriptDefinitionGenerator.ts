@@ -1,5 +1,5 @@
 import ts, { SyntaxKind } from 'typescript';
-import { importClassAsync, JavaClassInstance } from './.';
+import { importClassAsync, JavaClass } from './.';
 import fs from 'fs';
 import path from 'path';
 
@@ -24,28 +24,28 @@ export interface ModuleDeclaration {
 
 export type ProgressCallback = (classname: string) => void;
 
-declare class ModifierClass extends JavaClassInstance {
+declare class ModifierClass extends JavaClass {
     public static isPublic(val: number): Promise<boolean>;
     public static isStatic(val: number): Promise<boolean>;
 }
 
-declare class TypeClass extends JavaClassInstance {
+declare class TypeClass extends JavaClass {
     public getTypeName(): Promise<string>;
 }
 
-declare class DeclaredMethodClass extends JavaClassInstance {
+declare class DeclaredMethodClass extends JavaClass {
     public getModifiers(): Promise<number>;
     public getName(): Promise<string>;
     public getReturnType(): Promise<TypeClass>;
     public getParameterTypes(): Promise<TypeClass[]>;
 }
 
-declare class DeclaredConstructorClass extends JavaClassInstance {
+declare class DeclaredConstructorClass extends JavaClass {
     public getModifiers(): Promise<number>;
     public getParameterTypes(): Promise<TypeClass[]>;
 }
 
-declare class ClassClass extends JavaClassInstance {
+declare class ClassClass extends JavaClass {
     public getDeclaredMethods(): Promise<DeclaredMethodClass[]>;
     public getDeclaredConstructors(): Promise<DeclaredConstructorClass[]>;
 }
@@ -402,7 +402,7 @@ export default class TypescriptDefinitionGenerator {
             ts.factory.createImportSpecifier(
                 false,
                 undefined,
-                ts.factory.createIdentifier('JavaClassInstance')
+                ts.factory.createIdentifier('JavaClass')
             ),
         ];
 
@@ -519,7 +519,7 @@ export default class TypescriptDefinitionGenerator {
             [
                 ts.factory.createHeritageClause(ts.SyntaxKind.ExtendsKeyword, [
                     ts.factory.createExpressionWithTypeArguments(
-                        ts.factory.createIdentifier('JavaClassInstance'),
+                        ts.factory.createIdentifier('JavaClass'),
                         undefined
                     ),
                 ]),

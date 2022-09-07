@@ -1,13 +1,8 @@
-import java, {
-    JavaClassInstance,
-    JavaConstructor,
-    JavaType,
-    isInstanceOf,
-} from '../.';
+import java, { JavaClass, JavaType, isInstanceOf } from '../.';
 import { it } from 'mocha';
 import { expect } from 'chai';
 
-declare class ListClass<T extends JavaType> extends JavaClassInstance {
+declare class ListClass<T extends JavaType> extends JavaClass {
     containsSync(element: T): boolean;
     sizeSync(): number;
     getSync(index: number): T;
@@ -16,6 +11,7 @@ declare class ListClass<T extends JavaType> extends JavaClassInstance {
     removeSync(index: number): T;
     toArraySync(): T[];
     isEmptySync(): boolean;
+    clearSync(): void;
 
     add(value: T): Promise<void>;
     lastIndexOf(element: T): Promise<number>;
@@ -24,14 +20,17 @@ declare class ListClass<T extends JavaType> extends JavaClassInstance {
     size(): Promise<number>;
     get(index: number): Promise<T>;
     remove(index: number): Promise<T>;
+    clear(): Promise<void>;
 }
 
-declare class ArrayListClass<T extends JavaType> extends ListClass<T> {}
+declare class ArrayListClass<T extends JavaType> extends ListClass<T> {
+    constructor();
+    constructor(other: ListClass<T>);
+}
 
 describe('ArrayListTest', () => {
     let list: ArrayListClass<JavaType> | null = null;
-    let ArrayList: JavaConstructor<typeof ArrayListClass<JavaType>> | null =
-        null;
+    let ArrayList: typeof ArrayListClass<JavaType> | null = null;
 
     it('Ensure jvm', () => {
         java.ensureJvm();

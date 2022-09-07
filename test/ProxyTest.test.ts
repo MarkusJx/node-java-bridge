@@ -1,11 +1,11 @@
-import java, { importClass, JavaClassInstance, JavaInterfaceProxy } from '../.';
+import java, { importClass, JavaClass, JavaInterfaceProxy } from '../.';
 import assert from 'assert';
 import { expect } from 'chai';
 import { afterEach } from 'mocha';
 import semver from 'semver';
 require('expose-gc');
 
-declare class JThread extends JavaClassInstance {
+declare class JThread extends JavaClass {
     public constructor(proxy: JavaInterfaceProxy);
 
     public startSync(): void;

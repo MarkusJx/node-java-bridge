@@ -1,13 +1,17 @@
 import {
-    JavaClassInstance,
     isInstanceOf,
     importClass,
     importClassAsync,
     ensureJvm,
+    JavaClass,
 } from '../.';
 import { expect } from 'chai';
 
-declare class JString extends JavaClassInstance {
+declare class JString extends JavaClass {
+    constructor(value: string);
+
+    static newInstanceAsync(value: string): Promise<JString>;
+
     static valueOf(values: string[]): Promise<JString>;
 
     static valueOfSync(values: string[]): JString;
@@ -36,7 +40,7 @@ describe('StringTest', () => {
 
     let JavaString: typeof JString;
     it('Import java.lang.String', () => {
-        JavaString = importClass('java.lang.String') as typeof JString;
+        JavaString = importClass<typeof JString>('java.lang.String');
     });
 
     it('Cached import', () => {
@@ -44,12 +48,10 @@ describe('StringTest', () => {
     });
 
     it('Async class resolve', async () => {
-        const JavaStringAsync = (await importClassAsync(
+        const JavaStringAsync = await importClassAsync<typeof JString>(
             'java.lang.String'
-        )) as typeof JString;
-        const instance = (await JavaStringAsync.newInstanceAsync(
-            'some text'
-        )) as JString;
+        );
+        const instance = await JavaStringAsync.newInstanceAsync('some text');
 
         expect(await instance.toString()).to.equal('some text');
     });

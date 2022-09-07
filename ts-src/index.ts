@@ -3,13 +3,15 @@ export {
     JavaObject,
     JavaClassInstance,
     JavaClassProxy,
+    JavaClass,
+    JavaClassConstructor,
     JavaType,
-    JavaConstructor,
     BasicOrJavaType,
     BasicType,
-    ImportedMembers,
     JavaClassType,
     Constructor,
+    UnknownJavaClassType,
+    JavaClassConstructorType,
 } from './definitions';
 import type * as internal from '../native';
 /**
