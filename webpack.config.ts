@@ -2,11 +2,15 @@ import path from 'path';
 import { BannerPlugin } from 'webpack';
 import nodeExternals from 'webpack-node-externals';
 
+interface AdditionalOptions {
+    banner?: string;
+}
+
 const config = (
     entry: string,
     mode: string,
     outName: string,
-    banner?: string
+    opts?: AdditionalOptions
 ) => ({
     entry,
     target: 'node',
@@ -54,23 +58,18 @@ const config = (
         extensions: ['.ts', '.js'],
     },
     devtool: 'source-map',
-    plugins: banner
-        ? [
-              new BannerPlugin({
-                  banner,
-                  raw: true,
-              }),
-          ]
-        : [],
+    plugins: [
+        opts?.banner &&
+            new BannerPlugin({
+                banner: opts?.banner,
+                raw: true,
+            }),
+    ].filter((v) => !!v),
 });
 
 module.exports = [
     config('./ts-src/index.ts', 'production', 'index.prod.min.js'),
-    config('./ts-src/index.ts', 'development', 'index.dev.min.js'),
-    config(
-        './ts-src/scripts/cli.ts',
-        'production',
-        'java-ts-gen.js',
-        '#!/usr/bin/env node'
-    ),
+    config('./ts-src/scripts/cli.ts', 'production', 'java-ts-gen.js', {
+        banner: '#!/usr/bin/env node',
+    }),
 ];

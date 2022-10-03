@@ -1,3 +1,7 @@
+[![Test](https://github.com/MarkusJx/node-java-bridge/actions/workflows/test.yml/badge.svg)](https://github.com/MarkusJx/node-java-bridge/actions/workflows/test.yml)
+[![Check-style](https://github.com/MarkusJx/node-java-bridge/actions/workflows/check-style.yml/badge.svg)](https://github.com/MarkusJx/node-java-bridge/actions/workflows/check-style.yml)
+[![SystemTest](https://github.com/MarkusJx/node-java-bridge/actions/workflows/system_test.yml/badge.svg)](https://github.com/MarkusJx/node-java-bridge/actions/workflows/system_test.yml)
+
 A bridge between Node.js programs and Java APIs written in Rust using [napi-rs](https://napi.rs/)
 to provide a fast and memory-safe interface between the two languages.
 

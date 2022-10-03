@@ -212,9 +212,8 @@ impl Drop for GlobalJavaObjectInternal {
             let vm = JavaVM::from_existing(self.jvm.clone(), self.options);
             let env = vm.attach_thread();
 
-            if env.is_ok() {
-                env.unwrap()
-                    .delete_global_ref(self.object.load(Ordering::Relaxed));
+            if let Ok(env) = env {
+                env.delete_global_ref(self.object.load(Ordering::Relaxed));
             }
         }
     }
@@ -248,7 +247,7 @@ impl GlobalJavaObject {
             return Err("Cannot get class for null pointer".into());
         }
 
-        env.get_object_class(JavaObject::from(self))
+        env.get_object_class(self.into())
     }
 
     /// Get this object's raw value in order to pass it
@@ -281,7 +280,7 @@ impl IsInstanceOf for GlobalJavaObject {
         let vm = self.0.lock().unwrap().get_vm();
         let env = vm.attach_thread()?;
 
-        env.is_instance_of(JavaObject::from(self), classname)
+        env.is_instance_of(self.into(), classname)
     }
 }
 
@@ -300,7 +299,7 @@ impl GetSignature for GlobalJavaObject {
         let vm = self.0.lock().unwrap().get_vm();
         let env = vm.attach_thread()?;
 
-        env.get_env().get_object_signature(JavaObject::from(self))
+        env.get_env().get_object_signature(self.into())
     }
 }
 

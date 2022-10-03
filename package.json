@@ -54,7 +54,7 @@
         "build:java:darwin:linux": "cd java-src && chmod +x gradlew && ./gradlew shadowJar",
         "build:java:win32": "cd java-src && .\\gradlew.bat shadowJar",
         "prepublishOnly": "napi prepublish -t npm",
-        "test": "mocha -r ts-node/register test/**/*.test.ts",
+        "test": "npm run testOnly",
         "testOnly": "mocha -r ts-node/register test/**/*.test.ts",
         "pretest": "npm run build",
         "version": "napi version",
@@ -69,18 +69,18 @@
         "chalk": "^5.0.1",
         "glob": "^8.0.3",
         "ora": "^6.1.2",
-        "typescript": "^4.8.2",
-        "yargs": "^17.5.1"
+        "typescript": "^4.8.4",
+        "yargs": "^17.6.0"
     },
     "devDependencies": {
         "@napi-rs/cli": "^2.11.4",
         "@types/chai": "^4.3.3",
         "@types/glob": "^8.0.0",
-        "@types/mocha": "^9.1.1",
-        "@types/node": "^18.7.15",
+        "@types/mocha": "^10.0.0",
+        "@types/node": "^18.8.0",
         "@types/semver": "^7.3.12",
         "@types/webpack-node-externals": "^2.5.3",
-        "@types/yargs": "^17.0.12",
+        "@types/yargs": "^17.0.13",
         "chai": "^4.3.6",
         "cpy-cli": "^4.2.0",
         "expose-gc": "^1.0.0",
@@ -92,19 +92,19 @@
         "run-script-os": "^1.1.6",
         "semver": "^7.3.7",
         "string-replace-loader": "^3.1.0",
-        "ts-loader": "^9.3.1",
+        "ts-loader": "^9.4.1",
         "ts-node": "^10.9.1",
         "tslib": "^2.4.0",
-        "typedoc": "^0.23.14",
+        "typedoc": "^0.23.15",
         "webpack": "^5.74.0",
         "webpack-cli": "^4.10.0",
         "webpack-node-externals": "^3.0.0"
     },
     "optionalDependencies": {
-        "java-bridge-win32-x64-msvc": "2.0.0",
+        "java-bridge-darwin-arm64": "2.0.0",
         "java-bridge-darwin-x64": "2.0.0",
         "java-bridge-linux-x64-gnu": "2.0.0",
-        "java-bridge-darwin-arm64": "2.0.0",
-        "java-bridge-win32-ia32-msvc": "2.0.0"
+        "java-bridge-win32-ia32-msvc": "2.0.0",
+        "java-bridge-win32-x64-msvc": "2.0.0"
     }
 }
