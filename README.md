@@ -21,6 +21,21 @@ The full documentation of this package is available [here](https://markusjx.gith
 npm i java-bridge
 ```
 
+## Build instructions
+
+In order to build this project, you should install
+* Node.js
+* npm
+* rustc, the rust compiler
+* cargo
+* Java JDK 8+
+
+Then, to build the project, run:
+```sh
+npm install
+npm run build
+```
+
 ## Usage
 
 ### Create the JVM
