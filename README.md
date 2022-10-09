@@ -1,3 +1,5 @@
+# node-java
+
 [![Test](https://github.com/MarkusJx/node-java-bridge/actions/workflows/test.yml/badge.svg)](https://github.com/MarkusJx/node-java-bridge/actions/workflows/test.yml)
 [![Check-style](https://github.com/MarkusJx/node-java-bridge/actions/workflows/check-style.yml/badge.svg)](https://github.com/MarkusJx/node-java-bridge/actions/workflows/check-style.yml)
 [![SystemTest](https://github.com/MarkusJx/node-java-bridge/actions/workflows/system_test.yml/badge.svg)](https://github.com/MarkusJx/node-java-bridge/actions/workflows/system_test.yml)
@@ -24,13 +26,15 @@ npm i java-bridge
 ## Build instructions
 
 In order to build this project, you should install
-* Node.js
-* npm
-* rustc, the rust compiler
-* cargo
-* Java JDK 8+
+
+-   Node.js
+-   npm
+-   rustc, the rust compiler
+-   cargo
+-   Java JDK 8+
 
 Then, to build the project, run:
+
 ```sh
 npm install
 npm run build
