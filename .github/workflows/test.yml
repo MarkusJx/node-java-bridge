@@ -91,6 +91,8 @@ jobs:
                   options: '-v ${{ github.workspace }}:/build -w /build'
                   run: |
                       set -e
+                      apt-get update
+                      apt-get upgrade -y
                       npm config set cache /tmp --global
                       npm install
                       npm run testOnly
