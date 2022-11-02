@@ -86,7 +86,6 @@ jobs:
                   npm config set supportedArchitectures.libc "glibc"
                   npm install
                   sudo chown -R 777 /root/.npm
-                  chown -R 777 /root/.npm
             - name: Setup and run tests
               uses: addnab/docker-run-action@v3
               with:
@@ -94,7 +93,9 @@ jobs:
                   options: '-v ${{ github.workspace }}:/build -w /build'
                   run: |
                       set -e
+                      npm config set cache /tmp --global
                       chown -R 777 /root/.npm
+                      npm install
                       npm test
                       ls -la
 
