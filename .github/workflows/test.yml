@@ -83,31 +83,34 @@ jobs:
                   npm config set supportedArchitectures.cpu "arm64"
                   npm config set supportedArchitectures.libc "glibc"
                   npm install
-            #- name: Run on architecture
-            #  uses: uraimo/run-on-arch-action@v2.3.0
-            #  with:
-            #      arch: aarch64
-            #      distro: ubuntu20.04
-            #      dockerRunArgs: -v ${{github.workspace}}:/github/workspace
-            #      install: |
-            #          apt-get update
-            #          DEBIAN_FRONTEND=noninteractive apt-get install -y curl sudo
-            #          curl -fsSL https://deb.nodesource.com/setup_${{matrix.node-version}} | sudo -E bash -
-            #          DEBIAN_FRONTEND=noninteractive sudo apt-get install -y nodejs npm
-            #      run: |
-            #          cd /github/workspace
-            #          npm run testOnly
-            - name: Run tests
-              uses: pguyot/arm-runner-action@v2.5.1
+            - name: Run on architecture
+              uses: uraimo/run-on-arch-action@v2.3.0
               timeout-minutes: 30
               with:
-                  base_image: raspios_lite_arm64:latest
-                  bind_mount_repository: true
-                  image_additional_mb: 1024
-                  commands: |
+                  arch: aarch64
+                  distro: ubuntu20.04
+                  dockerRunArgs: -v ${{github.workspace}}:/github/workspace
+                  install: |
+                      export DEBIAN_FRONTEND=noninteractive
+                      ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
+                      apt-get update
+                      DEBIAN_FRONTEND=noninteractive apt-get install -y curl sudo
                       curl -fsSL https://deb.nodesource.com/setup_${{matrix.node-version}} | sudo -E bash -
-                      sudo apt-get install -y nodejs npm openjdk-17-jdk
+                      DEBIAN_FRONTEND=noninteractive sudo apt-get install -y nodejs npm openjdk-17-jdk
+                  run: |
+                      cd /github/workspace
                       npm run testOnly
+            #- name: Run tests
+            #  uses: pguyot/arm-runner-action@v2.5.1
+            #  timeout-minutes: 30
+            #  with:
+            #      base_image: raspios_lite_arm64:latest
+            #      bind_mount_repository: true
+            #      image_additional_mb: 1024
+            #      commands: |
+            #          curl -fsSL https://deb.nodesource.com/setup_${{matrix.node-version}} | sudo -E bash -
+            #          sudo apt-get install -y nodejs npm openjdk-17-jdk
+            #          npm run testOnly
 
     benchmark:
         runs-on: ubuntu-latest
