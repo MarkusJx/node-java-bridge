@@ -80,12 +80,10 @@ jobs:
               run: npm run build -- -- --target aarch64-unknown-linux-gnu
             - name: Register qemu
               run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
-            - name: Install test dependencies
+            - name: Set supported architectures
               run: |
                   npm config set supportedArchitectures.cpu "arm64"
                   npm config set supportedArchitectures.libc "glibc"
-                  npm install
-                  sudo chown -R 777 /root/.npm
             - name: Setup and run tests
               uses: addnab/docker-run-action@v3
               with:
@@ -94,9 +92,8 @@ jobs:
                   run: |
                       set -e
                       npm config set cache /tmp --global
-                      chown -R 777 /root/.npm
                       npm install
-                      npm test
+                      npm run testOnly
                       ls -la
 
     benchmark:
