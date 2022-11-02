@@ -49,7 +49,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                node: ['16', '18']
+                node: [16.x, 18.x]
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v3
@@ -78,25 +78,19 @@ jobs:
               run: npm ci
             - name: Build
               run: npm run build -- -- --target aarch64-unknown-linux-gnu
-            - name: Register qemu
-              run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
-            - name: Set supported architectures
+            - name: Install test dependencies
               run: |
                   npm config set supportedArchitectures.cpu "arm64"
                   npm config set supportedArchitectures.libc "glibc"
-            - name: Setup and run tests
-              uses: addnab/docker-run-action@v3
+                  npm install
+            - name: Run tests
+              uses: pguyot/arm-runner-action@v2.5.1
               with:
-                  image: ghcr.io/napi-rs/napi-rs/nodejs:aarch64-${{ matrix.node }}
-                  options: '-v ${{ github.workspace }}:/build -w /build'
-                  run: |
-                      set -e
-                      apt-get update
-                      apt-get upgrade -y
-                      npm config set cache /tmp --global
-                      npm install
-                      npm run testOnly
-                      ls -la
+                base_image: raspios_lite_arm64:latest
+                commands: |
+                  curl -fsSL https://deb.nodesource.com/setup_${{matrix.node-version}} | sudo -E bash -
+                  sudo apt-get install -y nodejs
+                  npm run testOnly
 
     benchmark:
         runs-on: ubuntu-latest
