@@ -45,6 +45,49 @@ jobs:
               run: npm test
               timeout-minutes: 20
 
+    test-linux-aarch64-gnu-binding:
+    needs:
+        - build
+    strategy:
+        fail-fast: false
+        matrix:
+            node:
+                - '14'
+                - '16'
+                - '18'
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v3
+        - name: Setup Node.js ${{matrix.node-version}} environment
+          uses: actions/setup-node@v3.4.1
+          with:
+              node-version: ${{matrix.node-version}}
+        - name: Build in docker
+          uses: addnab/docker-run-action@v3
+          if: ${{ matrix.settings.docker }}
+          with:
+              image: ${{ matrix.settings.docker }}
+              options: '--user 0:0 -v ${{ github.workspace }}/.cargo-cache/git/db:/usr/local/cargo/git/db -v ${{ github.workspace }}/.cargo/registry/cache:/usr/local/cargo/registry/cache -v ${{ github.workspace }}/.cargo/registry/index:/usr/local/cargo/registry/index -v ${{ github.workspace }}:/build -w /build'
+              run: ${{ matrix.settings.build }}
+        - run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
+        - name: List packages
+          run: ls -R .
+          shell: bash
+        - name: Install dependencies
+          run: |
+              npm config set supportedArchitectures.cpu "arm64"
+              npm config set supportedArchitectures.libc "glibc"
+              npm install
+        - name: Setup and run tests
+          uses: addnab/docker-run-action@v3
+          with:
+              image: ghcr.io/napi-rs/napi-rs/nodejs:aarch64-${{ matrix.node }}
+              options: '-v ${{ github.workspace }}:/build -w /build'
+              run: |
+                  set -e
+                  yarn test
+                  ls -la
+
     benchmark:
         runs-on: ubuntu-latest
         steps:
