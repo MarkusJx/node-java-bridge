@@ -83,14 +83,19 @@ jobs:
                   npm config set supportedArchitectures.cpu "arm64"
                   npm config set supportedArchitectures.libc "glibc"
                   npm install
-            - name: Run tests
-              uses: pguyot/arm-runner-action@v2.5.1
+            - name: Run on architecture
+              uses: uraimo/run-on-arch-action@v2.3.0
               with:
-                  base_image: raspios_lite_arm64:latest
-                  bind_mount_repository: true
-                  commands: |
+                  arch: aarch64
+                  distro: ubuntu20.04
+                  dockerRunArgs: -v ${{github.workspace}}:/github/workspace
+                  install: |
+                      apt-get update
+                      apt-get install -y curl sudo
                       curl -fsSL https://deb.nodesource.com/setup_${{matrix.node-version}} | sudo -E bash -
                       sudo apt-get install -y nodejs
+                  run: |
+                      cd /github/workspace
                       npm run testOnly
 
     benchmark:
