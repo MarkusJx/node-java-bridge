@@ -93,7 +93,7 @@ jobs:
                       apt-get update
                       apt-get install -y curl sudo
                       curl -fsSL https://deb.nodesource.com/setup_${{matrix.node-version}} | sudo -E bash -
-                      sudo apt-get install -y nodejs
+                      sudo apt-get install -y nodejs npm
                   run: |
                       cd /github/workspace
                       npm run testOnly
