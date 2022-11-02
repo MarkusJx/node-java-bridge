@@ -67,12 +67,16 @@ jobs:
                   profile: minimal
                   override: true
                   target: aarch64-unknown-linux-gnu
+            - name: Rust Cache
+              uses: Swatinem/rust-cache@v2.0.0
             - name: Install cross compile toolchain
               run: |
                   sudo apt-get update
                   sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu -y
-            - name: Rust Cache
-              uses: Swatinem/rust-cache@v2.0.0
+            - name: Set arm64 linker
+              run: |
+                mkdir .cargo
+                printf '[target.aarch64-unknown-linux-gnu]\nlinker = "aarch64-linux-gnu-gcc"\n' >> .cargo/config
             - name: Install
               run: npm ci
             - name: Build
