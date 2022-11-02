@@ -91,9 +91,9 @@ jobs:
                   dockerRunArgs: -v ${{github.workspace}}:/github/workspace
                   install: |
                       apt-get update
-                      apt-get install -y curl sudo
+                      DEBIAN_FRONTEND=noninteractive apt-get install -y curl sudo
                       curl -fsSL https://deb.nodesource.com/setup_${{matrix.node-version}} | sudo -E bash -
-                      sudo apt-get install -y nodejs npm
+                      DEBIAN_FRONTEND=noninteractive sudo apt-get install -y nodejs npm
                   run: |
                       cd /github/workspace
                       npm run testOnly
