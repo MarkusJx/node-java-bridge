@@ -106,7 +106,7 @@ jobs:
                   image_additional_mb: 1024
                   commands: |
                       curl -fsSL https://deb.nodesource.com/setup_${{matrix.node-version}} | sudo -E bash -
-                      sudo apt-get install -y nodejs npm
+                      sudo apt-get install -y nodejs npm openjdk-17-jdk
                       npm run testOnly
 
     benchmark:
