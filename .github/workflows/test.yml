@@ -94,11 +94,9 @@ jobs:
                   run: |
                       apt-get update
                       apt-get install openjdk-17-jre-headless -y
-                      mkdir ~/.npm-global
-                      npm config set prefix '~/.npm-global'
-                      echo export PATH=~/.npm-global/bin:$PATH >> ~/.profile
-                      source ~/.profile
-                      npm test
+                      npm config set cache /tmp --global
+                      npm install
+                      npm run testOnly
             #- name: Run on architecture
             #  uses: uraimo/run-on-arch-action@v2.3.0
             #  timeout-minutes: 30
