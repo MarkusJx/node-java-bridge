@@ -49,7 +49,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                node: [16.x, 18.x]
+                node-version: [16.x, 18.x]
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v3
@@ -99,6 +99,7 @@ jobs:
             #          npm run testOnly
             - name: Run tests
               uses: pguyot/arm-runner-action@v2.5.1
+              timeout-minutes: 30
               with:
                   base_image: raspios_lite_arm64:latest
                   bind_mount_repository: true
