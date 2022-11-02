@@ -60,7 +60,7 @@ describe('ProxyTest', () => {
         });
 
         after(function () {
-            this.timeout(10000);
+            this.timeout(30e3);
             proxy = null;
             thread = null;
             global.gc!();
@@ -111,7 +111,7 @@ describe('ProxyTest', () => {
         });
 
         after(function () {
-            this.timeout(10000);
+            this.timeout(30e3);
             proxy = null;
             global.gc!();
         });
@@ -156,7 +156,7 @@ describe('ProxyTest', () => {
         });
 
         after(function () {
-            this.timeout(10000);
+            this.timeout(30e3);
             proxies.forEach((proxy) => proxy.reset());
             proxies.length = 0;
             global.gc!();
