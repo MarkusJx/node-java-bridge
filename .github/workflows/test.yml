@@ -49,7 +49,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                node-version: [16.x, 18.x]
+                node-version: [16, 18]
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v3
@@ -83,28 +83,37 @@ jobs:
                   npm config set supportedArchitectures.cpu "arm64"
                   npm config set supportedArchitectures.libc "glibc"
                   npm install
-            - name: Run on architecture
-              uses: uraimo/run-on-arch-action@v2.3.0
+            - name: Run tests
+              uses: addnab/docker-run-action@v3
               timeout-minutes: 30
               with:
-                  arch: aarch64
-                  distro: ubuntu20.04
-                  dockerRunArgs: -v ${{github.workspace}}:/github/workspace
-                  install: |
-                      export DEBIAN_FRONTEND=noninteractive
-                      ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
-                      apt-get update
-                      DEBIAN_FRONTEND=noninteractive apt-get install -y curl sudo
-                      sudo apt-get remove --purge nodejs npm
-                      sudo apt-get clean
-                      sudo apt-get autoclean
-                      sudo apt-get install -f
-                      sudo apt-get autoremove
-                      curl -fsSL https://deb.nodesource.com/setup_${{matrix.node-version}} | sudo -E bash -
-                      DEBIAN_FRONTEND=noninteractive sudo apt-get install -y nodejs npm openjdk-17-jdk
+                  image: arm64v8/node:${{matrix.node-version}}-bullseye
+                  options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace
                   run: |
-                      cd /github/workspace
-                      npm run testOnly
+                      apt-get install openjdk-17-jre-headless -y
+                      npm test
+            #- name: Run on architecture
+            #  uses: uraimo/run-on-arch-action@v2.3.0
+            #  timeout-minutes: 30
+            #  with:
+            #      arch: aarch64
+            #       distro: ubuntu20.04
+            #     dockerRunArgs: -v ${{github.workspace}}:/github/workspace
+            #     install: |
+            #        export DEBIAN_FRONTEND=noninteractive
+            #        ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
+            #        apt-get update
+            #        DEBIAN_FRONTEND=noninteractive apt-get install -y curl sudo
+            #        sudo apt-get remove --purge nodejs npm
+            #        sudo apt-get clean
+            #        sudo apt-get autoclean
+            #        sudo apt-get install -f
+            #        sudo apt-get autoremove
+            #        curl -fsSL https://deb.nodesource.com/setup_${{matrix.node-version}} | sudo -E bash -
+            #        DEBIAN_FRONTEND=noninteractive sudo apt-get install -y nodejs npm openjdk-17-jdk
+            #    run: |
+            #        cd /github/workspace
+            #        npm run testOnly
             #- name: Run tests
             #  uses: pguyot/arm-runner-action@v2.5.1
             #  timeout-minutes: 30
