@@ -92,6 +92,7 @@ jobs:
                   image: arm64v8/node:${{matrix.node-version}}-bullseye
                   options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace
                   run: |
+                      apt-get update
                       apt-get install openjdk-17-jre-headless -y
                       npm test
             #- name: Run on architecture
