@@ -98,39 +98,6 @@ jobs:
                       npm config set cache /tmp --global
                       npm install
                       npm run testOnly
-            #- name: Run on architecture
-            #  uses: uraimo/run-on-arch-action@v2.3.0
-            #  timeout-minutes: 30
-            #  with:
-            #      arch: aarch64
-            #       distro: ubuntu20.04
-            #     dockerRunArgs: -v ${{github.workspace}}:/github/workspace
-            #     install: |
-            #        export DEBIAN_FRONTEND=noninteractive
-            #        ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
-            #        apt-get update
-            #        DEBIAN_FRONTEND=noninteractive apt-get install -y curl sudo
-            #        sudo apt-get remove --purge nodejs npm
-            #        sudo apt-get clean
-            #        sudo apt-get autoclean
-            #        sudo apt-get install -f
-            #        sudo apt-get autoremove
-            #        curl -fsSL https://deb.nodesource.com/setup_${{matrix.node-version}} | sudo -E bash -
-            #        DEBIAN_FRONTEND=noninteractive sudo apt-get install -y nodejs npm openjdk-17-jdk
-            #    run: |
-            #        cd /github/workspace
-            #        npm run testOnly
-            #- name: Run tests
-            #  uses: pguyot/arm-runner-action@v2.5.1
-            #  timeout-minutes: 30
-            #  with:
-            #      base_image: raspios_lite_arm64:latest
-            #      bind_mount_repository: true
-            #      image_additional_mb: 1024
-            #      commands: |
-            #          curl -fsSL https://deb.nodesource.com/setup_${{matrix.node-version}} | sudo -E bash -
-            #          sudo apt-get install -y nodejs npm openjdk-17-jdk
-            #          npm run testOnly
 
     benchmark:
         runs-on: ubuntu-latest
@@ -142,7 +109,7 @@ jobs:
                   node-version: 16.x
             - uses: actions/setup-java@v3
               with:
-                  distribution: 'temurin' # See 'Supported distributions' for available options
+                  distribution: 'temurin'
                   java-version: '17'
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.0.0

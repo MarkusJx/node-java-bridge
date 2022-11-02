@@ -59,7 +59,8 @@ describe('ProxyTest', () => {
             expect(() => proxy!.reset()).to.throw();
         });
 
-        after(() => {
+        after(function () {
+            this.timeout(10000);
             proxy = null;
             thread = null;
             global.gc!();
@@ -109,7 +110,8 @@ describe('ProxyTest', () => {
             proxy?.reset();
         });
 
-        after(() => {
+        after(function () {
+            this.timeout(10000);
             proxy = null;
             global.gc!();
         });
@@ -153,7 +155,8 @@ describe('ProxyTest', () => {
             expect(await str.transform(proxies[1])).to.equal('HELLO');
         });
 
-        after(() => {
+        after(function () {
+            this.timeout(10000);
             proxies.forEach((proxy) => proxy.reset());
             proxies.length = 0;
             global.gc!();
