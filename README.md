@@ -32,6 +32,7 @@ In order to build this project, you should install
 -   rustc, the rust compiler
 -   cargo
 -   Java JDK 8+
+-   clang
 
 Then, to build the project, run:
 
@@ -40,7 +41,26 @@ npm install
 npm run build
 ```
 
+## Support Matrix
+
+> _✅ = Pre-compiled binaries are available_<br> _`-` = Pre-compiled binaries are not available_
+
+| Operating System | i686 | x64 | arm | arm64 |
+| ---------------- | ---- | --- | --- | ----- |
+| Linux            | -    | ✅  | -   | ✅    |
+| Windows          | ✅   | ✅  | -   | -     |
+| macOS            | -    | ✅  | -   | ✅    |
+
 ## Usage
+
+### Hello word
+
+```ts
+import { importClass } from './java-bridge';
+
+const System = importClass('java.lang.System');
+System.out.println('Hello world!');
+```
 
 ### Create the JVM
 
