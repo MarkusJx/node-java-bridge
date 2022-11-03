@@ -123,7 +123,7 @@ jobs:
                   npm pack
             - name: Upload package
               uses: actions/upload-artifact@v3
-              if: ${{matrix.node-version == '18.x'}}
+              if: ${{matrix.node-version == '18'}}
               with:
                   name: java-arm64-ubuntu
                   path: java-bridge-*.tgz
