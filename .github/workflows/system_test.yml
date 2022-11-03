@@ -31,3 +31,25 @@ jobs:
               working-directory: ${{github.workspace}}/test/system_test
               run: npm run test
               timeout-minutes: 2
+
+    test-arm64:
+        strategy:
+            matrix:
+                node-version: [16, 18]
+                java-version: [8, 11, 17, 18]
+        runs-on: ubuntu-20.04
+        steps:
+            - uses: actions/checkout@v3
+            - name: Run tests
+              uses: addnab/docker-run-action@v3
+              timeout-minutes: 30
+              with:
+                  image: arm64v8/node:${{matrix.node-version}}-bullseye
+                  options: -v ${{github.workspace}}/test/system_test:/github/workspace -w /github/workspace
+                  run: |
+                      apt-get update
+                      apt-get install openjdk-${{matrix.java-version}}-jre-headless -y
+                      npm config set cache /tmp --global
+                      export CI=true
+                      npm install
+                      npm run test

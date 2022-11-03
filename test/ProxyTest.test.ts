@@ -3,6 +3,7 @@ import assert from 'assert';
 import { expect } from 'chai';
 import { afterEach } from 'mocha';
 import semver from 'semver';
+import isCi from 'is-ci';
 require('expose-gc');
 
 declare class JThread extends JavaClass {
@@ -28,6 +29,10 @@ function getJavaVersion(): string {
 }
 
 const javaVersion = getJavaVersion();
+let timeoutMs: number = 2e3;
+if (isCi && (process.arch === 'arm64' || process.arch === 'arm')) {
+    timeoutMs = 60e3;
+}
 
 describe('ProxyTest', () => {
     describe('java.lang.Runnable proxy', () => {
@@ -59,7 +64,8 @@ describe('ProxyTest', () => {
             expect(() => proxy!.reset()).to.throw();
         });
 
-        after(() => {
+        after(function () {
+            this.timeout(timeoutMs);
             proxy = null;
             thread = null;
             global.gc!();
@@ -109,7 +115,8 @@ describe('ProxyTest', () => {
             proxy?.reset();
         });
 
-        after(() => {
+        after(function () {
+            this.timeout(timeoutMs);
             proxy = null;
             global.gc!();
         });
@@ -153,7 +160,8 @@ describe('ProxyTest', () => {
             expect(await str.transform(proxies[1])).to.equal('HELLO');
         });
 
-        after(() => {
+        after(function () {
+            this.timeout(timeoutMs);
             proxies.forEach((proxy) => proxy.reset());
             proxies.length = 0;
             global.gc!();

@@ -24,6 +24,7 @@ export * from './java';
 import * as java from './java';
 export default java;
 export { getJavaLibPath } from '../native';
+export { getJavaVersion, getJavaVersionSync } from './util';
 import TypescriptDefinitionGenerator from './TypescriptDefinitionGenerator';
 export { TypescriptDefinitionGenerator };
 export {

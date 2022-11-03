@@ -3,12 +3,18 @@ import { expect } from 'chai';
 import ts from 'typescript';
 import path from 'path';
 import * as fs from 'fs';
+import isCi from 'is-ci';
 
 interface Diagnostics {
     message: string;
     file: string;
     category: string;
     code: number;
+}
+
+let timeoutMs: number = 30e3;
+if (isCi && (process.arch === 'arm64' || process.arch === 'arm')) {
+    timeoutMs = 600e3;
 }
 
 function checkTypescriptSyntax(baseDirectory: string): Diagnostics[] {
@@ -119,5 +125,5 @@ describe('TypescriptDefinitionGenerator test', () => {
             iterator!.instanceOf(Iterator);
             `
         );
-    }).timeout(30000);
+    }).timeout(timeoutMs);
 });

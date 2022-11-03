@@ -11,6 +11,9 @@ jobs:
                     - os: ubuntu-latest
                       target: x86_64-unknown-linux-gnu
                       package: linux-x64-gnu
+                    - os: ubuntu-20.04
+                      target: aarch64-unknown-linux-gnu
+                      package: linux-arm64-gnu
                     - os: windows-latest
                       target: x86_64-pc-windows-msvc
                       package: win32-x64-msvc
@@ -40,6 +43,14 @@ jobs:
                   java-version: '17'
             - name: Add rust target
               run: rustup target add ${{ matrix.target }}
+            - name: Setup cross-compilation
+              if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install gcc-multilib -y
+                  sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu -y
+                  mkdir .cargo
+                  printf '[target.aarch64-unknown-linux-gnu]\nlinker = "aarch64-linux-gnu-gcc"\n' >> .cargo/config
             - name: Install Dependencies
               run: npm ci
             - name: Build

@@ -33,7 +33,8 @@ jobs:
               uses: actions/setup-node@v3.4.1
               with:
                   node-version: ${{matrix.node-version}}
-            - uses: actions/setup-java@v3
+            - name: Setup java 17
+              uses: actions/setup-java@v3
               with:
                   distribution: 'temurin'
                   java-version: '17'
@@ -44,6 +45,88 @@ jobs:
             - name: Run tests
               run: npm test
               timeout-minutes: 20
+            - name: Create package
+              if: ${{matrix.node-version == '18.x'}}
+              run: |
+                  node -e 'let p=require("./package.json");p.files.push("dist/*.node");require("fs").writeFileSync("package.json",JSON.stringify(p,null,4))'
+                  npm pack
+            - name: Upload package
+              uses: actions/upload-artifact@v3
+              if: ${{matrix.node-version == '18.x'}}
+              with:
+                  name: java-x64-${{matrix.os}}
+                  path: java-bridge-*.tgz
+
+    test-linux-aarch64-gnu-binding:
+        strategy:
+            fail-fast: false
+            matrix:
+                node-version: [16, 18]
+        runs-on: ubuntu-20.04
+        steps:
+            - uses: actions/checkout@v3
+            - name: Setup Node.js ${{matrix.node-version}} environment
+              uses: actions/setup-node@v3.4.1
+              with:
+                  node-version: ${{matrix.node-version}}
+            - name: Setup java 17
+              uses: actions/setup-java@v3
+              with:
+                  distribution: 'temurin'
+                  java-version: '17'
+            - name: Install rust toolchain
+              uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  profile: minimal
+                  override: true
+                  target: aarch64-unknown-linux-gnu
+            - name: Rust Cache
+              uses: Swatinem/rust-cache@v2.0.0
+            - name: Install cross compile toolchain
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install gcc-multilib -y
+                  sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu -y
+            - name: Set linker
+              run: |
+                  mkdir .cargo
+                  printf '[target.aarch64-unknown-linux-gnu]\nlinker = "aarch64-linux-gnu-gcc"\n' >> .cargo/config
+            - name: Install
+              run: npm ci
+            - name: Build
+              run: npm run build -- -- --target aarch64-unknown-linux-gnu
+            - name: Install test dependencies
+              run: |
+                  npm config set supportedArchitectures.cpu "arm64"
+                  npm config set supportedArchitectures.libc "glibc"
+                  npm install
+            - name: Init qemu
+              run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+            - name: Run tests
+              uses: addnab/docker-run-action@v3
+              timeout-minutes: 30
+              with:
+                  image: arm64v8/node:${{matrix.node-version}}-bullseye
+                  options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace
+                  run: |
+                      apt-get update
+                      apt-get install openjdk-17-jre-headless -y
+                      npm config set cache /tmp --global
+                      export CI=true
+                      npm install
+                      npm run testOnly
+            - name: Create package
+              if: ${{matrix.node-version == '18'}}
+              run: |
+                  node -e 'let p=require("./package.json");p.files.push("dist/*.node");require("fs").writeFileSync("package.json",JSON.stringify(p,null,4))'
+                  npm pack
+            - name: Upload package
+              uses: actions/upload-artifact@v3
+              if: ${{matrix.node-version == '18'}}
+              with:
+                  name: java-arm64-ubuntu
+                  path: java-bridge-*.tgz
 
     benchmark:
         runs-on: ubuntu-latest
@@ -55,7 +138,7 @@ jobs:
                   node-version: 16.x
             - uses: actions/setup-java@v3
               with:
-                  distribution: 'temurin' # See 'Supported distributions' for available options
+                  distribution: 'temurin'
                   java-version: '17'
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.0.0
