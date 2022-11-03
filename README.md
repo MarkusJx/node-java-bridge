@@ -53,7 +53,7 @@ npm run build
 
 ## Usage
 
-### Hello word
+### Example: Hello world from Java
 
 ```ts
 import { importClass } from './java-bridge';
