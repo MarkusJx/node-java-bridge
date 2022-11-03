@@ -45,6 +45,17 @@ jobs:
             - name: Run tests
               run: npm test
               timeout-minutes: 20
+            - name: Create package
+              if: ${{matrix.node-version == '18.x'}}
+              run: |
+                  node -e 'let p=require("./package.json");p.files.push("dist/*.node");require("fs").writeFileSync("package.json",JSON.stringify(p,null,4))'
+                  npm pack
+            - name: Upload package
+              uses: actions/upload-artifact@v3
+              if: ${{matrix.node-version == '18.x'}}
+              with:
+                  name: java-x64-${{matrix.os}}
+                  path: java-bridge-*.tgz
 
     test-linux-aarch64-gnu-binding:
         strategy:
@@ -105,6 +116,17 @@ jobs:
                       export CI=true
                       npm install
                       npm run testOnly
+            - name: Create package
+              if: ${{matrix.node-version == '18'}}
+              run: |
+                  node -e 'let p=require("./package.json");p.files.push("dist/*.node");require("fs").writeFileSync("package.json",JSON.stringify(p,null,4))'
+                  npm pack
+            - name: Upload package
+              uses: actions/upload-artifact@v3
+              if: ${{matrix.node-version == '18.x'}}
+              with:
+                  name: java-arm64-ubuntu
+                  path: java-bridge-*.tgz
 
     benchmark:
         runs-on: ubuntu-latest
