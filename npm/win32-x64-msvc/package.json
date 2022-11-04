@@ -1,6 +1,6 @@
 {
     "name": "java-bridge-win32-x64-msvc",
-    "version": "2.1.4",
+    "version": "2.1.5",
     "os": [
         "win32"
     ],

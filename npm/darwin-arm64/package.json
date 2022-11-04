@@ -1,6 +1,6 @@
 {
     "name": "java-bridge-darwin-arm64",
-    "version": "2.1.4",
+    "version": "2.1.2",
     "os": [
         "darwin"
     ],
