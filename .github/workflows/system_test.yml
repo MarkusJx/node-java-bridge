@@ -36,7 +36,7 @@ jobs:
         strategy:
             matrix:
                 node-version: [16, 18]
-                java-version: [8, 11, 17, 18]
+                java-version: [11, 17]
         runs-on: ubuntu-20.04
         steps:
             - uses: actions/checkout@v3
