@@ -47,7 +47,7 @@ jobs:
               timeout-minutes: 30
               with:
                   image: arm64v8/node:${{matrix.node-version}}-bullseye
-                  options: -v ${{github.workspace}}/test/system_test:/github/workspace -w /github/workspace
+                  options: -v ${{github.workspace}}/test:/github/workspace -w /github/workspace/system_test
                   run: |
                       apt-get update
                       apt-get install openjdk-${{matrix.java-version}}-jre-headless -y
