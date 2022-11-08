@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import ts from 'typescript';
 import path from 'path';
 import * as fs from 'fs';
-import isCi from 'is-ci';
+import { shouldIncreaseTimeout } from './testUtil';
 
 interface Diagnostics {
     message: string;
@@ -12,10 +12,7 @@ interface Diagnostics {
     code: number;
 }
 
-let timeoutMs: number = 30e3;
-if (isCi && (process.arch === 'arm64' || process.arch === 'arm')) {
-    timeoutMs = 600e3;
-}
+const timeoutMs: number = shouldIncreaseTimeout ? 600e3 : 30e3;
 
 function checkTypescriptSyntax(baseDirectory: string): Diagnostics[] {
     const program = ts.createProgram([path.join(baseDirectory, 'index.ts')], {

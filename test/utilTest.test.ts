@@ -1,12 +1,9 @@
 import { getJavaVersion, getJavaVersionSync } from '../.';
 import { it } from 'mocha';
 import { expect } from 'chai';
-import isCI from 'is-ci';
+import { shouldIncreaseTimeout } from './testUtil';
 
-let timeout = 2e3;
-if (isCI && (process.arch === 'arm' || process.arch === 'arm64')) {
-    timeout = 20e3;
-}
+const timeout = shouldIncreaseTimeout ? 20e3 : 2e3;
 
 describe('util test', () => {
     it('Get java version', async () => {

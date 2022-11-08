@@ -208,7 +208,7 @@ impl GlobalJavaObjectInternal {
 
 impl Drop for GlobalJavaObjectInternal {
     fn drop(&mut self) {
-        if self.free {
+        if self.free && !self.is_null() {
             let vm = JavaVM::from_existing(self.jvm.clone(), self.options);
             let env = vm.attach_thread();
 
@@ -216,6 +216,12 @@ impl Drop for GlobalJavaObjectInternal {
                 env.delete_global_ref(self.object.load(Ordering::Relaxed));
             }
         }
+    }
+}
+
+impl IsNull for GlobalJavaObjectInternal {
+    fn is_null(&self) -> bool {
+        self.object.load(Ordering::Relaxed) == ptr::null_mut()
     }
 }
 

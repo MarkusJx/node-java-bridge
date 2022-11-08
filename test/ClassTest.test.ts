@@ -3,8 +3,10 @@ import { importClass, setClassLoader, getClassLoader } from '../.';
 import path from 'path';
 import { expect } from 'chai';
 import * as os from 'os';
+import { shouldIncreaseTimeout } from './testUtil';
 
 let outDir: string | null = null;
+const timeout = shouldIncreaseTimeout ? 60e3 : 20e3;
 
 function createClass(code: string, className: string): void {
     if (!outDir) {
@@ -49,6 +51,14 @@ describe('ClassTest', () => {
                 this.l3 = l3;
                 this.b1 = b1;
             }
+            
+            public TestClass(String s1, Long l1) {
+                this(s1, l1, 0, null, false);
+            }
+            
+            public TestClass(Long l1) {
+                this(null, l1, 0, null, false);
+            }
         }`,
             'TestClass'
         );
@@ -61,7 +71,21 @@ describe('ClassTest', () => {
         expect(instance.l2).to.equal(2);
         expect(instance.l3).to.equal(3n);
         expect(instance.b1).to.equal(true);
-    });
+
+        const instance2 = new Test('s', 1);
+        expect(instance2.s1).to.equal('s');
+        expect(instance2.l1).to.equal(1n);
+        expect(instance2.l2).to.equal(0);
+        expect(instance2.l3).to.equal(null);
+        expect(instance2.b1).to.equal(false);
+
+        const instance3 = new Test(1);
+        expect(instance3.s1).to.equal(null);
+        expect(instance3.l1).to.equal(1n);
+        expect(instance3.l2).to.equal(0);
+        expect(instance3.l3).to.equal(null);
+        expect(instance3.b1).to.equal(false);
+    }).timeout(timeout);
 
     after(() => {
         if (outDir) {

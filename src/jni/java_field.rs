@@ -3,6 +3,7 @@ use crate::jni::java_env::JavaEnv;
 use crate::jni::java_type::{JavaType, Type};
 use crate::jni::objects::class::{GlobalJavaClass, JavaClass};
 use crate::jni::objects::java_object::JavaObject;
+use crate::jni::traits::IsNull;
 use crate::jni::util::util::ResultType;
 use crate::{define_field, sys};
 use std::marker::PhantomData;
@@ -217,6 +218,17 @@ impl<'a> JavaObjectField<'a> {
     }
 }
 
+fn get_field_value(object: JavaObject, inner: &JavaField) -> ResultType<JavaCallResult> {
+    Ok(if object.is_null() {
+        JavaCallResult::Null
+    } else {
+        JavaCallResult::Object {
+            object: object.into_global()?,
+            signature: inner.field_type.clone(),
+        }
+    })
+}
+
 impl<'a> JavaFieldValues for JavaObjectField<'a> {
     fn set(&self, obj: &JavaObject<'_>, value: JavaCallResult) -> ResultType<()> {
         match value {
@@ -227,10 +239,7 @@ impl<'a> JavaFieldValues for JavaObjectField<'a> {
 
     fn get(&self, obj: &JavaObject<'_>) -> ResultType<JavaCallResult> {
         let object = self.get(obj)?;
-        Ok(JavaCallResult::Object {
-            object: object.into_global()?,
-            signature: self.0.field_type.clone(),
-        })
+        get_field_value(object, &self.0)
     }
 }
 
@@ -290,10 +299,7 @@ impl<'a> StaticJavaFieldValues for StaticJavaObjectField<'a> {
 
     fn get(&self) -> ResultType<JavaCallResult> {
         let object = self.get()?;
-        Ok(JavaCallResult::Object {
-            object: object.into_global()?,
-            signature: self.0.field_type.clone(),
-        })
+        get_field_value(object, &self.0)
     }
 }
 
