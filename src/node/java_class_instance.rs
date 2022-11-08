@@ -239,7 +239,7 @@ impl JavaClassInstance {
     }
 }
 
-#[js_function(1)]
+#[js_function(255)]
 fn constructor(ctx: CallContext) -> napi::Result<JsUnknown> {
     let new_target_func = ctx.get_new_target::<JsFunction>();
     if new_target_func.is_err() {
@@ -267,7 +267,7 @@ fn constructor(ctx: CallContext) -> napi::Result<JsUnknown> {
     Ok(ctx.env.get_undefined()?.into_unknown())
 }
 
-#[js_function(1)]
+#[js_function(255)]
 fn new_instance(ctx: CallContext) -> napi::Result<JsObject> {
     let proxy = JavaClassInstance::get_class_proxy(&ctx, true)?.clone();
     let constructor = proxy
@@ -404,7 +404,7 @@ fn set_static_field(env: Env, cls: JsObject, name: JsString, value: JsUnknown) -
     field.set_static(val).map_napi_err()
 }
 
-#[js_function(1)]
+#[js_function(0)]
 fn get_class_field(ctx: CallContext) -> napi::Result<JsObject> {
     let cls: JsFunction = ctx.this()?;
     let proxy_obj: JsObject = cls

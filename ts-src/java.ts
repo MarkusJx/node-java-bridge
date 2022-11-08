@@ -11,6 +11,7 @@ import {
     JavaClass,
     JavaClassConstructorType,
     JavaVersion,
+    UnknownJavaClass,
     UnknownJavaClassType,
 } from './definitions';
 import { getJavaLibPath, getNativeLibPath } from './nativeLib';
@@ -89,6 +90,44 @@ export function ensureJvm(options?: JVMOptions): void {
             getNativeLibPath()
         );
     }
+}
+
+/**
+ * Get the addon's internal class loader.
+ * This may be used in combination with {@link setClassLoader}
+ * to create a custom class loader and load classes from it.
+ *
+ * ## Example
+ * ```ts
+ * import { getClassLoader, setClassLoader, importClass } from 'java-bridge';
+ *
+ * const classLoader = getClassLoader();
+ *
+ * const URLClassLoader = importClass('java.net.URLClassLoader');
+ * const URL = importClass('java.net.URL');
+ *
+ * // This actually happens internally when appendClasspath is called
+ * const newClassLoader = new URLClassLoader([new URL('file:///path/to/my.jar')], classLoader);
+ *
+ * setClassLoader(newClassLoader);
+ * ```
+ */
+export function getClassLoader(): UnknownJavaClass {
+    ensureJvm();
+    return javaInstance!.classLoader as UnknownJavaClass;
+}
+
+/**
+ * Set the internal class loader to use.
+ * This allows you to create a custom class loader
+ * and import classes using {@link importClass} or {@link importClassAsync}.
+ * Without setting the custom class loader, the default class loader will be used.
+ *
+ * @param classLoader the new class loader to use
+ */
+export function setClassLoader(classLoader: UnknownJavaClass): void {
+    ensureJvm();
+    javaInstance!.classLoader = classLoader;
 }
 
 function defineFields(object: Record<string, any>, getStatic: boolean): void {
@@ -189,14 +228,12 @@ export function importClass<
     ) as ImportedJavaClass;
     defineFields(constructor, true);
 
-    constructor.constructor = function (...args: any[]) {
-        const object = new constructor.prototype.constructor(...args);
-        defineFields(object, false);
-
-        return object;
-    };
-
-    return constructor as unknown as T;
+    return class extends constructor {
+        constructor(...args: any[]) {
+            super(...args);
+            defineFields(this, false);
+        }
+    } as unknown as T;
 }
 
 /**
@@ -211,14 +248,12 @@ export async function importClassAsync<
     )) as ImportedJavaClass;
     defineFields(constructor, true);
 
-    constructor.constructor = function (...args: any[]) {
-        const object = new constructor.prototype.constructor(...args);
-        defineFields(object, false);
-
-        return object;
-    };
-
-    return constructor as unknown as T;
+    return class extends constructor {
+        constructor(...args: any[]) {
+            super(...args);
+            defineFields(this, false);
+        }
+    } as unknown as T;
 }
 
 /**

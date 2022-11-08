@@ -1286,12 +1286,16 @@ impl<'a> JavaEnvWrapper<'a> {
         )?;
 
         let res = GlobalJavaObject::try_from(class_loader)?;
+        self.replace_class_loader(res)
+    }
+
+    pub fn replace_class_loader(&self, loader: GlobalJavaObject) -> ResultType<()> {
         self.jvm
             .as_ref()
             .ok_or("The jvm was unset".to_string())?
             .lock()
             .unwrap()
-            .set_class_loader(res);
+            .set_class_loader(loader);
 
         Ok(())
     }

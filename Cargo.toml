@@ -1,24 +1,24 @@
 [package]
 edition = "2021"
 name = "java"
-version = "2.1.4"
+version = "2.1.6"
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-napi = { version = "2.9.0", default-features = false, features = ["napi6", "tokio_rt"] }
-napi-derive = "2.9.0"
+napi = { version = "2.10.0", default-features = false, features = ["napi6", "tokio_rt"] }
+napi-derive = "2.9.1"
 libloading = "0.7.3"
-tokio = "1.2.0"
-futures = "0.3.21"
+tokio = "1.21.2"
+futures = "0.3.25"
 java-locator = "0.1.2"
 lazy_static = "1.4.0"
 rand = "0.8.5"
 
 [build-dependencies]
 napi-build = "2.0.1"
-bindgen = "0.60.1"
+bindgen = "0.61.0"
 java-locator = "0.1.2"
 
 [profile.release]
