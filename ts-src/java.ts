@@ -24,6 +24,7 @@ let javaInstance: Java | null = null;
 interface ImportedJavaClass {
     'class.proxy': object;
     new (...args: any[]): any;
+    newInstanceAsync(...args: any[]): Promise<UnknownJavaClass>;
 }
 
 /**
@@ -154,6 +155,27 @@ function defineFields(object: Record<string, any>, getStatic: boolean): void {
     }
 }
 
+function createClassFromConstructor<T extends JavaClassConstructorType>(
+    constructor: ImportedJavaClass
+): T {
+    defineFields(constructor, true);
+
+    return class extends constructor {
+        constructor(...args: any[]) {
+            super(...args);
+            defineFields(this, false);
+        }
+
+        static async newInstanceAsync(
+            ...args: any[]
+        ): Promise<UnknownJavaClass> {
+            const instance = await super.newInstanceAsync(...args);
+            defineFields(instance, false);
+            return instance;
+        }
+    } as unknown as T;
+}
+
 /**
  * Import a class.
  * Returns the constructor of the class to be created.
@@ -226,14 +248,8 @@ export function importClass<
     const constructor = javaInstance!.importClass(
         classname
     ) as ImportedJavaClass;
-    defineFields(constructor, true);
 
-    return class extends constructor {
-        constructor(...args: any[]) {
-            super(...args);
-            defineFields(this, false);
-        }
-    } as unknown as T;
+    return createClassFromConstructor<T>(constructor);
 }
 
 /**
@@ -246,14 +262,8 @@ export async function importClassAsync<
     const constructor = (await javaInstance!.importClassAsync(
         classname
     )) as ImportedJavaClass;
-    defineFields(constructor, true);
 
-    return class extends constructor {
-        constructor(...args: any[]) {
-            super(...args);
-            defineFields(this, false);
-        }
-    } as unknown as T;
+    return createClassFromConstructor<T>(constructor);
 }
 
 /**

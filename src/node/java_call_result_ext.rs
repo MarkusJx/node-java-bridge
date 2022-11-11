@@ -25,7 +25,7 @@ impl JavaCallResult {
             JavaCallResult::Character(c) => env.create_string_utf16(&[*c])?.into_unknown(),
             JavaCallResult::Short(s) => env.create_int32(*s as i32)?.into_unknown(),
             JavaCallResult::Integer(i) => env.create_int32(*i)?.into_unknown(),
-            JavaCallResult::Long(l) => env.create_int64(*l)?.into_unknown(),
+            JavaCallResult::Long(l) => env.create_bigint_from_i64(*l)?.into_unknown()?,
             JavaCallResult::Float(f) => env.create_double(*f as f64)?.into_unknown(),
             JavaCallResult::Double(d) => env.create_double(*d)?.into_unknown(),
             JavaCallResult::Object { object, signature } => {
