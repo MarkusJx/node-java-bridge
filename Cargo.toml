@@ -18,7 +18,7 @@ rand = "0.8.5"
 
 [build-dependencies]
 napi-build = "2.0.1"
-bindgen = "0.61.0"
+bindgen = "0.60.1"
 java-locator = "0.1.2"
 
 [profile.release]
