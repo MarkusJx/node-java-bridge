@@ -38,7 +38,8 @@ function createClass(code: string, className: string): void {
 }
 
 describe('ClassTest', () => {
-    before(() => {
+    before(function () {
+        this.timeout(timeout);
         createClass(
             `public class BasicClass {
             public static String test = "abc";
@@ -148,7 +149,7 @@ describe('ClassTest', () => {
         expect(instance3.b1).to.equal(false);
     }).timeout(timeout);
 
-    it('Class with explicit java types', async () => {
+    it('Class with explicit java types', () => {
         const Test = importClass('ClassWithExplicitJavaTypes');
         const JLong = importClass('java.lang.Long');
         const JString = importClass('java.lang.String');
@@ -178,6 +179,46 @@ describe('ClassTest', () => {
         const instance3 = new Test(new JLong(5));
         expect(instance3.s1).to.equal(null);
         expect(instance3.l1).to.equal(5n);
+        expect(instance3.l2).to.equal(0n);
+        expect(instance3.l3).to.equal(null);
+        expect(instance3.b1).to.equal(false);
+    }).timeout(timeout);
+
+    it('Class with explicit java types (async)', async () => {
+        const Test = await importClassAsync('ClassWithExplicitJavaTypes');
+        const JLong = await importClassAsync('java.lang.Long');
+        const JString = await importClassAsync('java.lang.String');
+        const JBoolean = await importClassAsync('java.lang.Boolean');
+
+        const instance = await Test.newInstanceAsync(
+            await JString.newInstanceAsync('string'),
+            await JLong.newInstanceAsync(51),
+            await JLong.newInstanceAsync(61),
+            await JLong.newInstanceAsync(71),
+            await JBoolean.newInstanceAsync(true)
+        );
+
+        expect(instance.s1).to.equal('string');
+        expect(instance.l1).to.equal(51n);
+        expect(instance.l2).to.equal(61n);
+        expect(instance.l3).to.equal(71n);
+        expect(instance.b1).to.equal(true);
+
+        const instance2 = await Test.newInstanceAsync(
+            await JString.newInstanceAsync('string'),
+            await JLong.newInstanceAsync(52)
+        );
+        expect(instance2.s1).to.equal('string');
+        expect(instance2.l1).to.equal(52n);
+        expect(instance2.l2).to.equal(0n);
+        expect(instance2.l3).to.equal(null);
+        expect(instance2.b1).to.equal(false);
+
+        const instance3 = await Test.newInstanceAsync(
+            await JLong.newInstanceAsync(53)
+        );
+        expect(instance3.s1).to.equal(null);
+        expect(instance3.l1).to.equal(53n);
         expect(instance3.l2).to.equal(0n);
         expect(instance3.l3).to.equal(null);
         expect(instance3.b1).to.equal(false);
