@@ -22,11 +22,9 @@ use napi::{
 };
 use std::ops::Deref;
 
-fn value_may_be_byte(value: &JsUnknown) -> bool {
-    let val = unsafe { value.cast::<JsNumber>() }
-        .get_double()
-        .unwrap_or(-1.0);
-    val >= -128.0 && val <= 127.0 && val.round() == val
+fn value_may_be_byte(value: JsUnknown) -> napi::Result<bool> {
+    let val = value.coerce_to_number()?.get_double().unwrap_or(-1.0);
+    Ok(val >= -128.0 && val <= 127.0 && val.round() == val)
 }
 
 fn is_integer(env: &Env, value: &JsNumber) -> ResultType<bool> {
@@ -48,35 +46,50 @@ pub trait JsTypeEq {
 
 impl JsTypeEq for JavaType {
     fn js_equals(&self, other: JsUnknown, env: &Env) -> napi::Result<bool> {
-        match other.get_type().unwrap() {
-            ValueType::String => Ok(Type::String == self
-                || (unsafe { other.cast::<JsString>() }.utf16_len().unwrap() == 1
-                    && self.is_char())),
-            ValueType::Number => Ok(self.is_int()
-                || self.is_double()
-                || self.is_float()
-                || self.is_long()
-                || (value_may_be_byte(&other) && self.is_byte())),
-            ValueType::Boolean => Ok(self.is_boolean()),
-            ValueType::BigInt => Ok(self.is_long()),
-            _ => {
-                if other.is_array().unwrap() && self.is_array() {
+        Ok(match other.get_type()? {
+            ValueType::String => {
+                Type::String == self
+                    || (other.coerce_to_string()?.utf16_len()? == 1 && self.is_char())
+            }
+            ValueType::Number => {
+                self.is_int()
+                    || self.is_double()
+                    || self.is_float()
+                    || self.is_long()
+                    || (value_may_be_byte(other)? && self.is_byte())
+            }
+            ValueType::Boolean => self.is_boolean(),
+            ValueType::BigInt => self.is_long(),
+            ValueType::Null | ValueType::Undefined => !self.is_primitive(),
+            ValueType::Object => {
+                if (other.is_array()? || other.is_typedarray()?) && self.is_array() {
                     let arr = unsafe { other.cast::<JsTypedArray>() };
-                    if arr.get_array_length().unwrap() == 0 {
-                        Ok(true)
+                    if arr.get_array_length()? == 0 {
+                        true
                     } else {
                         self.inner()
                             .unwrap()
                             .lock()
                             .unwrap()
                             .deref()
-                            .js_equals(arr.get_element(0).unwrap(), env)
+                            .js_equals(arr.get_element(0)?, env)?
                     }
-                } else if other.is_buffer().unwrap() {
-                    Ok(self.is_byte_array())
-                } else if Type::Object == self {
-                    Ok(true)
-                } else if !self.is_primitive() && !self.is_array() {
+                } else if other.is_buffer()? {
+                    self.is_byte_array()
+                } else if JavaInterfaceProxy::instance_of(env.clone(), &other)? {
+                    let proxy: JsObject = other.coerce_to_object()?.get_named_property("proxy")?;
+                    let obj = env.unwrap::<GlobalJavaObject>(&proxy)?;
+                    let j_env = obj.get_vm().attach_thread().map_napi_err()?;
+                    let other_class = obj.get_class(&j_env).map_napi_err()?;
+
+                    let self_class = self.as_class(&j_env).map_napi_err()?;
+                    self_class.is_assignable_from(&other_class).map_napi_err()?
+                } else if !self.is_array()
+                    && !other.is_promise()?
+                    && !other.is_date()?
+                    && !other.is_error()?
+                    && !other.is_dataview()?
+                {
                     let object = other.coerce_to_object();
                     if object.is_err() {
                         return Ok(false);
@@ -92,12 +105,14 @@ impl JsTypeEq for JavaType {
                     let j_env = class.vm.attach_thread().map_napi_err()?;
                     let self_class = self.as_class(&j_env).map_napi_err()?;
                     let other_class = JavaClass::from_global(&class.class, &j_env);
-                    self_class.is_assignable_from(&other_class).map_napi_err()
+                    self_class.is_assignable_from(&other_class).map_napi_err()?
                 } else {
-                    Ok(false)
+                    false
                 }
             }
-        }
+            // other is a function, a symbol or unknown
+            _ => false,
+        })
     }
 }
 
@@ -297,42 +312,73 @@ impl NapiToJava for JavaType {
         node_env: &'a Env,
         value: JsUnknown,
     ) -> ResultType<JavaCallResult> {
-        if value.get_type()? == ValueType::Object {
-            return Ok(JavaCallResult::Object {
-                object: self
-                    .convert_to_java_object(env, node_env, value)?
-                    .try_into()?,
-                signature: self.clone(),
-            });
-        }
-
-        Ok(match self.type_enum() {
-            Type::Integer => JavaCallResult::Integer(value.coerce_to_number()?.get_int32()?),
-            Type::Long => JavaCallResult::Long(value.coerce_to_number()?.get_int64()?),
-            Type::Short => JavaCallResult::Short(value.coerce_to_number()?.get_int32()? as i16),
-            Type::Double => JavaCallResult::Double(value.coerce_to_number()?.get_double()?),
-            Type::Float => JavaCallResult::Float(value.coerce_to_number()?.get_double()? as f32),
-            Type::Byte => JavaCallResult::Byte(value.coerce_to_number()?.get_int32()? as i8),
-            Type::Character => {
-                let str = value.coerce_to_string()?.into_utf16()?;
-                let arr = str.as_slice();
-                if arr.len() == 1 {
-                    JavaCallResult::Character(arr[0])
-                } else {
-                    return Err("Java character must be a single character".into());
-                }
+        Ok(if value.get_type()? == ValueType::Object {
+            match self.type_enum() {
+                Type::Integer => JavaCallResult::Integer(env.object_to_int(
+                    &LocalJavaObject::from(&value.into_java_object(node_env)?, env),
+                )?),
+                Type::Long => JavaCallResult::Long(env.object_to_long(&LocalJavaObject::from(
+                    &value.into_java_object(node_env)?,
+                    env,
+                ))?),
+                Type::Float => JavaCallResult::Float(env.object_to_float(
+                    &LocalJavaObject::from(&value.into_java_object(node_env)?, env),
+                )?),
+                Type::Double => JavaCallResult::Double(env.object_to_double(
+                    &LocalJavaObject::from(&value.into_java_object(node_env)?, env),
+                )?),
+                Type::Boolean => JavaCallResult::Boolean(env.object_to_boolean(
+                    &LocalJavaObject::from(&value.into_java_object(node_env)?, env),
+                )?),
+                Type::Byte => JavaCallResult::Byte(env.object_to_byte(&LocalJavaObject::from(
+                    &value.into_java_object(node_env)?,
+                    env,
+                ))?),
+                Type::Short => JavaCallResult::Short(env.object_to_short(
+                    &LocalJavaObject::from(&value.into_java_object(node_env)?, env),
+                )?),
+                Type::Character => JavaCallResult::Character(env.object_to_char(
+                    &LocalJavaObject::from(&value.into_java_object(node_env)?, env),
+                )?),
+                _ => JavaCallResult::Object {
+                    object: self
+                        .convert_to_java_object(env, node_env, value)?
+                        .try_into()?,
+                    signature: self.clone(),
+                },
             }
-            Type::Boolean => JavaCallResult::Boolean(value.coerce_to_bool()?.get_value()?),
-            _ => {
-                if value.get_type()? == ValueType::Null || value.get_type()? == ValueType::Undefined
-                {
-                    JavaCallResult::Null
-                } else {
-                    JavaCallResult::Object {
-                        object: self
-                            .convert_to_java_object(env, node_env, value)?
-                            .try_into()?,
-                        signature: self.clone(),
+        } else {
+            match self.type_enum() {
+                Type::Integer => JavaCallResult::Integer(value.coerce_to_number()?.get_int32()?),
+                Type::Long => JavaCallResult::Long(value.coerce_to_number()?.get_int64()?),
+                Type::Short => JavaCallResult::Short(value.coerce_to_number()?.get_int32()? as i16),
+                Type::Double => JavaCallResult::Double(value.coerce_to_number()?.get_double()?),
+                Type::Float => {
+                    JavaCallResult::Float(value.coerce_to_number()?.get_double()? as f32)
+                }
+                Type::Byte => JavaCallResult::Byte(value.coerce_to_number()?.get_int32()? as i8),
+                Type::Character => {
+                    let str = value.coerce_to_string()?.into_utf16()?;
+                    let arr = str.as_slice();
+                    if arr.len() == 1 {
+                        JavaCallResult::Character(arr[0])
+                    } else {
+                        return Err("Java character must be a single character".into());
+                    }
+                }
+                Type::Boolean => JavaCallResult::Boolean(value.coerce_to_bool()?.get_value()?),
+                _ => {
+                    if value.get_type()? == ValueType::Null
+                        || value.get_type()? == ValueType::Undefined
+                    {
+                        JavaCallResult::Null
+                    } else {
+                        JavaCallResult::Object {
+                            object: self
+                                .convert_to_java_object(env, node_env, value)?
+                                .try_into()?,
+                            signature: self.clone(),
+                        }
                     }
                 }
             }

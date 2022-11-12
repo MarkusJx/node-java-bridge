@@ -380,7 +380,20 @@ impl JavaType {
     }
 
     pub fn as_class<'a>(&self, env: &'a JavaEnv<'a>) -> ResultType<JavaClass<'a>> {
-        JavaClass::by_name(self.to_jni_type().as_str(), env)
+        let class_name = match self.type_enum {
+            Type::Void => "java.lang.Void",
+            Type::Long => "java.lang.Long",
+            Type::Integer => "java.lang.Integer",
+            Type::Boolean => "java.lang.Boolean",
+            Type::Byte => "java.lang.Byte",
+            Type::Character => "java.lang.Character",
+            Type::Short => "java.lang.Short",
+            Type::Float => "java.lang.Float",
+            Type::Double => "java.lang.Double",
+            _ => &self.signature,
+        };
+
+        JavaClass::by_java_name(class_name.to_string(), env)
     }
 }
 

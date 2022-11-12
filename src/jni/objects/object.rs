@@ -256,6 +256,10 @@ impl GlobalJavaObject {
         env.get_object_class(self.into())
     }
 
+    pub fn get_vm(&self) -> JavaVM {
+        self.0.lock().unwrap().get_vm()
+    }
+
     /// Get this object's raw value in order to pass it
     /// to the JVM as a method return value.
     /// Disables automatic freeing of the object
