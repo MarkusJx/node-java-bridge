@@ -187,6 +187,10 @@ impl<'a> JavaEnv<'a> {
         self.0.append_class_path(paths)
     }
 
+    pub fn replace_class_loader(&self, class_loader: GlobalJavaObject) -> ResultType<()> {
+        self.0.replace_class_loader(class_loader)
+    }
+
     pub(in crate::jni) fn thread_set_context_classloader(&self) -> ResultType<()> {
         if self.get_class_loader().is_err() {
             return Ok(());

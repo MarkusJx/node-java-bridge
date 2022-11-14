@@ -11,6 +11,7 @@ import {
     JavaClass,
     JavaClassConstructorType,
     JavaVersion,
+    UnknownJavaClass,
     UnknownJavaClassType,
 } from './definitions';
 import { getJavaLibPath, getNativeLibPath } from './nativeLib';
@@ -23,6 +24,7 @@ let javaInstance: Java | null = null;
 interface ImportedJavaClass {
     'class.proxy': object;
     new (...args: any[]): any;
+    newInstanceAsync(...args: any[]): Promise<UnknownJavaClass>;
 }
 
 /**
@@ -91,6 +93,44 @@ export function ensureJvm(options?: JVMOptions): void {
     }
 }
 
+/**
+ * Get the addon's internal class loader.
+ * This may be used in combination with {@link setClassLoader}
+ * to create a custom class loader and load classes from it.
+ *
+ * ## Example
+ * ```ts
+ * import { getClassLoader, setClassLoader, importClass } from 'java-bridge';
+ *
+ * const classLoader = getClassLoader();
+ *
+ * const URLClassLoader = importClass('java.net.URLClassLoader');
+ * const URL = importClass('java.net.URL');
+ *
+ * // This actually happens internally when appendClasspath is called
+ * const newClassLoader = new URLClassLoader([new URL('file:///path/to/my.jar')], classLoader);
+ *
+ * setClassLoader(newClassLoader);
+ * ```
+ */
+export function getClassLoader(): UnknownJavaClass {
+    ensureJvm();
+    return javaInstance!.classLoader as UnknownJavaClass;
+}
+
+/**
+ * Set the internal class loader to use.
+ * This allows you to create a custom class loader
+ * and import classes using {@link importClass} or {@link importClassAsync}.
+ * Without setting the custom class loader, the default class loader will be used.
+ *
+ * @param classLoader the new class loader to use
+ */
+export function setClassLoader(classLoader: UnknownJavaClass): void {
+    ensureJvm();
+    javaInstance!.classLoader = classLoader;
+}
+
 function defineFields(object: Record<string, any>, getStatic: boolean): void {
     for (const field of getClassFields(object['class.proxy'], getStatic)) {
         const getter = (): any =>
@@ -113,6 +153,27 @@ function defineFields(object: Record<string, any>, getStatic: boolean): void {
             });
         }
     }
+}
+
+function createClassFromConstructor<T extends JavaClassConstructorType>(
+    constructor: ImportedJavaClass
+): T {
+    defineFields(constructor, true);
+
+    return class extends constructor {
+        constructor(...args: any[]) {
+            super(...args);
+            defineFields(this, false);
+        }
+
+        static async newInstanceAsync(
+            ...args: any[]
+        ): Promise<UnknownJavaClass> {
+            const instance = await super.newInstanceAsync(...args);
+            defineFields(instance, false);
+            return instance;
+        }
+    } as unknown as T;
 }
 
 /**
@@ -187,16 +248,8 @@ export function importClass<
     const constructor = javaInstance!.importClass(
         classname
     ) as ImportedJavaClass;
-    defineFields(constructor, true);
 
-    constructor.constructor = function (...args: any[]) {
-        const object = new constructor.prototype.constructor(...args);
-        defineFields(object, false);
-
-        return object;
-    };
-
-    return constructor as unknown as T;
+    return createClassFromConstructor<T>(constructor);
 }
 
 /**
@@ -209,16 +262,8 @@ export async function importClassAsync<
     const constructor = (await javaInstance!.importClassAsync(
         classname
     )) as ImportedJavaClass;
-    defineFields(constructor, true);
 
-    constructor.constructor = function (...args: any[]) {
-        const object = new constructor.prototype.constructor(...args);
-        defineFields(object, false);
-
-        return object;
-    };
-
-    return constructor as unknown as T;
+    return createClassFromConstructor<T>(constructor);
 }
 
 /**

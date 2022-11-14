@@ -3,7 +3,7 @@ use crate::jni::objects::class::{GlobalJavaClass, JavaClass};
 use crate::jni::objects::object::{GlobalJavaObject, LocalJavaObject};
 use crate::jni::objects::string::JavaString;
 use crate::jni::objects::value::JavaValue;
-use crate::jni::traits::{GetRaw, GetSignature, ToJavaValue};
+use crate::jni::traits::{GetRaw, GetSignature, IsNull, ToJavaValue};
 use crate::jni::util::util::ResultType;
 use crate::sys;
 use std::error::Error;
@@ -28,6 +28,16 @@ impl<'a> JavaObject<'a> {
             Self::LocalRef(local_object) => JavaObject::LocalRef(local_object),
             Self::Local(local_object) => JavaObject::LocalRef(&local_object),
             Self::Global(global_object) => JavaObject::Global(global_object.clone()),
+        }
+    }
+}
+
+impl<'a> IsNull for JavaObject<'a> {
+    fn is_null(&self) -> bool {
+        match self {
+            Self::LocalRef(local_object) => local_object.is_null(),
+            Self::Local(local_object) => local_object.is_null(),
+            Self::Global(global_object) => global_object.is_null(),
         }
     }
 }

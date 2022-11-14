@@ -208,6 +208,28 @@ impl Java {
         Self::_is_instance_of(env, &node_env, this_obj, other)
     }
 
+    #[napi(getter, ts_return_type = "object")]
+    pub fn get_class_loader(&self, env: Env) -> napi::Result<JsUnknown> {
+        let proxy = get_class_proxy(&self.root_vm, "java.net.URLClassLoader".to_string())
+            .map_err(NapiError::to_napi_error)?;
+        let j_env = self.root_vm.attach_thread().map_napi_err()?;
+        JavaClassInstance::from_existing(proxy, &env, j_env.get_class_loader().map_napi_err()?)
+    }
+
+    #[napi(setter)]
+    pub fn set_class_loader(
+        &self,
+        env: Env,
+        #[napi(ts_arg_type = "object")] class_loader: JsUnknown,
+    ) -> napi::Result<()> {
+        let j_env = self.root_vm.attach_thread().map_napi_err()?;
+        let obj = class_loader.coerce_to_object()?;
+        let instance =
+            env.unwrap::<GlobalJavaObject>(&obj.get_named_property::<JsObject>(OBJECT_PROPERTY)?)?;
+
+        j_env.replace_class_loader(instance.clone()).map_napi_err()
+    }
+
     pub fn vm(&self) -> JavaVM {
         self.root_vm.clone()
     }

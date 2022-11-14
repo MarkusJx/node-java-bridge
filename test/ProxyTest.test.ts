@@ -3,7 +3,7 @@ import assert from 'assert';
 import { expect } from 'chai';
 import { afterEach } from 'mocha';
 import semver from 'semver';
-import isCi from 'is-ci';
+import { shouldIncreaseTimeout } from './testUtil';
 require('expose-gc');
 
 declare class JThread extends JavaClass {
@@ -29,10 +29,7 @@ function getJavaVersion(): string {
 }
 
 const javaVersion = getJavaVersion();
-let timeoutMs: number = 2e3;
-if (isCi && (process.arch === 'arm64' || process.arch === 'arm')) {
-    timeoutMs = 60e3;
-}
+const timeoutMs: number = shouldIncreaseTimeout ? 60e3 : 2e3;
 
 describe('ProxyTest', () => {
     describe('java.lang.Runnable proxy', () => {
