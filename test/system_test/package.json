@@ -7,19 +7,19 @@
         "test": "mocha -r ts-node/register *.test.ts",
         "pretest": "npm run clean && npm run copy && npm run replace",
         "clean": "rimraf *.test.ts",
-        "copy": "cpy \"../*.test.ts\" .",
+        "copy": "cpy \"../*.ts\" .",
         "replace": "replace \"from '../.';\" \"from 'java-bridge';\" . -r --include=\"*.test.ts\""
     },
     "keywords": [],
     "author": "MarkusJx",
     "license": "UNLICENSED",
     "devDependencies": {
-        "@types/chai": "^4.3.3",
+        "@types/chai": "^4.3.4",
         "@types/is-ci": "^3.0.0",
         "@types/mocha": "^10.0.0",
         "@types/node": "^18.7.14",
         "@types/semver": "^7.3.12",
-        "chai": "^4.3.6",
+        "chai": "^4.3.7",
         "cpy-cli": "^4.2.0",
         "expose-gc": "^1.0.0",
         "is-ci": "^3.0.1",
@@ -28,7 +28,7 @@
         "rimraf": "^3.0.2",
         "semver": "^7.3.7",
         "ts-node": "^10.9.1",
-        "typescript": "^4.8.2"
+        "typescript": "^4.9.3"
     },
     "dependencies": {
         "java-bridge": "latest"
