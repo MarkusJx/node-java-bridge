@@ -1,7 +1,7 @@
 [package]
 edition = "2021"
 name = "java"
-version = "2.1.6"
+version = "2.1.7"
 
 [lib]
 crate-type = ["cdylib"]
@@ -20,6 +20,3 @@ rand = "0.8.5"
 napi-build = "2.0.1"
 bindgen = "0.60.1"
 java-locator = "0.1.2"
-
-[profile.release]
-lto = true
