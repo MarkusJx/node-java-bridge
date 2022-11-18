@@ -39,6 +39,7 @@ export type ProgressCallback = (classname: string) => void;
 declare class ModifierClass extends JavaClass {
     public static isPublic(val: number): Promise<boolean>;
     public static isStatic(val: number): Promise<boolean>;
+    public static isFinal(val: number): Promise<boolean>;
 }
 
 declare class TypeClass extends JavaClass {
@@ -60,6 +61,13 @@ declare class DeclaredConstructorClass extends JavaClass {
 declare class ClassClass extends JavaClass {
     public getDeclaredMethods(): Promise<DeclaredMethodClass[]>;
     public getDeclaredConstructors(): Promise<DeclaredConstructorClass[]>;
+    public getDeclaredFields(): Promise<FieldClass[]>;
+}
+
+declare class FieldClass extends JavaClass {
+    public getModifiers(): Promise<number>;
+    public getName(): Promise<string>;
+    public getType(): Promise<TypeClass>;
 }
 
 /**
@@ -130,6 +138,65 @@ export default class TypescriptDefinitionGenerator {
         }
 
         return result;
+    }
+
+    private async convertFields(
+        fields: FieldClass[]
+    ): Promise<ts.PropertyDeclaration[]> {
+        const Modifier = await importClassAsync<typeof ModifierClass>(
+            'java.lang.reflect.Modifier'
+        );
+
+        const res: ts.PropertyDeclaration[] = [];
+        for (const field of fields) {
+            const modifiers = await field.getModifiers();
+            if (await Modifier.isPublic(modifiers)) {
+                const name = await field.getName();
+                const type = await field.getType();
+                const typeName = await type.getTypeName();
+
+                const tsModifiers: ts.ModifierLike[] = [
+                    ts.factory.createModifier(SyntaxKind.PublicKeyword),
+                ];
+                if (await Modifier.isStatic(modifiers)) {
+                    tsModifiers.push(
+                        ts.factory.createModifier(SyntaxKind.StaticKeyword)
+                    );
+                }
+
+                if (await Modifier.isFinal(modifiers)) {
+                    tsModifiers.push(
+                        ts.factory.createModifier(SyntaxKind.ReadonlyKeyword)
+                    );
+                }
+
+                let declaration = ts.factory.createPropertyDeclaration(
+                    tsModifiers,
+                    name,
+                    undefined,
+                    this.javaTypeToTypescriptType(typeName, true),
+                    undefined
+                );
+
+                declaration = ts.addSyntheticLeadingComment(
+                    declaration,
+                    ts.SyntaxKind.SingleLineCommentTrivia,
+                    ` ================== Field ${name} ==================`,
+                    true
+                );
+
+                res.push(
+                    ts.addSyntheticLeadingComment(
+                        declaration,
+                        ts.SyntaxKind.MultiLineCommentTrivia,
+                        `*\n * Original type: '${await type.getTypeName()}'\n `,
+                        true
+                    )
+                );
+            }
+        }
+
+        return res;
     }
 
     private async convertConstructors(
@@ -534,15 +601,17 @@ export default class TypescriptDefinitionGenerator {
         const simpleName = this.classname.substring(
             this.classname.lastIndexOf('.') + 1
         );
+        const fields = await cls.getDeclaredFields();
         const methods = await cls.getDeclaredMethods();
 
-        const classMembers: ts.ClassElement[] = [];
+        const classMembers: ts.ClassElement[] = await this.convertFields(
+            fields
+        );
 
         const convertedMethods =
             await TypescriptDefinitionGenerator.convertMethods(methods);
-        for (const key of Object.keys(convertedMethods)) {
-            const m = convertedMethods[key];
-            classMembers.push(...this.convertMethod(m, key));
+        for (const [key, method] of Object.entries(convertedMethods)) {
+            classMembers.push(...this.convertMethod(method, key));
         }
 
         const constructors = await cls.getDeclaredConstructors();
