@@ -25,6 +25,8 @@ npm i java-bridge
 
 ## Build instructions
 
+_This is only required for development purposes. When installing the package using `npm i`, you can skip this._
+
 In order to build this project, you should install
 
 -   Node.js
