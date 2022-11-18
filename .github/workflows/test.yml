@@ -67,13 +67,16 @@ jobs:
               uses: Swatinem/rust-cache@v2.0.0
             - name: Install
               run: npm ci
+            - name: Build
+              if: ${{matrix.os != 'windows-latest' || matrix.arch == 'x64'}}
+              run: npm run build
             - name: Build (win32)
-              if: matrix.os == 'windows-latest' && matrix.arch == 'x86'
+              if: ${{matrix.os == 'windows-latest' && matrix.arch == 'x86'}}
               run: |
                   rustup target add i686-pc-windows-msvc
                   npm run build -- -- --target i686-pc-windows-msvc
             - name: Run tests
-              run: npm test
+              run: npm run testOnly
               timeout-minutes: 20
             - name: Create package
               if: ${{matrix.node-version == '18.x'}}
