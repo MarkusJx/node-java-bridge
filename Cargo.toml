@@ -20,6 +20,3 @@ rand = "0.8.5"
 napi-build = "2.0.1"
 bindgen = "0.60.1"
 java-locator = "0.1.2"
-
-[profile.release]
-lto = true
