@@ -5,6 +5,7 @@ export {
     JavaClassProxy,
     JavaClass,
     JavaClassConstructor,
+    UnknownJavaClass,
     JavaType,
     BasicOrJavaType,
     BasicType,
