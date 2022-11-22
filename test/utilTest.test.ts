@@ -1,4 +1,4 @@
-import { getJavaVersion, getJavaVersionSync } from '../.';
+import { getJavaVersion, getJavaVersionSync, appendClasspath } from '../.';
 import { it } from 'mocha';
 import { expect } from 'chai';
 import { shouldIncreaseTimeout } from './testUtil';
@@ -14,5 +14,9 @@ describe('util test', () => {
     it('Get java version (sync)', () => {
         const version = getJavaVersionSync();
         expect(version).to.be.a('string').to.have.length.greaterThanOrEqual(1);
+    }).timeout(timeout);
+
+    it('Add single jar to classpath', () => {
+        appendClasspath('');
     }).timeout(timeout);
 });

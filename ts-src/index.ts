@@ -28,6 +28,7 @@ export { getJavaLibPath } from '../native';
 export { getJavaVersion, getJavaVersionSync } from './util';
 import TypescriptDefinitionGenerator from './TypescriptDefinitionGenerator';
 export { TypescriptDefinitionGenerator };
+export { TypescriptBulkDefinitionGenerator } from './TypescriptBulkDefinitionGenerator';
 export {
     ModuleDeclaration,
     MethodDeclaration,
