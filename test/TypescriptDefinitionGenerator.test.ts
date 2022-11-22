@@ -123,4 +123,22 @@ describe('TypescriptDefinitionGenerator test', () => {
             `
         );
     }).timeout(timeoutMs);
+
+    it("Generate 'java.io.FileOutputSteam' definitions", async () => {
+        const generator = new TypescriptDefinitionGenerator(
+            'java.io.FileOutputStream',
+            null,
+            []
+        );
+
+        const declarations = await generator.generate();
+        await checkDeclarations(
+            declarations,
+            `
+            import { FileOutputStream } from './java/io/FileOutputStream';
+
+            FileOutputStream.nullOutputStreamSync().flushSync();
+            `
+        );
+    }).timeout(timeoutMs);
 });
