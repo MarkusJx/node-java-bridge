@@ -62,6 +62,7 @@ declare class ClassClass extends JavaClass {
     public getDeclaredMethods(): Promise<DeclaredMethodClass[]>;
     public getDeclaredConstructors(): Promise<DeclaredConstructorClass[]>;
     public getDeclaredFields(): Promise<FieldClass[]>;
+    public getSuperclass(): Promise<ClassClass | null>;
 }
 
 declare class FieldClass extends JavaClass {
@@ -580,6 +581,32 @@ export default class TypescriptDefinitionGenerator {
             .join('\n');
     }
 
+    private async getDeclaredMethods(
+        cls: ClassClass | null
+    ): Promise<DeclaredMethodClass[]> {
+        const res: DeclaredMethodClass[] = [];
+        const Object = await importClassAsync('java.lang.Object');
+        while (cls && !cls.equalsSync(Object.class)) {
+            res.push(...(await cls.getDeclaredMethods()));
+            cls = await cls.getSuperclass();
+        }
+
+        return res;
+    }
+
+    private async getDeclaredFields(
+        cls: ClassClass | null
+    ): Promise<FieldClass[]> {
+        const res: FieldClass[] = [];
+        const Object = await importClassAsync('java.lang.Object');
+        while (cls && !cls.equalsSync(Object.class)) {
+            res.push(...(await cls.getDeclaredFields()));
+            cls = await cls.getSuperclass();
+        }
+
+        return res;
+    }
+
     /**
      * Generates the typescript definition for the given class.
      *
@@ -601,8 +628,8 @@ export default class TypescriptDefinitionGenerator {
         const simpleName = this.classname.substring(
             this.classname.lastIndexOf('.') + 1
         );
-        const fields = await cls.getDeclaredFields();
-        const methods = await cls.getDeclaredMethods();
+        const fields = await this.getDeclaredFields(cls);
+        const methods = await this.getDeclaredMethods(cls);
 
         const classMembers: ts.ClassElement[] = await this.convertFields(
             fields
