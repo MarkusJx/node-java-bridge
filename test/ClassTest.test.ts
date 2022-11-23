@@ -1,4 +1,3 @@
-import fs from 'fs';
 import { importClass, importClassAsync } from '../.';
 import { expect } from 'chai';
 import { ClassTool, shouldIncreaseTimeout } from './testUtil';
@@ -67,6 +66,40 @@ describe('ClassTest', () => {
         `,
             'ClassWithExplicitJavaTypes'
         );
+
+        classTool.writeClass(
+            `
+        package test;
+        
+        public class ClassWithPackage {
+        }
+        `,
+            'ClassWithPackage'
+        );
+
+        classTool.writeClass(
+            `
+        package test;
+        
+        public class ClassWithPackageAndImport {
+        
+        }`,
+            'ClassWithPackageAndImport'
+        );
+
+        const firstJar = classTool.createJar('first.jar');
+        firstJar.addFile(
+            'ClassWithPackageAndImport.java',
+            'test/ClassWithPackageAndImport.java'
+        );
+        firstJar.close();
+
+        const secondJar = classTool.createJar('second.jar');
+        secondJar.addFile(
+            'ClassWithPackage.java',
+            'test/ClassWithPackage.java'
+        );
+        secondJar.close();
     });
 
     it('Class with basic types', () => {

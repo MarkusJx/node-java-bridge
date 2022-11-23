@@ -40,6 +40,7 @@ declare class ModifierClass extends JavaClass {
     public static isPublic(val: number): Promise<boolean>;
     public static isStatic(val: number): Promise<boolean>;
     public static isFinal(val: number): Promise<boolean>;
+    public static isAbstract(val: number): Promise<boolean>;
 }
 
 declare class TypeClass extends JavaClass {
@@ -59,10 +60,11 @@ declare class DeclaredConstructorClass extends JavaClass {
 }
 
 declare class ClassClass extends JavaClass {
-    public getDeclaredMethods(): Promise<DeclaredMethodClass[]>;
+    public getMethods(): Promise<DeclaredMethodClass[]>;
     public getDeclaredConstructors(): Promise<DeclaredConstructorClass[]>;
-    public getDeclaredFields(): Promise<FieldClass[]>;
-    public getSuperclass(): Promise<ClassClass | null>;
+    public getFields(): Promise<FieldClass[]>;
+    public getModifiers(): Promise<number>;
+    public isInterface(): Promise<boolean>;
 }
 
 declare class FieldClass extends JavaClass {
@@ -200,6 +202,46 @@ export default class TypescriptDefinitionGenerator {
         return res;
     }
 
+    private async isAbstractOrInterface(
+        classType: ClassClass
+    ): Promise<boolean> {
+        const Modifier = await importClassAsync<typeof ModifierClass>(
+            'java.lang.reflect.Modifier'
+        );
+
+        return (
+            (await classType.isInterface()) ||
+            (await Modifier.isAbstract(await classType.getModifiers()))
+        );
+    }
+
+    private createPrivateConstructor(): ts.ClassElement {
+        const declaration = ts.factory.createConstructorDeclaration(
+            [ts.factory.createModifier(ts.SyntaxKind.PrivateKeyword)],
+            [],
+            ts.factory.createBlock(
+                [
+                    ts.factory.createExpressionStatement(
+                        ts.factory.createCallExpression(
+                            ts.factory.createSuper(),
+                            [],
+                            []
+                        )
+                    ),
+                ],
+                true
+            )
+        );
+
+        return ts.addSyntheticLeadingComment(
+            declaration,
+            ts.SyntaxKind.MultiLineCommentTrivia,
+            '*\n * Private constructor to prevent instantiation\n' +
+                ' * as this is either an abstract class or an interface\n ',
+            true
+        );
+    }
+
     private async convertConstructors(
         constructors: DeclaredConstructorClass[]
     ): Promise<ts.ClassElement[]> {
@@ -293,8 +335,6 @@ export default class TypescriptDefinitionGenerator {
         switch (javaType) {
             case 'int':
             case 'java.lang.Integer':
-            case 'long':
-            case 'java.lang.Long':
             case 'float':
             case 'java.lang.Float':
             case 'double':
@@ -305,6 +345,11 @@ export default class TypescriptDefinitionGenerator {
             case 'java.lang.Short':
                 return ts.factory.createKeywordTypeNode(
                     ts.SyntaxKind.NumberKeyword
+                );
+            case 'long':
+            case 'java.lang.Long':
+                return ts.factory.createKeywordTypeNode(
+                    ts.SyntaxKind.BigIntKeyword
                 );
             case 'char':
             case 'java.lang.Character':
@@ -529,7 +574,10 @@ export default class TypescriptDefinitionGenerator {
         );
     }
 
-    private getExportStatement(simpleName: string) {
+    private getExportStatement(
+        simpleName: string,
+        isAbstractOrInterface: boolean
+    ) {
         const statement = ts.factory.createClassDeclaration(
             [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
             simpleName,
@@ -544,7 +592,7 @@ export default class TypescriptDefinitionGenerator {
                     ),
                 ]),
             ],
-            []
+            isAbstractOrInterface ? [this.createPrivateConstructor()] : []
         );
 
         return [
@@ -581,32 +629,6 @@ export default class TypescriptDefinitionGenerator {
             .join('\n');
     }
 
-    private async getDeclaredMethods(
-        cls: ClassClass | null
-    ): Promise<DeclaredMethodClass[]> {
-        const res: DeclaredMethodClass[] = [];
-        const Object = await importClassAsync('java.lang.Object');
-        while (cls && !cls.equalsSync(Object.class)) {
-            res.push(...(await cls.getDeclaredMethods()));
-            cls = await cls.getSuperclass();
-        }
-
-        return res;
-    }
-
-    private async getDeclaredFields(
-        cls: ClassClass | null
-    ): Promise<FieldClass[]> {
-        const res: FieldClass[] = [];
-        const Object = await importClassAsync('java.lang.Object');
-        while (cls && !cls.equalsSync(Object.class)) {
-            res.push(...(await cls.getDeclaredFields()));
-            cls = await cls.getSuperclass();
-        }
-
-        return res;
-    }
-
     /**
      * Generates the typescript definition for the given class.
      *
@@ -628,8 +650,8 @@ export default class TypescriptDefinitionGenerator {
         const simpleName = this.classname.substring(
             this.classname.lastIndexOf('.') + 1
         );
-        const fields = await this.getDeclaredFields(cls);
-        const methods = await this.getDeclaredMethods(cls);
+        const fields = await cls.getFields();
+        const methods = await cls.getMethods();
 
         const classMembers: ts.ClassElement[] = await this.convertFields(
             fields
@@ -641,11 +663,14 @@ export default class TypescriptDefinitionGenerator {
             classMembers.push(...this.convertMethod(method, key));
         }
 
-        const constructors = await cls.getDeclaredConstructors();
-        const convertedConstructors = await this.convertConstructors(
-            constructors
-        );
-        classMembers.push(...convertedConstructors);
+        const isAbstractOrInterface = await this.isAbstractOrInterface(cls);
+        if (!isAbstractOrInterface) {
+            const constructors = await cls.getDeclaredConstructors();
+            const convertedConstructors = await this.convertConstructors(
+                constructors
+            );
+            classMembers.push(...convertedConstructors);
+        }
 
         let tsClass = ts.factory.createClassDeclaration(
             [
@@ -679,7 +704,7 @@ export default class TypescriptDefinitionGenerator {
             null,
             tsClass,
             null,
-            ...this.getExportStatement(simpleName),
+            ...this.getExportStatement(simpleName, isAbstractOrInterface),
         ]);
 
         const res: ModuleDeclaration[] = [];

@@ -10,4 +10,4 @@ java-src/build
 !java-src/build/libs
 src/
 !dist/
-test/javaDefinitions
+test/javaDefinitions/**
