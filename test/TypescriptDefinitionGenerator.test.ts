@@ -4,6 +4,7 @@ import ts from 'typescript';
 import path from 'path';
 import * as fs from 'fs';
 import { shouldIncreaseTimeout } from './testUtil';
+import isCi from 'is-ci';
 
 interface Diagnostics {
     message: string;
@@ -124,7 +125,11 @@ describe('TypescriptDefinitionGenerator test', () => {
         );
     }).timeout(timeoutMs);
 
-    it("Generate 'java.io.FileOutputSteam' definitions", async () => {
+    it("Generate 'java.io.FileOutputSteam' definitions", async function () {
+        if (isCi) {
+            this.skip();
+        }
+
         const generator = new TypescriptDefinitionGenerator(
             'java.io.FileOutputStream',
             null,
