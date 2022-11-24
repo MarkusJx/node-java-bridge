@@ -39,6 +39,7 @@ export type ProgressCallback = (classname: string) => void;
 declare class ModifierClass extends JavaClass {
     public static isPublic(val: number): Promise<boolean>;
     public static isStatic(val: number): Promise<boolean>;
+    public static isStaticSync(val: number): boolean;
     public static isFinal(val: number): Promise<boolean>;
     public static isAbstract(val: number): Promise<boolean>;
 }
@@ -70,8 +71,22 @@ declare class ClassClass extends JavaClass {
 declare class FieldClass extends JavaClass {
     public getModifiers(): Promise<number>;
     public getName(): Promise<string>;
+    public getNameSync(): string;
     public getType(): Promise<TypeClass>;
 }
+
+/**
+ * A list of methods which probably never return null
+ */
+const nonNullReturnMethods: string[] = [
+    'toString',
+    'wait',
+    'getClass',
+    'hashCode',
+    'notify',
+    'notifyAll',
+    'equals',
+];
 
 /**
  * A class to generate typescript definitions for java classes.
@@ -306,31 +321,126 @@ export default class TypescriptDefinitionGenerator {
                 },
                 'newInstance',
                 i,
-                false
+                false,
+                true
             );
         });
 
         return [...newInstanceMethods, ...tsConstructors];
     }
 
+    private primitiveToClassType(type: string): string {
+        switch (type) {
+            case 'boolean':
+                return 'java.lang.Boolean';
+            case 'byte':
+                return 'java.lang.Byte';
+            case 'char':
+                return 'java.lang.Character';
+            case 'short':
+                return 'java.lang.Short';
+            case 'int':
+                return 'java.lang.Integer';
+            case 'long':
+                return 'java.lang.Long';
+            case 'float':
+                return 'java.lang.Float';
+            case 'double':
+                return 'java.lang.Double';
+            default:
+                return type;
+        }
+    }
+
+    private isPrimitive(type: string): boolean {
+        return [
+            'boolean',
+            'byte',
+            'char',
+            'short',
+            'int',
+            'long',
+            'float',
+            'double',
+        ].includes(type);
+    }
+
     private javaTypeToTypescriptType(
         javaType: string,
-        isParam: boolean
+        isParam: boolean,
+        strictNullTypes: boolean = true
     ): ts.TypeNode {
+        const createType = (type: ts.TypeNode): ts.TypeNode => {
+            if (strictNullTypes) {
+                return ts.factory.createUnionTypeNode([
+                    type,
+                    ts.factory.createLiteralTypeNode(ts.factory.createNull()),
+                ]);
+            } else {
+                return type;
+            }
+        };
+
         switch (javaType) {
             case 'byte[]':
             case 'java.lang.Byte[]':
-                return ts.factory.createTypeReferenceNode('Buffer');
+                return createType(ts.factory.createTypeReferenceNode('Buffer'));
         }
 
         if (javaType.endsWith('[]')) {
-            return ts.factory.createArrayTypeNode(
-                this.javaTypeToTypescriptType(
-                    javaType.substring(0, javaType.length - 2),
-                    isParam
+            return createType(
+                ts.factory.createArrayTypeNode(
+                    this.javaTypeToTypescriptType(
+                        javaType.substring(0, javaType.length - 2),
+                        isParam
+                    )
                 )
             );
         }
+
+        const createTypeReferenceNode = (
+            name: string
+        ): ts.TypeReferenceNode => {
+            if (!this.resolvedImports.includes(name)) {
+                this.additionalImports.push(name);
+            }
+
+            this.importsToResolve.push(name);
+            const isSelf = name === this.classname && isParam;
+            return ts.factory.createTypeReferenceNode(
+                name === this.classname
+                    ? name.substring(name.lastIndexOf('.') + 1) +
+                          (isSelf ? 'Class' : '')
+                    : name.replaceAll('.', '_')
+            );
+        };
+
+        const createUnion = (
+            type: ts.KeywordTypeSyntaxKind,
+            ...additionalTypes: ts.KeywordTypeSyntaxKind[]
+        ): ts.UnionTypeNode => {
+            const types: ts.TypeNode[] = [
+                ts.factory.createKeywordTypeNode(type),
+            ];
+
+            if (!this.isPrimitive(javaType) && strictNullTypes) {
+                types.push(
+                    ts.factory.createLiteralTypeNode(ts.factory.createNull())
+                );
+            }
+
+            if (!isParam) {
+                return ts.factory.createUnionTypeNode(types);
+            }
+
+            return ts.factory.createUnionTypeNode([
+                createTypeReferenceNode(this.primitiveToClassType(javaType)),
+                ...additionalTypes.map((t) =>
+                    ts.factory.createKeywordTypeNode(t)
+                ),
+                ...types,
+            ]);
+        };
 
         switch (javaType) {
             case 'int':
@@ -343,47 +453,32 @@ export default class TypescriptDefinitionGenerator {
             case 'java.lang.Byte':
             case 'short':
             case 'java.lang.Short':
-                return ts.factory.createKeywordTypeNode(
-                    ts.SyntaxKind.NumberKeyword
-                );
+                return createUnion(SyntaxKind.NumberKeyword);
             case 'long':
             case 'java.lang.Long':
-                return ts.factory.createKeywordTypeNode(
-                    ts.SyntaxKind.BigIntKeyword
+                return createUnion(
+                    SyntaxKind.NumberKeyword,
+                    SyntaxKind.BigIntKeyword
                 );
             case 'char':
             case 'java.lang.Character':
             case 'java.lang.String':
-                return ts.factory.createKeywordTypeNode(
-                    ts.SyntaxKind.StringKeyword
+                return createType(
+                    ts.factory.createKeywordTypeNode(SyntaxKind.StringKeyword)
                 );
             case 'boolean':
             case 'java.lang.Boolean':
-                return ts.factory.createKeywordTypeNode(
-                    ts.SyntaxKind.BooleanKeyword
-                );
+                return createUnion(SyntaxKind.BooleanKeyword);
             case 'void':
             case 'java.lang.Void':
-                return ts.factory.createKeywordTypeNode(
-                    ts.SyntaxKind.VoidKeyword
-                );
+                return ts.factory.createKeywordTypeNode(SyntaxKind.VoidKeyword);
             case 'java.lang.Object':
                 this.usesBasicOrJavaType = true;
-                return ts.factory.createTypeReferenceNode('BasicOrJavaType');
-            default:
-                if (!this.resolvedImports.includes(javaType)) {
-                    this.additionalImports.push(javaType);
-                }
-
-                this.importsToResolve.push(javaType);
-                const isSelf = javaType === this.classname && isParam;
-
-                return ts.factory.createTypeReferenceNode(
-                    javaType === this.classname
-                        ? javaType.substring(javaType.lastIndexOf('.') + 1) +
-                              (isSelf ? 'Class' : '')
-                        : javaType.replaceAll('.', '_')
+                return createType(
+                    ts.factory.createTypeReferenceNode('BasicOrJavaType')
                 );
+            default:
+                return createType(createTypeReferenceNode(javaType));
         }
     }
 
@@ -420,7 +515,8 @@ export default class TypescriptDefinitionGenerator {
         m: MethodDeclaration,
         name: string,
         i: number,
-        isSync: boolean
+        isSync: boolean,
+        nonNullReturnType: boolean
     ): ts.MethodDeclaration {
         const publicMod = ts.factory.createModifier(
             ts.SyntaxKind.PublicKeyword
@@ -434,7 +530,11 @@ export default class TypescriptDefinitionGenerator {
             modifiers.push(staticMod);
         }
 
-        let returnType = this.javaTypeToTypescriptType(m.returnType, false);
+        let returnType = this.javaTypeToTypescriptType(
+            m.returnType,
+            false,
+            !nonNullReturnType
+        );
         if (!isSync) {
             returnType = ts.factory.createTypeReferenceNode(
                 ts.factory.createIdentifier('Promise'),
@@ -479,9 +579,10 @@ export default class TypescriptDefinitionGenerator {
         for (let i = 0; i < method.length; i++) {
             const m = method[i];
 
+            const nonNullReturnType = nonNullReturnMethods.includes(name);
             res.push(
-                this.createMethod(m, name, i, false),
-                this.createMethod(m, name, i, true)
+                this.createMethod(m, name, i, false, nonNullReturnType),
+                this.createMethod(m, name, i, true, nonNullReturnType)
             );
         }
 
@@ -650,7 +751,20 @@ export default class TypescriptDefinitionGenerator {
         const simpleName = this.classname.substring(
             this.classname.lastIndexOf('.') + 1
         );
-        const fields = await cls.getFields();
+
+        function onlyUnique<T extends { getNameSync(): string }>(
+            value: T,
+            index: number,
+            self: T[]
+        ): boolean {
+            return (
+                self.findIndex(
+                    (el) => value.getNameSync() === el.getNameSync()
+                ) === index
+            );
+        }
+
+        const fields = (await cls.getFields()).filter(onlyUnique);
         const methods = await cls.getMethods();
 
         const classMembers: ts.ClassElement[] = await this.convertFields(

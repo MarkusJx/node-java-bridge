@@ -89,15 +89,15 @@ describe('ClassTest', () => {
 
         const firstJar = classTool.createJar('first.jar');
         firstJar.addFile(
-            'ClassWithPackageAndImport.java',
-            'test/ClassWithPackageAndImport.java'
+            'test/ClassWithPackageAndImport.class',
+            'test/ClassWithPackageAndImport.class'
         );
         firstJar.close();
 
         const secondJar = classTool.createJar('second.jar');
         secondJar.addFile(
-            'ClassWithPackage.java',
-            'test/ClassWithPackage.java'
+            'test/ClassWithPackage.class',
+            'test/ClassWithPackage.class'
         );
         secondJar.close();
     });

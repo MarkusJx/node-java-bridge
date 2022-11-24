@@ -407,16 +407,7 @@ impl NapiToJava for JavaType {
     ) -> ResultType<JavaObject<'a>> {
         if !self.is_array() {
             return Err("Type must be an array".into());
-        }
-
-        let inner = self
-            .inner()
-            .ok_or("Array value has no inner type")?
-            .lock()
-            .unwrap()
-            .clone();
-
-        if value.is_buffer()? && inner.is_byte() {
+        } else if value.is_buffer()? && self.is_byte_array() {
             let buffer = unsafe { value.cast::<JsBuffer>() }.into_value()?;
 
             let mut vec: Vec<i8> = Vec::with_capacity(buffer.len());
@@ -436,6 +427,12 @@ impl NapiToJava for JavaType {
 
         let array = unsafe { value.cast::<JsTypedArray>() };
         let length = array.get_array_length()?;
+        let inner = self
+            .inner()
+            .ok_or("Array value has no inner type")?
+            .lock()
+            .unwrap()
+            .clone();
 
         Ok(match inner.type_enum() {
             Type::Integer => {

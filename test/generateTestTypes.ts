@@ -1,14 +1,26 @@
 import { TypescriptBulkDefinitionGenerator } from '../.';
 import path from 'path';
 import fs from 'fs';
+import type { Ora } from 'ora';
 
 const gen = new TypescriptBulkDefinitionGenerator();
 const outDir = path.join(__dirname, 'javaDefinitions');
+
+const importOra = (): Promise<typeof import('ora').default> =>
+    eval("import('ora').then(ora => ora.default)");
+const importChalk = (): Promise<typeof import('chalk').default> =>
+    eval("import('chalk').then(chalk => chalk.default)");
+
+let spinner: Ora | null = null;
 
 async function run() {
     if (fs.existsSync(outDir)) {
         return;
     }
+
+    const chalk = await importChalk();
+    const ora = await importOra();
+    spinner = ora('Generating Java definitions').start();
 
     await gen.generate(
         [
@@ -22,10 +34,14 @@ async function run() {
             'java.util.jar.JarEntry',
             'java.io.FileInputStream',
         ],
-        (classname) => console.log(`Converting '${classname}' to typescript`)
+        (classname) => {
+            spinner.text = chalk.gray(
+                `Converting class ${chalk.magentaBright(classname)}`
+            );
+        }
     );
 
-    console.log('Saving results...');
+    spinner.text = chalk.gray('Writing definitions to disk');
     gen.moduleDeclarations.forEach((declaration, i) => {
         gen.moduleDeclarations[i] = {
             ...declaration,
@@ -36,9 +52,11 @@ async function run() {
         };
     });
     await gen.save(outDir);
+    spinner.succeed('Generated Java definitions');
 }
 
 run().catch((err) => {
+    spinner?.fail('Failed to convert classes');
     console.error(err);
     process.exit(1);
 });

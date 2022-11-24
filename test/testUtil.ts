@@ -26,7 +26,7 @@ export class JarTool {
     constructor(private readonly rootDir: string, outFile: string) {
         const manifest = new Manifest();
         manifest
-            .getMainAttributesSync()
+            .getMainAttributesSync()!
             .putSync(Attributes$Name.MANIFEST_VERSION, '1.0');
         this.outputStream = new JarOutputStream(
             new FileOutputStream(path.join(rootDir, outFile)),
@@ -34,14 +34,15 @@ export class JarTool {
         );
     }
 
-    public addFile(name: string, outName: string) {
-        const entry = new JarEntry(outName);
-        const source = path.join(this.rootDir, name);
+    public addFile(src: string, dest: string) {
+        const entry = new JarEntry(dest);
+        const source = path.join(this.rootDir, src);
         entry.setTimeSync(new File(source).lastModifiedSync());
         this.outputStream.putNextEntrySync(entry);
 
         const inputStream = new FileInputStream(source);
         const data = inputStream.readAllBytesSync();
+        inputStream.closeSync();
         this.outputStream.writeSync(data);
         this.outputStream.closeEntrySync();
     }
@@ -58,26 +59,25 @@ export class ClassTool {
         this.outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'java'));
     }
 
-    public writeClass(code: string, className: string): string {
+    public writeClass(code: string, className: string): void {
         const classFile = path.join(this.outDir, className + '.java');
         fs.writeFileSync(classFile, code, { encoding: 'utf8' });
-        return classFile;
+
+        const compiler = ToolProvider.getSystemJavaCompilerSync();
+        compiler!.runSync(null, null, null, [classFile, '-d', this.outDir]);
     }
 
     public createClass(code: string, className: string): void {
-        const classFile = this.writeClass(code, className);
+        this.writeClass(code, className);
         const root = new File(this.outDir);
-
-        const compiler = ToolProvider.getSystemJavaCompilerSync();
-        compiler.runSync(null!, null!, null!, [classFile]);
 
         const prevClassLoader = getClassLoader() as ClassLoader;
         const classLoader = URLClassLoader.newInstanceSync(
-            [root.toURISync().toURLSync()],
+            [root.toURISync()!.toURLSync()],
             prevClassLoader
         );
 
-        setClassLoader(classLoader);
+        setClassLoader(classLoader!);
     }
 
     public createJar(jarName: string): JarTool {
