@@ -2,6 +2,8 @@ import { TypescriptBulkDefinitionGenerator } from '../.';
 import path from 'path';
 import fs from 'fs';
 import type { Ora } from 'ora';
+import isCi from 'is-ci';
+import type { ChalkInstance } from 'chalk';
 
 const gen = new TypescriptBulkDefinitionGenerator();
 const outDir = path.join(__dirname, 'javaDefinitions');
@@ -18,9 +20,12 @@ async function run() {
         return;
     }
 
-    const chalk = await importChalk();
-    const ora = await importOra();
-    spinner = ora('Generating Java definitions').start();
+    let chalk: ChalkInstance | null = null;
+    if (!isCi) {
+        chalk = await importChalk();
+        const ora = await importOra();
+        spinner = ora('Generating Java definitions').start();
+    }
 
     await gen.generate(
         [
@@ -35,13 +40,19 @@ async function run() {
             'java.io.FileInputStream',
         ],
         (classname) => {
-            spinner.text = chalk.gray(
-                `Converting class ${chalk.magentaBright(classname)}`
-            );
+            if (spinner && chalk) {
+                spinner.text = chalk.gray(
+                    `Converting class ${chalk.magentaBright(classname)}`
+                );
+            } else {
+                console.log(`Converting '${classname}' to typescript`);
+            }
         }
     );
 
-    spinner.text = chalk.gray('Writing definitions to disk');
+    if (spinner && chalk)
+        spinner.text = chalk.gray('Writing definitions to disk');
+
     gen.moduleDeclarations.forEach((declaration, i) => {
         gen.moduleDeclarations[i] = {
             ...declaration,
@@ -51,8 +62,9 @@ async function run() {
             ),
         };
     });
+
     await gen.save(outDir);
-    spinner.succeed('Generated Java definitions');
+    spinner?.succeed('Generated Java definitions');
 }
 
 run().catch((err) => {
