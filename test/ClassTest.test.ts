@@ -1,4 +1,4 @@
-import { importClass, importClassAsync } from '../.';
+/*import { importClass, importClassAsync } from '../.';
 import { expect } from 'chai';
 import { ClassTool, shouldIncreaseTimeout } from './testUtil';
 
@@ -230,4 +230,4 @@ describe('ClassTest', () => {
     after(() => {
         classTool?.dispose();
     });
-});
+});*/

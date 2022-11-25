@@ -1,5 +1,5 @@
 import isCi from 'is-ci';
-import fs from 'fs';
+/*import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { setClassLoader, getClassLoader } from '../.';
@@ -12,7 +12,7 @@ import FileOutputStream from './javaDefinitions/java/io/FileOutputStream';
 import JarOutputStream from './javaDefinitions/java/util/jar/JarOutputStream';
 import Attributes$Name from './javaDefinitions/java/util/jar/Attributes$Name';
 import JarEntry from './javaDefinitions/java/util/jar/JarEntry';
-import FileInputStream from './javaDefinitions/java/io/FileInputStream';
+import FileInputStream from './javaDefinitions/java/io/FileInputStream';*/
 
 export const shouldIncreaseTimeout =
     isCi && (process.arch === 'arm64' || process.arch === 'arm');
@@ -20,7 +20,7 @@ export const shouldIncreaseTimeout =
 console.log('Process arch:', process.arch);
 console.log('Process platform:', process.platform);
 
-export class JarTool {
+/*export class JarTool {
     private readonly outputStream: JarOutputStream;
 
     constructor(private readonly rootDir: string, outFile: string) {
@@ -87,4 +87,4 @@ export class ClassTool {
     public dispose(): void {
         fs.rmSync(this.outDir, { recursive: true });
     }
-}
+}*/
