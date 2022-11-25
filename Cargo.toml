@@ -21,6 +21,6 @@ napi-build = "2.0.1"
 bindgen = "0.60.1"
 java-locator = "0.1.2"
 
-[profile.release]
-lto = false
-codegen-units = 32
+#[profile.release]
+#lto = false
+#codegen-units = 32
