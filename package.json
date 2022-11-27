@@ -76,7 +76,7 @@
         "yargs": "^17.6.2"
     },
     "devDependencies": {
-        "@napi-rs/cli": "^2.12.1",
+        "@napi-rs/cli": "^2.13.0",
         "@types/chai": "^4.3.4",
         "@types/glob": "^8.0.0",
         "@types/is-ci": "^3.0.0",
