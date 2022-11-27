@@ -67,8 +67,8 @@ async function run() {
     spinner?.succeed('Generated Java definitions');
 }
 
-/*run().catch((err) => {
+run().catch((err) => {
     spinner?.fail('Failed to convert classes');
     console.error(err);
     process.exit(1);
-});*/
+});
