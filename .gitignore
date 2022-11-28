@@ -198,3 +198,5 @@ native.d.ts
 native.js
 docs/
 test.js
+.dockerignore
+Dockerfile
