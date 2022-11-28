@@ -1,6 +1,7 @@
 extern crate bindgen;
 extern crate napi_build;
 
+use build_target::{Arch, Os};
 use std::env;
 use std::path::{Path, PathBuf};
 
@@ -19,16 +20,22 @@ fn main() {
     #[cfg(target_os = "windows")]
     let os_dir = "win32";
 
-    let bindings = bindgen::Builder::default()
+    let mut bindings = bindgen::Builder::default()
         .header(java_home.join("jni.h").as_path().to_str().unwrap())
         .clang_arg(format!("-I{}", java_home.to_str().unwrap()).as_str())
         .clang_arg(format!("-I{}", java_home.join(os_dir).as_path().to_str().unwrap()).as_str())
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
-        .generate()
-        .expect("Unable to generate bindings");
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks));
+
+    if build_target::target_os().unwrap() == Os::Linux
+        && build_target::target_arch().unwrap() == Arch::AARCH64
+    {
+        bindings = bindings.size_t_is_usize(false);
+    }
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     bindings
+        .generate()
+        .expect("Unable to generate bindings")
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings!");
 }
