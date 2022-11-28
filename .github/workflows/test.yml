@@ -108,7 +108,6 @@ jobs:
               with:
                   distribution: 'temurin'
                   java-version: '17'
-                  architecture: 'aarch64'
             - name: Install rust toolchain
               uses: actions-rs/toolchain@v1
               with:
