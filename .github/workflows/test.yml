@@ -78,6 +78,12 @@ jobs:
             - name: Run tests
               run: npm run testOnly
               timeout-minutes: 20
+            - uses: dorny/test-reporter@v1
+              with:
+                  artifact: test-results-${{matrix.os}}-${{matrix.arch}}
+                  name: Mocha Tests
+                  path: 'testReport.json'
+                  reporter: mocha-json
             - name: Create package
               if: ${{matrix.node-version == '18.x'}}
               shell: bash

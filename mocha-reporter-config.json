@@ -1,0 +1,6 @@
+{
+    "reporterEnabled": "spec, @dannysilence/mocha-json-reporter",
+    "dannysilenceMochaJsonReporterReporterOptions": {
+        "output": "testReport.json"
+    }
+}
