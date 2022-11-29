@@ -78,12 +78,11 @@ jobs:
             - name: Run tests
               run: npm run testOnly
               timeout-minutes: 20
-            - uses: dorny/test-reporter@v1
-              if: success() || failure()
+            - name: Create test summary
+              uses: test-summary/action@dist
+              if: always()
               with:
-                  name: Mocha Tests
-                  path: 'testReport.json'
-                  reporter: mocha-json
+                  paths: testResults.xml
             - name: Create package
               if: ${{matrix.node-version == '18.x'}}
               shell: bash
@@ -156,12 +155,11 @@ jobs:
                       export CI=true
                       npm install
                       npm run testOnly
-            - uses: dorny/test-reporter@v1
-              if: success() || failure()
+            - name: Create test summary
+              uses: test-summary/action@dist
+              if: always()
               with:
-                  name: Mocha Tests
-                  path: 'testReport.json'
-                  reporter: mocha-json
+                  paths: testResults.xml
             - name: Create package
               if: ${{matrix.node-version == '18'}}
               run: |

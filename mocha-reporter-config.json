@@ -1,6 +1,7 @@
 {
-    "reporterEnabled": "spec, @dannysilence/mocha-json-reporter",
-    "dannysilenceMochaJsonReporterReporterOptions": {
-        "output": "testReport.json"
+    "reporterEnabled": "spec,mocha-junit-reporter",
+    "mochaJunitReporterReporterOptions": {
+        "mochaFile": "./testResults.xml",
+        "includePending": true
     }
 }
