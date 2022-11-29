@@ -1258,7 +1258,7 @@ impl<'a> JavaEnvWrapper<'a> {
             url_class_loader.get_constructor("([Ljava/net/URL;Ljava/lang/ClassLoader;)V")?;
 
         let url_class = self.find_class("java/net/URL", true)?;
-        let mut urls = self.create_object_array(&url_class, 1)?;
+        let mut urls = self.create_object_array(&url_class, paths.len() as i32)?;
         for i in 0..paths.len() {
             let java_path = self.string_to_java_string(paths.get(i).unwrap().clone())?;
             let file = self.new_instance(&file_constructor, vec![Box::new(&java_path)])?;

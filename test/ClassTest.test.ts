@@ -1,14 +1,35 @@
-import { importClass, importClassAsync } from '../.';
+import { importClass, importClassAsync, appendClasspath } from '../.';
 import { expect } from 'chai';
 import { ClassTool, shouldIncreaseTimeout } from './testUtil';
+import path from 'path';
 
 const timeout = shouldIncreaseTimeout ? 60e3 : 20e3;
 let classTool: ClassTool | null = null;
 
+function createJarWithBasicClass(
+    pkgName: string,
+    className: string,
+    jarName: string
+): void {
+    classTool!.writeClass(
+        `
+        package ${pkgName};
+        
+        public class ${className} {
+        
+        }`,
+        className
+    );
+
+    const fileName = `${pkgName.replaceAll('.', '/')}/${className}.class`;
+    classTool!.createJar(jarName).addFile(fileName, fileName).close();
+}
+
 describe('ClassTest', () => {
     before(function () {
-        if (!classTool) classTool = new ClassTool();
         this.timeout(timeout);
+        if (!classTool) classTool = new ClassTool();
+
         classTool.createClass(
             `public class BasicClass {
             public static String test = "abc";
@@ -67,39 +88,16 @@ describe('ClassTest', () => {
             'ClassWithExplicitJavaTypes'
         );
 
-        classTool.writeClass(
-            `
-        package test;
-        
-        public class ClassWithPackage {
-        }
-        `,
-            'ClassWithPackage'
+        createJarWithBasicClass('test', 'ClassWithPackage', 'first.jar');
+        createJarWithBasicClass(
+            'test',
+            'ClassWithPackageAndImport',
+            'second.jar'
         );
-
-        classTool.writeClass(
-            `
-        package test;
-        
-        public class ClassWithPackageAndImport {
-        
-        }`,
-            'ClassWithPackageAndImport'
-        );
-
-        const firstJar = classTool.createJar('first.jar');
-        firstJar.addFile(
-            'test/ClassWithPackageAndImport.class',
-            'test/ClassWithPackageAndImport.class'
-        );
-        firstJar.close();
-
-        const secondJar = classTool.createJar('second.jar');
-        secondJar.addFile(
-            'test/ClassWithPackage.class',
-            'test/ClassWithPackage.class'
-        );
-        secondJar.close();
+        createJarWithBasicClass('async', 'Class1', 'third.jar');
+        createJarWithBasicClass('async', 'Class2', 'fourth.jar');
+        createJarWithBasicClass('dir', 'Class1', 'dir/fifth.jar');
+        createJarWithBasicClass('dir', 'Class2', 'dir/sixth.jar');
     });
 
     it('Class with basic types', () => {
@@ -225,6 +223,64 @@ describe('ClassTest', () => {
         expect(instance3.l2).to.equal(0n);
         expect(instance3.l3).to.equal(null);
         expect(instance3.b1).to.equal(false);
+    }).timeout(timeout);
+
+    it('Classes from multiple jars', () => {
+        appendClasspath([
+            path.join(classTool!.outDir, 'first.jar'),
+            path.join(classTool!.outDir, 'second.jar'),
+        ]);
+
+        const ClassWithPackage = importClass('test.ClassWithPackage');
+        const ClassWithPackageAndImport = importClass(
+            'test.ClassWithPackageAndImport'
+        );
+
+        expect(ClassWithPackage).to.be.a('function');
+        expect(ClassWithPackageAndImport).to.be.a('function');
+
+        const instance = new ClassWithPackage();
+        expect(instance).to.be.an('object');
+
+        const instance2 = new ClassWithPackageAndImport();
+        expect(instance2).to.be.an('object');
+    }).timeout(timeout);
+
+    it('Classes from multiple jars (async)', async () => {
+        appendClasspath([
+            path.join(classTool!.outDir, 'third.jar'),
+            path.join(classTool!.outDir, 'fourth.jar'),
+        ]);
+
+        const Class1 = await importClassAsync('async.Class1');
+        const Class2 = await importClassAsync('async.Class2');
+
+        expect(Class1).to.be.a('function');
+        expect(Class2).to.be.a('function');
+
+        const instance = await Class1.newInstanceAsync();
+        expect(instance instanceof Promise).to.be.false;
+        expect(instance).to.be.an('object');
+
+        const instance2 = await Class2.newInstanceAsync();
+        expect(instance2 instanceof Promise).to.be.false;
+        expect(instance2).to.be.an('object');
+    }).timeout(timeout);
+
+    it('Classes from multiple jars with directory import', () => {
+        appendClasspath(path.join(classTool!.outDir, 'dir') + '/');
+
+        const Class1 = importClass('dir.Class1');
+        const Class2 = importClass('dir.Class2');
+
+        expect(Class1).to.be.a('function');
+        expect(Class2).to.be.a('function');
+
+        const instance = new Class1();
+        expect(instance).to.be.an('object');
+
+        const instance2 = new Class2();
+        expect(instance2).to.be.an('object');
     }).timeout(timeout);
 
     after(() => {

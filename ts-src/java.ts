@@ -273,6 +273,15 @@ export async function importClassAsync<
  * This doesn't check if the jars are valid and/or even exist.
  * The new classpath will be available to all classes imported after this call.
  *
+ * ## Class loading mechanism
+ *
+ * The class loader used is a [URLClassLoader](https://docs.oracle.com/javase/7/docs/api/java/net/URLClassLoader.html).
+ * From the Java docs:
+ * > The URLs will be searched in the order specified for classes and resources after
+ * > first searching in the parent class loader. Any URL that ends with a '/' is assumed to refer
+ * > to a directory. Otherwise, the URL is assumed to refer to a JAR file
+ * > which will be downloaded and opened as needed.
+ *
  * ## Example
  * ```ts
  * import { appendClasspath } from 'java-bridge';

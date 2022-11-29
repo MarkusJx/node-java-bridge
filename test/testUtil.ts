@@ -34,7 +34,7 @@ export class JarTool {
         );
     }
 
-    public addFile(src: string, dest: string) {
+    public addFile(src: string, dest: string): this {
         const entry = new JarEntry(dest);
         const source = path.join(this.rootDir, src);
         entry.setTimeSync(new File(source).lastModifiedSync());
@@ -45,15 +45,16 @@ export class JarTool {
         inputStream.closeSync();
         this.outputStream.writeSync(data);
         this.outputStream.closeEntrySync();
+        return this;
     }
 
-    public close() {
+    public close(): void {
         this.outputStream.closeSync();
     }
 }
 
 export class ClassTool {
-    private readonly outDir: string;
+    public readonly outDir: string;
 
     public constructor() {
         this.outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'java'));
