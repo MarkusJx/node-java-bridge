@@ -78,6 +78,12 @@ jobs:
             - name: Run tests
               run: npm run testOnly
               timeout-minutes: 20
+            - name: Create test summary
+              uses: test-summary/action@dist
+              if: always()
+              with:
+                  show: all
+                  paths: testResults.xml
             - name: Create package
               if: ${{matrix.node-version == '18.x'}}
               shell: bash
@@ -150,6 +156,12 @@ jobs:
                       export CI=true
                       npm install
                       npm run testOnly
+            - name: Create test summary
+              uses: test-summary/action@dist
+              if: always()
+              with:
+                  show: all
+                  paths: testResults.xml
             - name: Create package
               if: ${{matrix.node-version == '18'}}
               run: |

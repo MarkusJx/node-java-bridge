@@ -201,3 +201,4 @@ test.js
 .dockerignore
 Dockerfile
 test/javaDefinitions/**
+/testResults.xml
