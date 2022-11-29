@@ -57,6 +57,7 @@
         "prepublishOnly": "napi prepublish -t npm",
         "test": "npm run testOnly",
         "testOnly": "mocha -r ts-node/register test/*.test.ts",
+        "pretestOnly": "npm run generateTestTypes",
         "pretest": "npm run build",
         "version": "napi version",
         "prettier": "prettier --write .",
@@ -64,7 +65,8 @@
         "prebuild:debug": "rimraf dist",
         "benchmark": "ts-node -P test/tsconfig.json test/benchmark/benchmark.ts && ts-node -P test/tsconfig.json test/benchmark/benchmarkDaemonThreads.ts",
         "prebenchmark": "npm run build",
-        "docs": "typedoc --out docs ts-src/index.ts"
+        "docs": "typedoc --out docs ts-src/index.ts",
+        "generateTestTypes": "ts-node -P test/tsconfig.json test/generateTestTypes.ts"
     },
     "dependencies": {
         "chalk": "^5.1.2",
@@ -74,7 +76,7 @@
         "yargs": "^17.6.2"
     },
     "devDependencies": {
-        "@napi-rs/cli": "^2.12.1",
+        "@napi-rs/cli": "^2.13.0",
         "@types/chai": "^4.3.4",
         "@types/glob": "^8.0.0",
         "@types/is-ci": "^3.0.0",

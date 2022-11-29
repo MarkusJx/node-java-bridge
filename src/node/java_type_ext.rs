@@ -17,8 +17,8 @@ use crate::node::java_interface_proxy::JavaInterfaceProxy;
 use crate::node::js_to_java_object::{JsIntoJavaObject, JsToJavaClass};
 use crate::node::napi_error::MapToNapiError;
 use napi::{
-    Env, JsBigInt, JsBoolean, JsFunction, JsNumber, JsObject, JsString, JsTypedArray, JsUnknown,
-    ValueType,
+    Env, JsBigInt, JsBoolean, JsBuffer, JsFunction, JsNumber, JsObject, JsString, JsTypedArray,
+    JsUnknown, ValueType,
 };
 use std::ops::Deref;
 
@@ -62,7 +62,10 @@ impl JsTypeEq for JavaType {
             ValueType::BigInt => self.is_long(),
             ValueType::Null | ValueType::Undefined => !self.is_primitive(),
             ValueType::Object => {
-                if (other.is_array()? || other.is_typedarray()?) && self.is_array() {
+                if (other.is_array()? || other.is_typedarray()?)
+                    && self.is_array()
+                    && !other.is_buffer()?
+                {
                     let arr = unsafe { other.cast::<JsTypedArray>() };
                     if arr.get_array_length()? == 0 {
                         true
@@ -163,7 +166,12 @@ impl NapiToJava for JavaType {
                 if value.get_type()? == ValueType::Object {
                     JavaObject::from(value.into_java_object(node_env)?)
                 } else {
-                    let val = value.coerce_to_number()?.get_int64()?;
+                    let val = if value.get_type()? == ValueType::BigInt {
+                        unsafe { value.cast::<JsBigInt>() }.get_i64()?.0
+                    } else {
+                        value.coerce_to_number()?.get_int64()?
+                    };
+
                     LocalJavaObject::from_i64(env, val)?.into()
                 }
             }
@@ -350,7 +358,13 @@ impl NapiToJava for JavaType {
         } else {
             match self.type_enum() {
                 Type::Integer => JavaCallResult::Integer(value.coerce_to_number()?.get_int32()?),
-                Type::Long => JavaCallResult::Long(value.coerce_to_number()?.get_int64()?),
+                Type::Long => {
+                    if value.get_type()? == ValueType::BigInt {
+                        JavaCallResult::Long(unsafe { value.cast::<JsBigInt>() }.get_i64()?.0)
+                    } else {
+                        JavaCallResult::Long(value.coerce_to_number()?.get_int64()?)
+                    }
+                }
                 Type::Short => JavaCallResult::Short(value.coerce_to_number()?.get_int32()? as i16),
                 Type::Double => JavaCallResult::Double(value.coerce_to_number()?.get_double()?),
                 Type::Float => {
@@ -391,21 +405,34 @@ impl NapiToJava for JavaType {
         node_env: &'a Env,
         value: JsUnknown,
     ) -> ResultType<JavaObject<'a>> {
-        if !value.is_array()? {
-            return Err("Value must be an array".into());
-        } else if !self.is_array() {
+        if !self.is_array() {
             return Err("Type must be an array".into());
+        } else if value.is_buffer()? && self.is_byte_array() {
+            let buffer = unsafe { value.cast::<JsBuffer>() }.into_value()?;
+
+            let mut vec: Vec<i8> = Vec::with_capacity(buffer.len());
+            for i in 0..buffer.len() {
+                vec.push(
+                    *buffer
+                        .get(i)
+                        .ok_or(format!("Failed to get buffer element at position {}", i))?
+                        as i8,
+                );
+            }
+
+            return Ok(JavaByteArray::new(env, &vec)?.into());
+        } else if !value.is_array()? {
+            return Err("Value must be an array".into());
         }
 
+        let array = unsafe { value.cast::<JsTypedArray>() };
+        let length = array.get_array_length()?;
         let inner = self
             .inner()
             .ok_or("Array value has no inner type")?
             .lock()
             .unwrap()
             .clone();
-
-        let array = unsafe { value.cast::<JsTypedArray>() };
-        let length = array.get_array_length()?;
 
         Ok(match inner.type_enum() {
             Type::Integer => {

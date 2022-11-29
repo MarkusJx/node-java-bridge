@@ -332,7 +332,7 @@ export function appendClasspath(path: string | string[]): void {
  * @param other the class or class name to check against
  * @return true if `this_obj` is an instance of `other`
  */
-export function isInstanceOf<T extends JavaClassConstructorType>(
+export function isInstanceOf<T extends object>(
     this_obj: JavaClass,
     other: string | T
 ): boolean {

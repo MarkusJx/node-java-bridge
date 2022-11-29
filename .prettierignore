@@ -316,3 +316,4 @@ Temporary Items
 .apdisk
 
 docs/
+test/javaDefinitions/**

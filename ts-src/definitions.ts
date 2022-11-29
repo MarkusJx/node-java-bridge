@@ -154,9 +154,7 @@ export declare class JavaClass extends JavaObject {
      * @param other the class to check if this is an instance of
      * @return true if this is instance of `other`
      */
-    public instanceOf<T extends JavaClassConstructorType>(
-        other: string | T
-    ): boolean;
+    public instanceOf<T extends object>(other: string | T): boolean;
 
     /**
      * Default java equals implementation.

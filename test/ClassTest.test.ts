@@ -1,46 +1,15 @@
-import fs from 'fs';
-import {
-    importClass,
-    setClassLoader,
-    getClassLoader,
-    importClassAsync,
-} from '../.';
-import path from 'path';
+import { importClass, importClassAsync } from '../.';
 import { expect } from 'chai';
-import * as os from 'os';
-import { shouldIncreaseTimeout } from './testUtil';
+import { ClassTool, shouldIncreaseTimeout } from './testUtil';
 
-let outDir: string | null = null;
 const timeout = shouldIncreaseTimeout ? 60e3 : 20e3;
-
-function createClass(code: string, className: string): void {
-    if (!outDir) {
-        outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'java'));
-    }
-
-    const classFile = path.join(outDir, className + '.java');
-    fs.writeFileSync(classFile, code, { encoding: 'utf8' });
-    const File = importClass('java.io.File');
-    const root = new File(outDir);
-
-    const ToolProvider = importClass('javax.tools.ToolProvider');
-    const compiler = ToolProvider.getSystemJavaCompilerSync();
-    compiler.runSync(null, null, null, [classFile]);
-
-    const URLClassLoader = importClass('java.net.URLClassLoader');
-    const prevClassLoader = getClassLoader();
-    const classLoader = URLClassLoader.newInstanceSync(
-        [root.toURISync().toURLSync()],
-        prevClassLoader
-    );
-
-    setClassLoader(classLoader);
-}
+let classTool: ClassTool | null = null;
 
 describe('ClassTest', () => {
     before(function () {
+        if (!classTool) classTool = new ClassTool();
         this.timeout(timeout);
-        createClass(
+        classTool.createClass(
             `public class BasicClass {
             public static String test = "abc";
             
@@ -69,7 +38,7 @@ describe('ClassTest', () => {
             'BasicClass'
         );
 
-        createClass(
+        classTool.createClass(
             `
         public class ClassWithExplicitJavaTypes {
             public String s1;
@@ -97,6 +66,40 @@ describe('ClassTest', () => {
         `,
             'ClassWithExplicitJavaTypes'
         );
+
+        classTool.writeClass(
+            `
+        package test;
+        
+        public class ClassWithPackage {
+        }
+        `,
+            'ClassWithPackage'
+        );
+
+        classTool.writeClass(
+            `
+        package test;
+        
+        public class ClassWithPackageAndImport {
+        
+        }`,
+            'ClassWithPackageAndImport'
+        );
+
+        const firstJar = classTool.createJar('first.jar');
+        firstJar.addFile(
+            'test/ClassWithPackageAndImport.class',
+            'test/ClassWithPackageAndImport.class'
+        );
+        firstJar.close();
+
+        const secondJar = classTool.createJar('second.jar');
+        secondJar.addFile(
+            'test/ClassWithPackage.class',
+            'test/ClassWithPackage.class'
+        );
+        secondJar.close();
     });
 
     it('Class with basic types', () => {
@@ -225,8 +228,6 @@ describe('ClassTest', () => {
     }).timeout(timeout);
 
     after(() => {
-        if (outDir) {
-            fs.rmSync(outDir, { recursive: true });
-        }
+        classTool?.dispose();
     });
 });

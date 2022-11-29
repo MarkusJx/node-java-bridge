@@ -200,3 +200,4 @@ docs/
 test.js
 .dockerignore
 Dockerfile
+test/javaDefinitions/**

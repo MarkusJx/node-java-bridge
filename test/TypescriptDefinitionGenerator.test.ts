@@ -142,7 +142,7 @@ describe('TypescriptDefinitionGenerator test', () => {
             `
             import { FileOutputStream } from './java/io/FileOutputStream';
 
-            FileOutputStream.nullOutputStreamSync().flushSync();
+            FileOutputStream.nullOutputStreamSync()!.flushSync();
             `
         );
     }).timeout(timeoutMs);
