@@ -79,8 +79,8 @@ jobs:
               run: npm run testOnly
               timeout-minutes: 20
             - uses: dorny/test-reporter@v1
+              if: success() || failure()
               with:
-                  artifact: test-results-${{matrix.os}}-${{matrix.arch}}
                   name: Mocha Tests
                   path: 'testReport.json'
                   reporter: mocha-json
@@ -156,6 +156,12 @@ jobs:
                       export CI=true
                       npm install
                       npm run testOnly
+            - uses: dorny/test-reporter@v1
+              if: success() || failure()
+              with:
+                  name: Mocha Tests
+                  path: 'testReport.json'
+                  reporter: mocha-json
             - name: Create package
               if: ${{matrix.node-version == '18'}}
               run: |
