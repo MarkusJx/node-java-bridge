@@ -308,6 +308,69 @@ export function appendClasspath(path: string | string[]): void {
 }
 
 /**
+ * Append a single or multiple directories to the class path.
+ * This assumes that the paths passed are directories and will
+ * add a trailing slash to the path if it doesn't already have one
+ * so the class loader will treat it as a directory. This will not
+ * throw an error if the directory or file doesn't exist.
+ *
+ * ## Example
+ * ```ts
+ * appendClasspathDir('/path/to/dir');
+ *
+ * // or
+ * appendClasspathDir('/path/to/dir/');
+ *
+ * // both is equal to
+ * appendClasspath('/path/to/dir/');
+ * ```
+ *
+ * Pass multiple paths:
+ * ```ts
+ * appendClasspathDir(['/path/to/dir1', '/path/to/dir2']);
+ * ```
+ *
+ * @param path the directories to add
+ */
+export function appendClasspathDir(path: string | string[]): void {
+    ensureJvm();
+    javaInstance!.appendClasspathDir(path);
+}
+
+/**
+ * Append either a single or multiple jars or directories to the class path.
+ * This will check if the path(s) passed are directories and will
+ * add a trailing slash to the path if it doesn't already have one
+ * so the class loader will treat it as a directory. This will
+ * check if the file or directory exists and throw an error if it doesn't exist.
+ *
+ * ## Example
+ * ```ts
+ * appendClasspathAny('/path/to/dir');
+ *
+ * // or
+ * appendClasspathAny('/path/to/dir/');
+ *
+ * // both is equal to
+ * appendClasspath('/path/to/dir/');
+ * ```
+ *
+ * Pass multiple paths:
+ * ```ts
+ * appendClasspathAny(['/path/to/dir1', '/path/to/my.jar']);
+ *
+ * // this is equal to
+ * appendClasspath(['/path/to/dir1/', '/path/to/my.jar']);
+ * ```
+ *
+ * @param path the file(s) or directory(s) to add
+ */
+export function appendClasspathAny(path: string | string[]): void {
+    ensureJvm();
+    javaInstance!.appendAnyToClasspath(path);
+}
+
+/**
  * Check if `this_obj` is instance of `other`.
  * This uses the native java `instanceof` operator.
  * You may want to use this if {@link JavaClass.instanceOf}
@@ -369,9 +432,23 @@ export namespace classpath {
     }
 
     /**
-     * Get the loaded jars in the class path
+     * @inheritDoc appendClasspathDir
+     */
+    export function appendDir(dir: string | string[]): void {
+        appendClasspathDir(dir);
+    }
+
+    /**
+     * @inheritDoc appendClasspathAny
+     */
+    export function appendAny(path: string | string[]): void {
+        appendClasspathAny(path);
+    }
+
+    /**
+     * Get the loaded files or directories in the class path
      *
-     * @returns a list of the loaded jars
+     * @returns a list of the loaded files
      */
     export function get(): string[] {
         ensureJvm();

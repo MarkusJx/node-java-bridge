@@ -1,4 +1,10 @@
-import { importClass, importClassAsync, appendClasspath } from '../.';
+import {
+    importClass,
+    importClassAsync,
+    appendClasspath,
+    appendClasspathAny,
+    appendClasspathDir,
+} from '../.';
 import { expect } from 'chai';
 import { ClassTool, shouldIncreaseTimeout } from './testUtil';
 import path from 'path';
@@ -98,6 +104,11 @@ describe('ClassTest', () => {
         createJarWithBasicClass('async', 'Class2', 'fourth.jar');
         createJarWithBasicClass('dir', 'Class1', 'dir/fifth.jar');
         createJarWithBasicClass('dir', 'Class2', 'dir/sixth.jar');
+        createJarWithBasicClass('any', 'Class1', 'any/seventh.jar');
+        createJarWithBasicClass('any', 'Class2', 'any/eighth.jar');
+        createJarWithBasicClass('other', 'Class1', 'ninth.jar');
+        createJarWithBasicClass('dir1', 'Class1', 'dir1/tenth.jar');
+        createJarWithBasicClass('dir1', 'Class2', 'dir1/eleventh.jar');
     });
 
     it('Class with basic types', () => {
@@ -272,6 +283,46 @@ describe('ClassTest', () => {
 
         const Class1 = importClass('dir.Class1');
         const Class2 = importClass('dir.Class2');
+
+        expect(Class1).to.be.a('function');
+        expect(Class2).to.be.a('function');
+
+        const instance = new Class1();
+        expect(instance).to.be.an('object');
+
+        const instance2 = new Class2();
+        expect(instance2).to.be.an('object');
+    }).timeout(timeout);
+
+    it('Classes from multiple jars with any import', () => {
+        appendClasspathAny([
+            path.join(classTool!.outDir, 'any'),
+            path.join(classTool!.outDir, 'ninth.jar'),
+        ]);
+
+        const Class1 = importClass('any.Class1');
+        const Class2 = importClass('any.Class2');
+        const Class3 = importClass('other.Class1');
+
+        expect(Class1).to.be.a('function');
+        expect(Class2).to.be.a('function');
+        expect(Class3).to.be.a('function');
+
+        const instance = new Class1();
+        expect(instance).to.be.an('object');
+
+        const instance2 = new Class2();
+        expect(instance2).to.be.an('object');
+
+        const instance3 = new Class3();
+        expect(instance3).to.be.an('object');
+    }).timeout(timeout);
+
+    it('Classes from multiple jars with dir import', () => {
+        appendClasspathDir(path.join(classTool!.outDir, 'dir1'));
+
+        const Class1 = importClass('dir1.Class1');
+        const Class2 = importClass('dir1.Class2');
 
         expect(Class1).to.be.a('function');
         expect(Class2).to.be.a('function');
