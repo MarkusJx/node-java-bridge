@@ -141,7 +141,7 @@ impl JavaVM {
             create_result = unsafe {
                 method(
                     jvm_ptr.vm(),
-                    &mut env as *mut *mut sys::JNIEnv as *mut *mut std::os::raw::c_void,
+                    &mut env as *mut *mut sys::JNIEnv as *mut *mut c_void,
                     std::ptr::null_mut(),
                 )
             };

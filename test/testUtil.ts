@@ -60,12 +60,32 @@ export class ClassTool {
         this.outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'java'));
     }
 
-    public writeClass(code: string, className: string): void {
+    public writeClass(
+        code: string,
+        className: string,
+        extraOpts: string[] = []
+    ): void {
         const classFile = path.join(this.outDir, className + '.java');
         fs.writeFileSync(classFile, code, { encoding: 'utf8' });
 
+        console.log([
+            ...extraOpts,
+            classFile,
+            '-d',
+            this.outDir,
+        ])
+
         const compiler = ToolProvider.getSystemJavaCompilerSync();
-        compiler!.runSync(null, null, null, [classFile, '-d', this.outDir]);
+        const res = compiler!.runSync(null, null, null, [
+            ...extraOpts,
+            classFile,
+            '-d',
+            this.outDir,
+        ]);
+
+        if (res != 0) {
+            throw new Error(`The compiler returned non-zero exit code: ${res}`);
+        }
     }
 
     public createClass(code: string, className: string): void {

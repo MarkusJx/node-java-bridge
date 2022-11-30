@@ -12,19 +12,28 @@ import path from 'path';
 const timeout = shouldIncreaseTimeout ? 60e3 : 20e3;
 let classTool: ClassTool | null = null;
 
+interface JarClassOpts {
+    extraImports?: string[];
+    extraCode?: string;
+    extraCompilerOpts?: string[];
+}
+
 function createJarWithBasicClass(
     pkgName: string,
     className: string,
-    jarName: string
+    jarName: string,
+    opts?: JarClassOpts
 ): void {
     classTool!.writeClass(
         `
         package ${pkgName};
+        ${opts?.extraImports?.map((i) => `import ${i};`)?.join('\n') ?? ''}
         
         public class ${className} {
-        
+            ${opts?.extraCode ?? ''}
         }`,
-        className
+        className,
+        opts?.extraCompilerOpts ?? []
     );
 
     const fileName = `${pkgName.replaceAll('.', '/')}/${className}.class`;
@@ -109,6 +118,25 @@ describe('ClassTest', () => {
         createJarWithBasicClass('other', 'Class1', 'ninth.jar');
         createJarWithBasicClass('dir1', 'Class1', 'dir1/tenth.jar');
         createJarWithBasicClass('dir1', 'Class2', 'dir1/eleventh.jar');
+        createJarWithBasicClass('external', 'ExternalClass', 'twelfth.jar');
+        createJarWithBasicClass('importing', 'Class2', 'thirteenth.jar', {
+            extraImports: ['external.ExternalClass'],
+            extraCode: `
+            private final ExternalClass ext;
+            
+            public Class2() {
+                this.ext = new ExternalClass();
+            }
+            
+            public ExternalClass getExt() {
+                return this.ext;
+            }
+            `,
+            extraCompilerOpts: [
+                '-classpath',
+                path.join(classTool!.outDir, 'thirteenth.jar') + ':.',
+            ],
+        });
     });
 
     it('Class with basic types', () => {
@@ -333,6 +361,22 @@ describe('ClassTest', () => {
         const instance2 = new Class2();
         expect(instance2).to.be.an('object');
     }).timeout(timeout);
+
+    it('Class with external dependency', () => {
+        appendClasspath([
+            path.join(classTool!.outDir, 'twelfth.jar'),
+            path.join(classTool!.outDir, 'thirteenth.jar'),
+        ]);
+
+        const Class2 = importClass('importing.Class2');
+        expect(Class2).to.be.a('function');
+
+        const instance = new Class2();
+        expect(instance).to.be.an('object');
+
+        const ext = instance.getExtSync();
+        expect(ext).to.be.an('object');
+    });
 
     after(() => {
         classTool?.dispose();
