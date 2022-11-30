@@ -11,10 +11,12 @@ use crate::node::java_interface_proxy::JavaInterfaceProxy;
 use crate::node::java_options::JavaOptions;
 use crate::node::napi_error::{MapToNapiError, NapiError};
 use crate::node::stdout_redirect::StdoutRedirect;
+use crate::node::util::parse_array_or_string;
 use futures::future;
 use lazy_static::lazy_static;
-use napi::{Env, JsFunction, JsObject, JsString, JsUnknown, ValueType};
+use napi::{Env, JsFunction, JsObject, JsUnknown, ValueType};
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 lazy_static! {
@@ -142,20 +144,68 @@ impl Java {
     /// Append a single or multiple jars to the classpath.
     #[napi(ts_args_type = "classpath: string | string[]")]
     pub fn append_classpath(&mut self, classpath: JsUnknown) -> napi::Result<()> {
+        let mut paths = parse_array_or_string(classpath)?;
         let env = self.root_vm.attach_thread().map_napi_err()?;
 
-        let mut paths = vec![];
-        if classpath.is_array()? {
-            let obj = classpath.coerce_to_object()?;
-            for i in 0..obj.get_array_length()? {
-                let path: JsString = obj.get_element(i)?;
-                paths.push(path.into_utf16()?.as_str()?);
-            }
-        } else {
-            let path = classpath.coerce_to_string()?;
-            paths.push(path.into_utf16()?.as_str()?);
-        }
+        env.append_class_path(paths.clone()).map_napi_err()?;
+        self.loaded_jars.append(&mut paths);
 
+        Ok(())
+    }
+
+    #[napi(ts_args_type = "dir: string | string[]")]
+    pub fn append_classpath_dir(&mut self, dir: JsUnknown) -> napi::Result<()> {
+        let mut paths = parse_array_or_string(dir)?
+            .into_iter()
+            .map(|p| p.trim().to_string())
+            .map(|mut p| {
+                if p.ends_with("/") || p.ends_with("\\") {
+                    p.pop();
+                    p + "/"
+                } else {
+                    p + "/"
+                }
+            })
+            .collect::<Vec<String>>();
+
+        let env = self.root_vm.attach_thread().map_napi_err()?;
+        env.append_class_path(paths.clone()).map_napi_err()?;
+        self.loaded_jars.append(&mut paths);
+
+        Ok(())
+    }
+
+    #[napi(ts_args_type = "path: string | string[]")]
+    pub fn append_any_to_classpath(&mut self, path: JsUnknown) -> napi::Result<()> {
+        let mut paths = parse_array_or_string(path)?
+            .into_iter()
+            .map(|p| p.trim().to_string())
+            .map(|mut p| -> napi::Result<String> {
+                let path = Path::new(&p);
+                if path.exists() {
+                    if path.is_dir() {
+                        if p.ends_with("/") || p.ends_with("\\") {
+                            p.pop();
+                            Ok(p + "/")
+                        } else {
+                            Ok(p)
+                        }
+                    } else if path.is_file() {
+                        Ok(p)
+                    } else {
+                        Err(NapiError::from(format!(
+                            "Path is neither a file nor a directory: {}",
+                            p
+                        ))
+                        .into_napi())
+                    }
+                } else {
+                    Err(NapiError::from(format!("Path does not exist: {}", p)).into_napi())
+                }
+            })
+            .collect::<napi::Result<Vec<String>>>()?;
+
+        let env = self.root_vm.attach_thread().map_napi_err()?;
         env.append_class_path(paths.clone()).map_napi_err()?;
         self.loaded_jars.append(&mut paths);
 
