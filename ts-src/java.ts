@@ -273,14 +273,7 @@ export async function importClassAsync<
  * This doesn't check if the jars are valid and/or even exist.
  * The new classpath will be available to all classes imported after this call.
  *
- * ## Class loading mechanism
- *
- * The class loader used is a [URLClassLoader](https://docs.oracle.com/javase/7/docs/api/java/net/URLClassLoader.html).
- * From the Java docs:
- * > The URLs will be searched in the order specified for classes and resources after
- * > first searching in the parent class loader. Any URL that ends with a '/' is assumed to refer
- * > to a directory. Otherwise, the URL is assumed to refer to a JAR file
- * > which will be downloaded and opened as needed.
+ * **Note: This can only import single files, not directories.**
  *
  * ## Example
  * ```ts
@@ -308,36 +301,6 @@ export function appendClasspath(path: string | string[]): void {
 }
 
 /**
- * Append a single or multiple directories to the class path.
- * This assumes that the paths passed are directories and will
- * add a trailing slash to the path if it doesn't already have one
- * so the class loader will treat it as a directory. This will not
- * throw an error if the directory or file doesn't exist.
- *
- * ## Example
- * ```ts
- * appendClasspathDir('/path/to/dir');
- *
- * // or
- * appendClasspathDir('/path/to/dir/');
- *
- * // both is equal to
- * appendClasspath('/path/to/dir/');
- * ```
- *
- * Pass multiple paths:
- * ```ts
- * appendClasspathDir(['/path/to/dir1', '/path/to/dir2']);
- * ```
- *
- * @param path the directories to add
- */
-export function appendClasspathDir(path: string | string[]): void {
-    ensureJvm();
-    javaInstance!.appendClasspathDir(path);
-}
-
-/**
  * Append either a single or multiple jars or directories to the class path.
  * This will check if the path(s) passed are directories and will
  * add a trailing slash to the path if it doesn't already have one
@@ -347,27 +310,22 @@ export function appendClasspathDir(path: string | string[]): void {
  * ## Example
  * ```ts
  * appendClasspathAny('/path/to/dir');
- *
- * // or
- * appendClasspathAny('/path/to/dir/');
- *
- * // both is equal to
- * appendClasspath('/path/to/dir/');
  * ```
  *
  * Pass multiple paths:
  * ```ts
  * appendClasspathAny(['/path/to/dir1', '/path/to/my.jar']);
- *
- * // this is equal to
- * appendClasspath(['/path/to/dir1/', '/path/to/my.jar']);
  * ```
  *
  * @param path the file(s) or directory(s) to add
+ * @param recursive whether to recursively add all files in the directory
  */
-export function appendClasspathAny(path: string | string[]): void {
+export function appendClasspathAny(
+    path: string | string[],
+    recursive?: boolean
+): void {
     ensureJvm();
-    javaInstance!.appendAnyToClasspath(path);
+    javaInstance!.appendAnyToClasspath(path, recursive);
 }
 
 /**
@@ -432,17 +390,13 @@ export namespace classpath {
     }
 
     /**
-     * @inheritDoc appendClasspathDir
-     */
-    export function appendDir(dir: string | string[]): void {
-        appendClasspathDir(dir);
-    }
-
-    /**
      * @inheritDoc appendClasspathAny
      */
-    export function appendAny(path: string | string[]): void {
-        appendClasspathAny(path);
+    export function appendAny(
+        path: string | string[],
+        recursive?: boolean
+    ): void {
+        appendClasspathAny(path, recursive);
     }
 
     /**
