@@ -10,4 +10,4 @@ mod java_type_ext;
 mod js_to_java_object;
 pub mod napi_error;
 mod stdout_redirect;
-mod util;
+pub mod util;

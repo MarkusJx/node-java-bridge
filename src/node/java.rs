@@ -11,7 +11,7 @@ use crate::node::java_interface_proxy::JavaInterfaceProxy;
 use crate::node::java_options::JavaOptions;
 use crate::node::napi_error::{MapToNapiError, NapiError};
 use crate::node::stdout_redirect::StdoutRedirect;
-use crate::node::util::{list_files, parse_array_or_string};
+use crate::node::util::{list_files, parse_array_or_string, parse_classpath_args};
 use futures::future;
 use lazy_static::lazy_static;
 use napi::{Env, JsFunction, JsObject, JsUnknown, ValueType};
@@ -61,10 +61,17 @@ impl Java {
         native_lib_path: String,
     ) -> napi::Result<Self> {
         let ver = version.unwrap_or("1.8".to_string());
+        let mut args = opts.unwrap_or(vec![]);
+
+        if let Some(cp) = java_options.as_ref().and_then(|o| o.classpath.as_ref()) {
+            let parsed = parse_classpath_args(&cp, &mut args);
+            args.push(parsed);
+        }
+
         let root_vm = JavaVM::new(
             &ver,
             lib_path,
-            &opts.unwrap_or(vec![]),
+            &args,
             InternalJavaOptions::from(java_options),
         )
         .map_err(NapiError::to_napi_error)?;

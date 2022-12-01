@@ -43,6 +43,11 @@ export interface JVMOptions extends JavaOptions {
      * Additional arguments to pass to the JVM
      */
     opts?: Array<string> | null;
+    /**
+     * Additional items to add to the class path.
+     * This also allows wildcard imports, e.g. `/lib/*`
+     */
+    classpath?: string[];
 }
 
 /**
@@ -78,9 +83,30 @@ export interface JVMOptions extends JavaOptions {
  * ensureJvm();
  * ```
  *
+ * ## Notes on the `classpath` option
+ *
+ * If you need to set the class path *before* jvm startup, for example
+ * when using libraries with custom class loaders, you'd need to call
+ * `ensureJvm` *before* making any other call to `java-bridge` as those
+ * methods may themselves call `ensureJvm` with no arguments
+ * (see comment above). Altering the startup classpath after jvm boot is
+ * not possible, you can only alter the runtime classpath using
+ * `appendClasspath` or `appendClasspathAny` which may not reflect
+ * in an altered classpath in your java application/library if your
+ * application is using a custom classpath (e.g. Spring Boot).
+ *
+ * Also, it is not possible to restart the jvm after is has been started
+ * once, in order to alter the startup classpath. This is due to some
+ * limitations with the destructor feature of the node.js native api,
+ * which may not call the destructor in time and having two jvm instances
+ * in the same application is not allowed by java. Additionally, destroying
+ * the jvm instance may cause *undefined behaviour*, which may or may not
+ * cause the application to crash. Let's not do that.
+ *
  * @param options the options to use when creating the jvm
+ * @return true if the jvm was created and false if the jvm already existed and was not created
  */
-export function ensureJvm(options?: JVMOptions): void {
+export function ensureJvm(options?: JVMOptions): boolean {
     if (!javaInstance) {
         javaInstance = new Java(
             options?.libPath,
@@ -90,6 +116,10 @@ export function ensureJvm(options?: JVMOptions): void {
             getJavaLibPath(),
             getNativeLibPath()
         );
+
+        return true;
+    } else {
+        return false;
     }
 }
 

@@ -3,6 +3,17 @@ use napi::{JsString, JsUnknown};
 use std::collections::VecDeque;
 use std::path::Path;
 
+#[cfg(windows)]
+mod separator {
+    const CLASSPATH_SEPARATOR: &str = ";";
+    const OTHER_SEPARATOR: &str = ":";
+}
+#[cfg(unix)]
+mod separator {
+    pub const CLASSPATH_SEPARATOR: &str = ":";
+    pub const OTHER_SEPARATOR: &str = ";";
+}
+
 /// Parse an JsUnknown that is either a JsString or a JsArray into a String
 pub(crate) fn parse_array_or_string(value: JsUnknown) -> napi::Result<Vec<String>> {
     let mut res = Vec::<String>::new();
@@ -46,4 +57,20 @@ pub(crate) fn list_files(dirs: Vec<String>, recursive: bool) -> napi::Result<Vec
     }
 
     Ok(files)
+}
+
+pub fn parse_classpath_args(cp: &Vec<String>, args: &mut Vec<String>) -> String {
+    let mut cp = cp.clone();
+    if let Some(other) = args
+        .into_iter()
+        .position(|e| e.starts_with("-Djava.class.path="))
+    {
+        let other_cp = args.remove(other).clone().split_at(18).1.to_string();
+        cp.push(other_cp.replace(separator::OTHER_SEPARATOR, separator::CLASSPATH_SEPARATOR));
+    }
+
+    format!(
+        "-Djava.class.path={}",
+        cp.join(separator::CLASSPATH_SEPARATOR)
+    )
 }

@@ -6,12 +6,15 @@ use crate::jni::java_vm::InternalJavaOptions;
 pub struct JavaOptions {
     /// Whether to attach new threads as daemon threads.
     pub use_daemon_threads: Option<bool>,
+    /// Additional paths to add to the class path
+    pub classpath: Option<Vec<String>>,
 }
 
 impl Default for JavaOptions {
     fn default() -> Self {
         JavaOptions {
             use_daemon_threads: None,
+            classpath: None,
         }
     }
 }
