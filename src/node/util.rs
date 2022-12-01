@@ -5,8 +5,8 @@ use std::path::Path;
 
 #[cfg(windows)]
 mod separator {
-    const CLASSPATH_SEPARATOR: &str = ";";
-    const OTHER_SEPARATOR: &str = ":";
+    pub const CLASSPATH_SEPARATOR: &str = ";";
+    pub const OTHER_SEPARATOR: &str = ":";
 }
 #[cfg(unix)]
 mod separator {
