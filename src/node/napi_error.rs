@@ -62,3 +62,11 @@ impl<T> MapToNapiError<T> for ResultType<T> {
         }
     }
 }
+
+pub fn napi_error_from_str(msg: &str) -> napi::Error {
+    NapiError::from(msg).into()
+}
+
+pub fn napi_error_from_string(msg: String) -> napi::Error {
+    NapiError::from(msg).into()
+}
