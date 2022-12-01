@@ -1,6 +1,6 @@
 {
     "name": "java-bridge",
-    "version": "2.1.8-beta.1",
+    "version": "2.1.8",
     "main": "dist/index.prod.min.js",
     "types": "dist/ts-src/index.d.ts",
     "description": "A bridge between Node.js and Java APIs",
