@@ -1,7 +1,6 @@
 use crate::node::napi_error::NapiError;
+use glob::glob;
 use napi::{JsString, JsUnknown};
-use std::collections::VecDeque;
-use std::path::Path;
 
 #[cfg(windows)]
 mod separator {
@@ -31,28 +30,25 @@ pub(crate) fn parse_array_or_string(value: JsUnknown) -> napi::Result<Vec<String
     Ok(res)
 }
 
-pub(crate) fn list_files(dirs: Vec<String>, recursive: bool) -> napi::Result<Vec<String>> {
+pub(crate) fn list_files(dirs: Vec<String>, ignore_unreadable: bool) -> napi::Result<Vec<String>> {
     let mut files = Vec::<String>::new();
-    let mut q = VecDeque::from(dirs);
 
-    while let Some(dir) = q.pop_back() {
-        let path = Path::new(&dir);
-        if !path.exists() {
-            return Err(NapiError::from(format!("Path '{}' does not exist", dir)).into_napi());
-        } else if path.is_dir() {
-            let inner = std::fs::read_dir(path)
-                .map_err(|e| NapiError::to_napi_error(e.into()))?
-                .filter_map(|e| e.ok())
-                .filter_map(|e| e.path().to_str().map(|s| s.to_string()))
-                .collect::<Vec<String>>();
+    for file in dirs {
+        let paths = glob(file.as_str()).map_err(|e| NapiError::from(e.to_string()).into_napi())?;
 
-            if recursive {
-                q.extend(inner);
-            } else {
-                files.extend(inner);
+        for path in paths {
+            match path {
+                Ok(path) => files.push(
+                    path.to_str()
+                        .ok_or(NapiError::from("Failed to convert path to string").into_napi())?
+                        .to_string(),
+                ),
+                Err(e) => {
+                    if !ignore_unreadable {
+                        return Err(NapiError::from(e.to_string()).into_napi());
+                    }
+                }
             }
-        } else {
-            files.push(dir);
         }
     }
 
@@ -65,7 +61,7 @@ pub fn parse_classpath_args(cp: &Vec<String>, args: &mut Vec<String>) -> String 
         .into_iter()
         .position(|e| e.starts_with("-Djava.class.path="))
     {
-        let other_cp = args.remove(other).clone().split_at(18).1.to_string();
+        let other_cp = args.remove(other).split_at(18).1.to_string();
         cp.push(other_cp.replace(separator::OTHER_SEPARATOR, separator::CLASSPATH_SEPARATOR));
     }
 

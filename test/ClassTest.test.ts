@@ -2,7 +2,6 @@ import {
     importClass,
     importClassAsync,
     appendClasspath,
-    appendClasspathAny,
 } from '../.';
 import { expect } from 'chai';
 import { ClassTool, shouldIncreaseTimeout } from './testUtil';
@@ -324,7 +323,7 @@ describe('ClassTest', () => {
         expect(() => importClass('dir.Class1')).to.throw();
         expect(() => importClass('dir.Class2')).to.throw();
 
-        appendClasspathAny(path.join(classTool!.outDir, 'dir'), true);
+        appendClasspath(path.join(classTool!.outDir, 'dir', '**/*'));
 
         const Class1 = importClass('dir.Class1');
         const Class2 = importClass('dir.Class2');
@@ -344,8 +343,8 @@ describe('ClassTest', () => {
         expect(() => importClass('any.Class2')).to.throw();
         expect(() => importClass('other.Class1')).to.throw();
 
-        appendClasspathAny([
-            path.join(classTool!.outDir, 'any'),
+        appendClasspath([
+            path.join(classTool!.outDir, 'any', '*'),
             path.join(classTool!.outDir, 'ninth.jar'),
         ]);
 
@@ -371,7 +370,7 @@ describe('ClassTest', () => {
         expect(() => importClass('dir1.Class1')).to.throw();
         expect(() => importClass('dir1.Class2')).to.throw();
 
-        appendClasspathAny(path.join(classTool!.outDir, 'dir1'));
+        appendClasspath(path.join(classTool!.outDir, 'dir1', '*'));
 
         const Class1 = importClass('dir1.Class1');
         const Class2 = importClass('dir1.Class2');

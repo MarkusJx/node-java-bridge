@@ -43,11 +43,6 @@ export interface JVMOptions extends JavaOptions {
      * Additional arguments to pass to the JVM
      */
     opts?: Array<string> | null;
-    /**
-     * Additional items to add to the class path.
-     * This also allows wildcard imports, e.g. `/lib/*`
-     */
-    classpath?: string[];
 }
 
 /**
@@ -303,9 +298,10 @@ export async function importClassAsync<
  * This doesn't check if the jars are valid and/or even exist.
  * The new classpath will be available to all classes imported after this call.
  *
- * **Note: This can only import single files, not directories.**
+ * If you want to import whole directories, you can use glob patterns.
  *
  * ## Example
+ * ### Append single files
  * ```ts
  * import { appendClasspath } from 'java-bridge';
  *
@@ -323,39 +319,21 @@ export async function importClassAsync<
  * classpath.append('/path/to/jar.jar');
  * ```
  *
+ * ### Append a directory to the class path
+ * ```ts
+ * import { appendClasspath } from 'java-bridge';
+ *
+ * // Append a directory to the class path
+ * appendClasspath('/path/to/dir/*');
+ * // Append just the jar files in the directory
+ * appendClasspath('/path/to/dir/*.jar');
+ * ```
+ *
  * @param path the path(s) to add
  */
 export function appendClasspath(path: string | string[]): void {
     ensureJvm();
     javaInstance!.appendClasspath(path);
-}
-
-/**
- * Append either a single or multiple jars or directories to the class path.
- * This will check if the path(s) passed are directories and will
- * add a trailing slash to the path if it doesn't already have one
- * so the class loader will treat it as a directory. This will
- * check if the file or directory exists and throw an error if it doesn't exist.
- *
- * ## Example
- * ```ts
- * appendClasspathAny('/path/to/dir');
- * ```
- *
- * Pass multiple paths:
- * ```ts
- * appendClasspathAny(['/path/to/dir1', '/path/to/my.jar']);
- * ```
- *
- * @param path the file(s) or directory(s) to add
- * @param recursive whether to recursively add all files in the directory
- */
-export function appendClasspathAny(
-    path: string | string[],
-    recursive?: boolean
-): void {
-    ensureJvm();
-    javaInstance!.appendAnyToClasspath(path, recursive);
 }
 
 /**
@@ -417,16 +395,6 @@ export namespace classpath {
      */
     export function append(path: string | string[]): void {
         appendClasspath(path);
-    }
-
-    /**
-     * @inheritDoc appendClasspathAny
-     */
-    export function appendAny(
-        path: string | string[],
-        recursive?: boolean
-    ): void {
-        appendClasspathAny(path, recursive);
     }
 
     /**

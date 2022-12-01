@@ -64,6 +64,13 @@ impl Java {
         let mut args = opts.unwrap_or(vec![]);
 
         if let Some(cp) = java_options.as_ref().and_then(|o| o.classpath.as_ref()) {
+            let cp = list_files(
+                cp.clone(),
+                java_options
+                    .as_ref()
+                    .and_then(|o| o.ignore_unreadable_class_path_entries)
+                    .unwrap_or(false),
+            )?;
             let parsed = parse_classpath_args(&cp, &mut args);
             args.push(parsed);
         }
@@ -149,23 +156,11 @@ impl Java {
 
     /// Append a single or multiple jars to the classpath.
     #[napi(ts_args_type = "classpath: string | string[]")]
-    pub fn append_classpath(&mut self, classpath: JsUnknown) -> napi::Result<()> {
-        let mut paths = parse_array_or_string(classpath)?;
-        let env = self.root_vm.attach_thread().map_napi_err()?;
-
-        env.append_class_path(paths.clone()).map_napi_err()?;
-        self.loaded_jars.append(&mut paths);
-
-        Ok(())
-    }
-
-    #[napi]
-    pub fn append_any_to_classpath(
-        &mut self,
-        #[napi(ts_arg_type = "string | string[]")] path: JsUnknown,
-        recursive: Option<bool>,
-    ) -> napi::Result<()> {
-        let mut paths = list_files(parse_array_or_string(path)?, recursive.unwrap_or(false))?;
+    pub fn append_classpath(&mut self, classpath: JsUnknown, ignore_unreadable: Option<bool>,) -> napi::Result<()> {
+        let mut paths = list_files(
+            parse_array_or_string(classpath)?,
+            ignore_unreadable.unwrap_or(false),
+        )?;
 
         let env = self.root_vm.attach_thread().map_napi_err()?;
         env.append_class_path(paths.clone()).map_napi_err()?;
