@@ -1,8 +1,4 @@
-import {
-    importClass,
-    importClassAsync,
-    appendClasspath,
-} from '../.';
+import { importClass, importClassAsync, appendClasspath } from '../.';
 import { expect } from 'chai';
 import { ClassTool, shouldIncreaseTimeout } from './testUtil';
 import path from 'path';

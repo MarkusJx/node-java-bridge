@@ -156,7 +156,11 @@ impl Java {
 
     /// Append a single or multiple jars to the classpath.
     #[napi(ts_args_type = "classpath: string | string[]")]
-    pub fn append_classpath(&mut self, classpath: JsUnknown, ignore_unreadable: Option<bool>,) -> napi::Result<()> {
+    pub fn append_classpath(
+        &mut self,
+        classpath: JsUnknown,
+        ignore_unreadable: Option<bool>,
+    ) -> napi::Result<()> {
         let mut paths = list_files(
             parse_array_or_string(classpath)?,
             ignore_unreadable.unwrap_or(false),
