@@ -222,7 +222,7 @@ dependencies = [
 
 [[package]]
 name = "java"
-version = "2.1.8"
+version = "2.2.0"
 dependencies = [
  "bindgen",
  "build-target",

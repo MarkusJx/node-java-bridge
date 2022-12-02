@@ -33,6 +33,6 @@
         "typescript": "^4.9.3"
     },
     "dependencies": {
-        "java-bridge": "^2.1.8-beta.2"
+        "java-bridge": "latest"
     }
 }
