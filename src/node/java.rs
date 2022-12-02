@@ -9,7 +9,7 @@ use crate::node::java_class_instance::{JavaClassInstance, CLASS_PROXY_PROPERTY, 
 use crate::node::java_class_proxy::JavaClassProxy;
 use crate::node::java_interface_proxy::JavaInterfaceProxy;
 use crate::node::java_options::JavaOptions;
-use crate::node::napi_error::{MapToNapiError, NapiError};
+use crate::node::napi_error::{MapToNapiError, StrIntoNapiError};
 use crate::node::stdout_redirect::StdoutRedirect;
 use crate::node::util::{list_files, parse_array_or_string, parse_classpath_args};
 use futures::future;
@@ -81,7 +81,7 @@ impl Java {
             &args,
             InternalJavaOptions::from(java_options),
         )
-        .map_err(NapiError::to_napi_error)?;
+        .map_napi_err()?;
 
         let env = root_vm.attach_thread().map_napi_err()?;
         env.append_class_path(vec![java_lib_path]).map_napi_err()?;
@@ -110,7 +110,7 @@ impl Java {
     /// The imported class will be cached for future use.
     #[napi(ts_return_type = "object")]
     pub fn import_class(&mut self, env: Env, class_name: String) -> napi::Result<JsFunction> {
-        let proxy = get_class_proxy(&self.root_vm, class_name).map_err(NapiError::to_napi_error)?;
+        let proxy = get_class_proxy(&self.root_vm, class_name).map_napi_err()?;
         JavaClassInstance::create_class_instance(&env, proxy)
     }
 
@@ -124,9 +124,7 @@ impl Java {
         class_name: String,
     ) -> napi::Result<JsObject> {
         env.execute_tokio_future(
-            future::lazy(|_| {
-                get_class_proxy(&self.root_vm, class_name).map_err(NapiError::to_napi_error)
-            }),
+            future::lazy(|_| get_class_proxy(&self.root_vm, class_name).map_napi_err()),
             |&mut env, proxy| JavaClassInstance::create_class_instance(&env, proxy),
         )
     }
@@ -142,10 +140,7 @@ impl Java {
     /// This may not match the wanted JVM version.
     #[napi(getter)]
     pub fn version(&self) -> napi::Result<String> {
-        Ok(self
-            .root_vm
-            .get_version()
-            .map_err(NapiError::to_napi_error)?)
+        self.root_vm.get_version().map_napi_err()
     }
 
     /// Get the loaded jars.
@@ -221,8 +216,8 @@ impl Java {
 
     #[napi(getter, ts_return_type = "object")]
     pub fn get_class_loader(&self, env: Env) -> napi::Result<JsUnknown> {
-        let proxy = get_class_proxy(&self.root_vm, "java.net.URLClassLoader".to_string())
-            .map_err(NapiError::to_napi_error)?;
+        let proxy =
+            get_class_proxy(&self.root_vm, "java.net.URLClassLoader".into()).map_napi_err()?;
         let j_env = self.root_vm.attach_thread().map_napi_err()?;
         JavaClassInstance::from_existing(proxy, &env, j_env.get_class_loader().map_napi_err()?)
     }
@@ -256,7 +251,7 @@ impl Java {
                 .map_napi_err()?
         } else if other.get_type()? == ValueType::Function || other.get_type()? == ValueType::Object
         {
-            let err_fn = |_| NapiError::from("'other' is not a java object").into_napi();
+            let err_fn = |_| "'other' is not a java object".into_napi_err();
             let obj: JsObject = other
                 .coerce_to_object()?
                 .get_named_property(CLASS_PROXY_PROPERTY)
@@ -267,10 +262,10 @@ impl Java {
                 .class
                 .clone()
         } else {
-            return Err(NapiError::from("'other' must be either a string or a java object").into());
+            return Err("'other' must be either a string or a java object".into_napi_err());
         };
 
-        let err_fn = |_| NapiError::from("'this' is not a java object").into_napi();
+        let err_fn = |_| "'this' is not a java object".into_napi_err();
         let this_obj: JsObject = this.get_named_property(OBJECT_PROPERTY).map_err(err_fn)?;
         let this = node_env
             .unwrap::<GlobalJavaObject>(&this_obj)

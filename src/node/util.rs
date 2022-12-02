@@ -1,4 +1,4 @@
-use crate::node::napi_error::{napi_error_from_str, napi_error_from_string, NapiError};
+use crate::node::napi_error::{MapToNapiError, StrIntoNapiError};
 use glob::glob;
 use napi::{JsString, JsUnknown};
 
@@ -32,15 +32,15 @@ pub(crate) fn parse_array_or_string(value: JsUnknown) -> napi::Result<Vec<String
 
 pub(crate) fn list_files(dirs: Vec<String>, ignore_unreadable: bool) -> napi::Result<Vec<String>> {
     dirs.into_iter()
-        .map(|f| glob(f.as_str()).map_err(|e| NapiError::from(e.to_string()).into_napi()))
+        .map(|f| glob(f.as_str()).map_napi_err())
         .collect::<napi::Result<Vec<_>>>()?
         .into_iter()
         .flat_map(|f| f)
-        .map(|f| f.map_err(|e| napi_error_from_string(e.to_string())))
+        .map(|f| f.map_napi_err())
         .filter_map(|f| match f {
             Ok(f) => Some(
                 f.to_str()
-                    .ok_or(napi_error_from_str("Failed to convert path to string"))
+                    .ok_or("Failed to convert path to string".into_napi_err())
                     .map(|f| f.to_string()),
             ),
             Err(e) => {
@@ -51,7 +51,7 @@ pub(crate) fn list_files(dirs: Vec<String>, ignore_unreadable: bool) -> napi::Re
                 }
             }
         })
-        .collect::<napi::Result<Vec<String>>>()
+        .collect()
 }
 
 pub fn parse_classpath_args(cp: &Vec<String>, args: &mut Vec<String>) -> String {
