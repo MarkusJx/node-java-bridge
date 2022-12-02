@@ -1,10 +1,4 @@
-import {
-    importClass,
-    importClassAsync,
-    appendClasspath,
-    appendClasspathAny,
-    appendClasspathDir,
-} from '../.';
+import { importClass, importClassAsync, appendClasspath } from '../.';
 import { expect } from 'chai';
 import { ClassTool, shouldIncreaseTimeout } from './testUtil';
 import path from 'path';
@@ -12,19 +6,28 @@ import path from 'path';
 const timeout = shouldIncreaseTimeout ? 60e3 : 20e3;
 let classTool: ClassTool | null = null;
 
+interface JarClassOpts {
+    extraImports?: string[];
+    extraCode?: string;
+    classpath?: string[];
+}
+
 function createJarWithBasicClass(
     pkgName: string,
     className: string,
-    jarName: string
+    jarName: string,
+    opts?: JarClassOpts
 ): void {
     classTool!.writeClass(
         `
         package ${pkgName};
+        ${opts?.extraImports?.map((i) => `import ${i};`)?.join('\n') ?? ''}
         
         public class ${className} {
-        
+            ${opts?.extraCode ?? ''}
         }`,
-        className
+        className,
+        opts?.classpath ?? []
     );
 
     const fileName = `${pkgName.replaceAll('.', '/')}/${className}.class`;
@@ -109,6 +112,34 @@ describe('ClassTest', () => {
         createJarWithBasicClass('other', 'Class1', 'ninth.jar');
         createJarWithBasicClass('dir1', 'Class1', 'dir1/tenth.jar');
         createJarWithBasicClass('dir1', 'Class2', 'dir1/eleventh.jar');
+        createJarWithBasicClass('external', 'ExternalClass', 'twelfth.jar');
+        createJarWithBasicClass('importing', 'Class2', 'thirteenth.jar', {
+            extraImports: ['external.ExternalClass'],
+            extraCode: `
+            private final ExternalClass ext;
+
+            public Class2() {
+                this.ext = new ExternalClass();
+            }
+
+            public ExternalClass getExt() {
+                return this.ext;
+            }
+            `,
+            classpath: [path.join(classTool!.outDir, 'twelfth.jar')],
+        });
+        createJarWithBasicClass('dyn.external', 'Class1', 'fourteenth.jar');
+        createJarWithBasicClass('dyn.importing', 'Class2', 'fifteenth.jar', {
+            extraImports: ['dyn.external.Class1'],
+            extraCode: `
+            public final Class<?> ext;
+
+            public Class2() throws ClassNotFoundException {
+                this.ext = Class.forName("dyn.external.Class1");
+            }
+            `,
+            classpath: [path.join(classTool!.outDir, 'fourteenth.jar')],
+        });
     });
 
     it('Class with basic types', () => {
@@ -237,6 +268,9 @@ describe('ClassTest', () => {
     }).timeout(timeout);
 
     it('Classes from multiple jars', () => {
+        expect(() => importClass('test.ClassWithPackage')).to.throw();
+        expect(() => importClass('test.ClassWithPackageAndImport')).to.throw();
+
         appendClasspath([
             path.join(classTool!.outDir, 'first.jar'),
             path.join(classTool!.outDir, 'second.jar'),
@@ -258,6 +292,9 @@ describe('ClassTest', () => {
     }).timeout(timeout);
 
     it('Classes from multiple jars (async)', async () => {
+        expect(() => importClass('async.Class1')).to.throw();
+        expect(() => importClass('async.Class2')).to.throw();
+
         appendClasspath([
             path.join(classTool!.outDir, 'third.jar'),
             path.join(classTool!.outDir, 'fourth.jar'),
@@ -279,7 +316,10 @@ describe('ClassTest', () => {
     }).timeout(timeout);
 
     it('Classes from multiple jars with directory import', () => {
-        appendClasspath(path.join(classTool!.outDir, 'dir') + '/');
+        expect(() => importClass('dir.Class1')).to.throw();
+        expect(() => importClass('dir.Class2')).to.throw();
+
+        appendClasspath(path.join(classTool!.outDir, 'dir', '**/*'));
 
         const Class1 = importClass('dir.Class1');
         const Class2 = importClass('dir.Class2');
@@ -295,8 +335,12 @@ describe('ClassTest', () => {
     }).timeout(timeout);
 
     it('Classes from multiple jars with any import', () => {
-        appendClasspathAny([
-            path.join(classTool!.outDir, 'any'),
+        expect(() => importClass('any.Class1')).to.throw();
+        expect(() => importClass('any.Class2')).to.throw();
+        expect(() => importClass('other.Class1')).to.throw();
+
+        appendClasspath([
+            path.join(classTool!.outDir, 'any', '*'),
             path.join(classTool!.outDir, 'ninth.jar'),
         ]);
 
@@ -319,7 +363,10 @@ describe('ClassTest', () => {
     }).timeout(timeout);
 
     it('Classes from multiple jars with dir import', () => {
-        appendClasspathDir(path.join(classTool!.outDir, 'dir1'));
+        expect(() => importClass('dir1.Class1')).to.throw();
+        expect(() => importClass('dir1.Class2')).to.throw();
+
+        appendClasspath(path.join(classTool!.outDir, 'dir1', '*'));
 
         const Class1 = importClass('dir1.Class1');
         const Class2 = importClass('dir1.Class2');
@@ -333,6 +380,47 @@ describe('ClassTest', () => {
         const instance2 = new Class2();
         expect(instance2).to.be.an('object');
     }).timeout(timeout);
+
+    it('Class with external dependency', () => {
+        expect(() => importClass('importing.Class2')).to.throw();
+        expect(() => importClass('external.ExternalClass')).to.throw();
+
+        appendClasspath([
+            path.join(classTool!.outDir, 'twelfth.jar'),
+            path.join(classTool!.outDir, 'thirteenth.jar'),
+        ]);
+
+        const Class2 = importClass('importing.Class2');
+        expect(Class2).to.be.a('function');
+
+        const instance = new Class2();
+        expect(instance).to.be.an('object');
+
+        const ext = instance.getExtSync();
+        expect(ext).to.be.an('object');
+    });
+
+    it('Class with external dependency loaded dynamically', () => {
+        expect(() => importClass('dyn.importing.Class2')).to.throw();
+        expect(() => importClass('dyn.external.Class1')).to.throw();
+
+        appendClasspath([
+            path.join(classTool!.outDir, 'fourteenth.jar'),
+            path.join(classTool!.outDir, 'fifteenth.jar'),
+        ]);
+
+        const Class2 = importClass('dyn.importing.Class2');
+        expect(Class2).to.be.a('function');
+
+        const instance = new Class2();
+        expect(instance).to.be.an('object');
+
+        const ext = instance.ext;
+        expect(ext).to.be.an('object');
+
+        const instance2 = ext.newInstanceSync();
+        expect(instance2).to.be.an('object');
+    });
 
     after(() => {
         classTool?.dispose();

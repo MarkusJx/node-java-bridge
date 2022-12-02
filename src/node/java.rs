@@ -9,14 +9,13 @@ use crate::node::java_class_instance::{JavaClassInstance, CLASS_PROXY_PROPERTY, 
 use crate::node::java_class_proxy::JavaClassProxy;
 use crate::node::java_interface_proxy::JavaInterfaceProxy;
 use crate::node::java_options::JavaOptions;
-use crate::node::napi_error::{MapToNapiError, NapiError};
+use crate::node::napi_error::{MapToNapiError, StrIntoNapiError};
 use crate::node::stdout_redirect::StdoutRedirect;
-use crate::node::util::parse_array_or_string;
+use crate::node::util::{list_files, parse_array_or_string, parse_classpath_args};
 use futures::future;
 use lazy_static::lazy_static;
 use napi::{Env, JsFunction, JsObject, JsUnknown, ValueType};
 use std::collections::HashMap;
-use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 lazy_static! {
@@ -62,13 +61,27 @@ impl Java {
         native_lib_path: String,
     ) -> napi::Result<Self> {
         let ver = version.unwrap_or("1.8".to_string());
+        let mut args = opts.unwrap_or(vec![]);
+
+        if let Some(cp) = java_options.as_ref().and_then(|o| o.classpath.as_ref()) {
+            let cp = list_files(
+                cp.clone(),
+                java_options
+                    .as_ref()
+                    .and_then(|o| o.ignore_unreadable_class_path_entries)
+                    .unwrap_or(false),
+            )?;
+            let parsed = parse_classpath_args(&cp, &mut args);
+            args.push(parsed);
+        }
+
         let root_vm = JavaVM::new(
             &ver,
             lib_path,
-            &opts.unwrap_or(vec![]),
+            &args,
             InternalJavaOptions::from(java_options),
         )
-        .map_err(NapiError::to_napi_error)?;
+        .map_napi_err()?;
 
         let env = root_vm.attach_thread().map_napi_err()?;
         env.append_class_path(vec![java_lib_path]).map_napi_err()?;
@@ -97,7 +110,7 @@ impl Java {
     /// The imported class will be cached for future use.
     #[napi(ts_return_type = "object")]
     pub fn import_class(&mut self, env: Env, class_name: String) -> napi::Result<JsFunction> {
-        let proxy = get_class_proxy(&self.root_vm, class_name).map_err(NapiError::to_napi_error)?;
+        let proxy = get_class_proxy(&self.root_vm, class_name).map_napi_err()?;
         JavaClassInstance::create_class_instance(&env, proxy)
     }
 
@@ -111,9 +124,7 @@ impl Java {
         class_name: String,
     ) -> napi::Result<JsObject> {
         env.execute_tokio_future(
-            future::lazy(|_| {
-                get_class_proxy(&self.root_vm, class_name).map_err(NapiError::to_napi_error)
-            }),
+            future::lazy(|_| get_class_proxy(&self.root_vm, class_name).map_napi_err()),
             |&mut env, proxy| JavaClassInstance::create_class_instance(&env, proxy),
         )
     }
@@ -129,10 +140,7 @@ impl Java {
     /// This may not match the wanted JVM version.
     #[napi(getter)]
     pub fn version(&self) -> napi::Result<String> {
-        Ok(self
-            .root_vm
-            .get_version()
-            .map_err(NapiError::to_napi_error)?)
+        self.root_vm.get_version().map_napi_err()
     }
 
     /// Get the loaded jars.
@@ -143,67 +151,15 @@ impl Java {
 
     /// Append a single or multiple jars to the classpath.
     #[napi(ts_args_type = "classpath: string | string[]")]
-    pub fn append_classpath(&mut self, classpath: JsUnknown) -> napi::Result<()> {
-        let mut paths = parse_array_or_string(classpath)?;
-        let env = self.root_vm.attach_thread().map_napi_err()?;
-
-        env.append_class_path(paths.clone()).map_napi_err()?;
-        self.loaded_jars.append(&mut paths);
-
-        Ok(())
-    }
-
-    #[napi(ts_args_type = "dir: string | string[]")]
-    pub fn append_classpath_dir(&mut self, dir: JsUnknown) -> napi::Result<()> {
-        let mut paths = parse_array_or_string(dir)?
-            .into_iter()
-            .map(|p| p.trim().to_string())
-            .map(|mut p| {
-                if p.ends_with("/") || p.ends_with("\\") {
-                    p.pop();
-                    p + "/"
-                } else {
-                    p + "/"
-                }
-            })
-            .collect::<Vec<String>>();
-
-        let env = self.root_vm.attach_thread().map_napi_err()?;
-        env.append_class_path(paths.clone()).map_napi_err()?;
-        self.loaded_jars.append(&mut paths);
-
-        Ok(())
-    }
-
-    #[napi(ts_args_type = "path: string | string[]")]
-    pub fn append_any_to_classpath(&mut self, path: JsUnknown) -> napi::Result<()> {
-        let mut paths = parse_array_or_string(path)?
-            .into_iter()
-            .map(|p| p.trim().to_string())
-            .map(|mut p| -> napi::Result<String> {
-                let path = Path::new(&p);
-                if path.exists() {
-                    if path.is_dir() {
-                        if p.ends_with("/") || p.ends_with("\\") {
-                            p.pop();
-                            Ok(p + "/")
-                        } else {
-                            Ok(p)
-                        }
-                    } else if path.is_file() {
-                        Ok(p)
-                    } else {
-                        Err(NapiError::from(format!(
-                            "Path is neither a file nor a directory: {}",
-                            p
-                        ))
-                        .into_napi())
-                    }
-                } else {
-                    Err(NapiError::from(format!("Path does not exist: {}", p)).into_napi())
-                }
-            })
-            .collect::<napi::Result<Vec<String>>>()?;
+    pub fn append_classpath(
+        &mut self,
+        classpath: JsUnknown,
+        ignore_unreadable: Option<bool>,
+    ) -> napi::Result<()> {
+        let mut paths = list_files(
+            parse_array_or_string(classpath)?,
+            ignore_unreadable.unwrap_or(false),
+        )?;
 
         let env = self.root_vm.attach_thread().map_napi_err()?;
         env.append_class_path(paths.clone()).map_napi_err()?;
@@ -260,8 +216,8 @@ impl Java {
 
     #[napi(getter, ts_return_type = "object")]
     pub fn get_class_loader(&self, env: Env) -> napi::Result<JsUnknown> {
-        let proxy = get_class_proxy(&self.root_vm, "java.net.URLClassLoader".to_string())
-            .map_err(NapiError::to_napi_error)?;
+        let proxy =
+            get_class_proxy(&self.root_vm, "java.net.URLClassLoader".into()).map_napi_err()?;
         let j_env = self.root_vm.attach_thread().map_napi_err()?;
         JavaClassInstance::from_existing(proxy, &env, j_env.get_class_loader().map_napi_err()?)
     }
@@ -295,7 +251,7 @@ impl Java {
                 .map_napi_err()?
         } else if other.get_type()? == ValueType::Function || other.get_type()? == ValueType::Object
         {
-            let err_fn = |_| NapiError::from("'other' is not a java object").into_napi();
+            let err_fn = |_| "'other' is not a java object".into_napi_err();
             let obj: JsObject = other
                 .coerce_to_object()?
                 .get_named_property(CLASS_PROXY_PROPERTY)
@@ -306,10 +262,10 @@ impl Java {
                 .class
                 .clone()
         } else {
-            return Err(NapiError::from("'other' must be either a string or a java object").into());
+            return Err("'other' must be either a string or a java object".into_napi_err());
         };
 
-        let err_fn = |_| NapiError::from("'this' is not a java object").into_napi();
+        let err_fn = |_| "'this' is not a java object".into_napi_err();
         let this_obj: JsObject = this.get_named_property(OBJECT_PROPERTY).map_err(err_fn)?;
         let this = node_env
             .unwrap::<GlobalJavaObject>(&this_obj)

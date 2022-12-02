@@ -68,7 +68,7 @@ export interface JVMOptions extends JavaOptions {
  * Let the plugin find the jvm.(dylib|dll|so)
  * ```ts
  * ensureJvm({
- *     JavaVersion.VER_9,
+ *     version: JavaVersion.VER_9,
  *     useDaemonThreads: true
  * });
  * ```
@@ -78,9 +78,30 @@ export interface JVMOptions extends JavaOptions {
  * ensureJvm();
  * ```
  *
+ * ## Notes on the `classpath` option
+ *
+ * If you need to set the class path *before* jvm startup, for example
+ * when using libraries with custom class loaders, you'd need to call
+ * `ensureJvm` *before* making any other call to `java-bridge` as those
+ * methods may themselves call `ensureJvm` with no arguments
+ * (see comment above). Altering the startup classpath after jvm boot is
+ * not possible, you can only alter the runtime classpath using
+ * `appendClasspath` or `appendClasspathAny` which may not reflect
+ * in an altered classpath in your java application/library if your
+ * application is using a custom classpath (e.g. Spring Boot).
+ *
+ * Also, it is not possible to restart the jvm after is has been started
+ * once, in order to alter the startup classpath. This is due to some
+ * limitations with the destructor feature of the node.js native api,
+ * which may not call the destructor in time and having two jvm instances
+ * in the same application is not allowed by java. Additionally, destroying
+ * the jvm instance may cause *undefined behaviour*, which may or may not
+ * cause the application to crash. Let's not do that.
+ *
  * @param options the options to use when creating the jvm
+ * @return true if the jvm was created and false if the jvm already existed and was not created
  */
-export function ensureJvm(options?: JVMOptions): void {
+export function ensureJvm(options?: JVMOptions): boolean {
     if (!javaInstance) {
         javaInstance = new Java(
             options?.libPath,
@@ -90,6 +111,10 @@ export function ensureJvm(options?: JVMOptions): void {
             getJavaLibPath(),
             getNativeLibPath()
         );
+
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -221,7 +246,7 @@ function createClassFromConstructor<T extends JavaClassConstructorType>(
  *     public constructor();
  * }
  *
- * // This causes the class to be import when the module is loaded.
+ * // This causes the class to be imported when the module is loaded.
  * class ArrayList<T> extends importClass<typeof ArrayListClass>('java.util.ArrayList')<T> {}
  *
  * // Create a new ArrayList instance
@@ -273,16 +298,10 @@ export async function importClassAsync<
  * This doesn't check if the jars are valid and/or even exist.
  * The new classpath will be available to all classes imported after this call.
  *
- * ## Class loading mechanism
- *
- * The class loader used is a [URLClassLoader](https://docs.oracle.com/javase/7/docs/api/java/net/URLClassLoader.html).
- * From the Java docs:
- * > The URLs will be searched in the order specified for classes and resources after
- * > first searching in the parent class loader. Any URL that ends with a '/' is assumed to refer
- * > to a directory. Otherwise, the URL is assumed to refer to a JAR file
- * > which will be downloaded and opened as needed.
+ * If you want to import whole directories, you can use glob patterns.
  *
  * ## Example
+ * ### Append single files
  * ```ts
  * import { appendClasspath } from 'java-bridge';
  *
@@ -300,74 +319,21 @@ export async function importClassAsync<
  * classpath.append('/path/to/jar.jar');
  * ```
  *
+ * ### Append a directory to the class path
+ * ```ts
+ * import { appendClasspath } from 'java-bridge';
+ *
+ * // Append a directory to the class path
+ * appendClasspath('/path/to/dir/*');
+ * // Append just the jar files in the directory
+ * appendClasspath('/path/to/dir/*.jar');
+ * ```
+ *
  * @param path the path(s) to add
  */
 export function appendClasspath(path: string | string[]): void {
     ensureJvm();
     javaInstance!.appendClasspath(path);
-}
-
-/**
- * Append a single or multiple directories to the class path.
- * This assumes that the paths passed are directories and will
- * add a trailing slash to the path if it doesn't already have one
- * so the class loader will treat it as a directory. This will not
- * throw an error if the directory or file doesn't exist.
- *
- * ## Example
- * ```ts
- * appendClasspathDir('/path/to/dir');
- *
- * // or
- * appendClasspathDir('/path/to/dir/');
- *
- * // both is equal to
- * appendClasspath('/path/to/dir/');
- * ```
- *
- * Pass multiple paths:
- * ```ts
- * appendClasspathDir(['/path/to/dir1', '/path/to/dir2']);
- * ```
- *
- * @param path the directories to add
- */
-export function appendClasspathDir(path: string | string[]): void {
-    ensureJvm();
-    javaInstance!.appendClasspathDir(path);
-}
-
-/**
- * Append either a single or multiple jars or directories to the class path.
- * This will check if the path(s) passed are directories and will
- * add a trailing slash to the path if it doesn't already have one
- * so the class loader will treat it as a directory. This will
- * check if the file or directory exists and throw an error if it doesn't exist.
- *
- * ## Example
- * ```ts
- * appendClasspathAny('/path/to/dir');
- *
- * // or
- * appendClasspathAny('/path/to/dir/');
- *
- * // both is equal to
- * appendClasspath('/path/to/dir/');
- * ```
- *
- * Pass multiple paths:
- * ```ts
- * appendClasspathAny(['/path/to/dir1', '/path/to/my.jar']);
- *
- * // this is equal to
- * appendClasspath(['/path/to/dir1/', '/path/to/my.jar']);
- * ```
- *
- * @param path the file(s) or directory(s) to add
- */
-export function appendClasspathAny(path: string | string[]): void {
-    ensureJvm();
-    javaInstance!.appendAnyToClasspath(path);
 }
 
 /**
@@ -429,20 +395,6 @@ export namespace classpath {
      */
     export function append(path: string | string[]): void {
         appendClasspath(path);
-    }
-
-    /**
-     * @inheritDoc appendClasspathDir
-     */
-    export function appendDir(dir: string | string[]): void {
-        appendClasspathDir(dir);
-    }
-
-    /**
-     * @inheritDoc appendClasspathAny
-     */
-    export function appendAny(path: string | string[]): void {
-        appendClasspathAny(path);
     }
 
     /**

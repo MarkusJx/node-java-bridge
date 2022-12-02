@@ -7,7 +7,6 @@ use crate::node::java::Java;
 use crate::node::java_class_proxy::JavaClassProxy;
 use crate::node::java_type_ext::NapiToJava;
 use crate::node::napi_error::MapToNapiError;
-use crate::NapiError;
 use futures::future;
 use napi::{
     CallContext, Env, JsBoolean, JsFunction, JsObject, JsString, JsUnknown, Property,
@@ -200,19 +199,15 @@ impl JavaClassInstance {
         let method = proxy
             .find_matching_method(ctx, name, false, false)
             .or_else(|_| proxy.find_matching_method(ctx, name, false, true))
-            .map_err(NapiError::to_napi_error)?;
+            .map_napi_err()?;
         let obj = Self::get_object(ctx)?;
 
         let env = proxy.vm.attach_thread().map_napi_err()?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
         let args_ref = call_results_to_args(&args);
 
-        let result = method
-            .call(&obj, args_ref)
-            .map_err(NapiError::to_napi_error)?;
-        result
-            .to_napi_value(&env, ctx.env)
-            .map_err(NapiError::to_napi_error)
+        let result = method.call(&obj, args_ref).map_napi_err()?;
+        result.to_napi_value(&env, ctx.env).map_napi_err()
     }
 
     fn call_method_async(ctx: &CallContext, name: &String) -> napi::Result<JsObject> {
@@ -220,7 +215,7 @@ impl JavaClassInstance {
         let method = proxy
             .find_matching_method(ctx, name, false, false)
             .or_else(|_| proxy.find_matching_method(ctx, name, false, true))
-            .map_err(NapiError::to_napi_error)?
+            .map_napi_err()?
             .clone();
         let obj = Self::get_object(ctx)?.clone();
         let env = proxy.vm.attach_thread().map_napi_err()?;

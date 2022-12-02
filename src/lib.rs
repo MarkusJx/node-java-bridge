@@ -10,9 +10,8 @@ mod tests;
 extern crate napi_derive;
 extern crate core;
 
-use crate::node::napi_error::NapiError;
+use crate::node::napi_error::StrIntoNapiError;
 use napi::Status;
-use std::error::Error;
 use std::path::Path;
 
 /// Get the path to the jvm.(dll|so|dylib) file.
@@ -26,7 +25,6 @@ pub fn get_java_lib_path() -> napi::Result<String> {
 
     Ok(path
         .to_str()
-        .ok_or(Box::<dyn Error>::from("Could not create the library path"))
-        .map_err(NapiError::to_napi_error)?
+        .ok_or("Could not create the library path".into_napi_err())?
         .to_string())
 }

@@ -1,4 +1,3 @@
-use crate::jni::util::util::ResultType;
 use std::error::Error;
 
 pub struct NapiError(napi::Error);
@@ -6,10 +5,6 @@ pub struct NapiError(napi::Error);
 impl NapiError {
     fn new(status: napi::Status, msg: String) -> Self {
         NapiError(napi::Error::new(status, msg))
-    }
-
-    pub fn to_napi_error(err: Box<dyn Error>) -> napi::Error {
-        NapiError::from(err).into()
     }
 
     pub fn into_napi(self) -> napi::Error {
@@ -54,11 +49,24 @@ pub trait MapToNapiError<T> {
     fn map_napi_err(self) -> napi::Result<T>;
 }
 
-impl<T> MapToNapiError<T> for ResultType<T> {
+impl<T, E> MapToNapiError<T> for Result<T, E>
+where
+    E: ToString,
+{
     fn map_napi_err(self) -> napi::Result<T> {
         match self {
             Ok(val) => Ok(val),
-            Err(err) => Err(NapiError::from(err).into()),
+            Err(err) => Err(NapiError::from(err.to_string()).into_napi()),
         }
+    }
+}
+
+pub trait StrIntoNapiError {
+    fn into_napi_err(self) -> napi::Error;
+}
+
+impl StrIntoNapiError for &str {
+    fn into_napi_err(self) -> napi::Error {
+        NapiError::from(self).into()
     }
 }

@@ -222,11 +222,12 @@ dependencies = [
 
 [[package]]
 name = "java"
-version = "2.1.7"
+version = "2.1.8"
 dependencies = [
  "bindgen",
  "build-target",
  "futures",
+ "glob 0.3.0",
  "java-locator",
  "lazy_static",
  "libloading",

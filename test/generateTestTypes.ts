@@ -30,6 +30,7 @@ const classesToGenerate: string[] = [
     'java.net.URLClassLoader',
     'java.util.jar.JarEntry',
     'java.io.FileInputStream',
+    'java.lang.System',
 ];
 
 function arrayEquals<T>(a: T[], b: T[]) {
