@@ -5,6 +5,8 @@ import type { Ora } from 'ora';
 import isCi from 'is-ci';
 import type { ChalkInstance } from 'chalk';
 
+const isSystemTest = process.argv.includes('--system-test');
+
 interface Cache {
     classes: string[];
 }
@@ -79,15 +81,17 @@ async function run() {
     if (spinner && chalk)
         spinner.text = chalk.gray('Writing definitions to disk');
 
-    gen.moduleDeclarations.forEach((declaration, i) => {
-        gen.moduleDeclarations[i] = {
-            ...declaration,
-            contents: declaration.contents.replaceAll(
-                'from "java-bridge";',
-                `from ${JSON.stringify(path.join(__dirname, '..'))};`
-            ),
-        };
-    });
+    if (!isSystemTest) {
+        gen.moduleDeclarations.forEach((declaration, i) => {
+            gen.moduleDeclarations[i] = {
+                ...declaration,
+                contents: declaration.contents.replaceAll(
+                    'from "java-bridge";',
+                    `from ${JSON.stringify(path.join(__dirname, '..'))};`
+                ),
+            };
+        });
+    }
 
     await gen.save(outDir);
 

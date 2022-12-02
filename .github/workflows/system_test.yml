@@ -30,7 +30,7 @@ jobs:
             - name: Run tests
               working-directory: ${{github.workspace}}/test/system_test
               run: npm run test
-              timeout-minutes: 2
+              timeout-minutes: 20
 
     test-arm64:
         strategy:
@@ -44,7 +44,7 @@ jobs:
               run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
             - name: Run tests
               uses: addnab/docker-run-action@v3
-              timeout-minutes: 30
+              timeout-minutes: 120
               with:
                   image: arm64v8/node:${{matrix.node-version}}-bullseye
                   options: -v ${{github.workspace}}/test:/github/workspace -w /github/workspace/system_test

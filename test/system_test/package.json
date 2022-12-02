@@ -3,12 +3,14 @@
     "version": "1.0.0",
     "description": "",
     "main": "index.js",
+    "private": true,
     "scripts": {
         "test": "mocha -r ts-node/register *.test.ts",
-        "pretest": "npm run clean && npm run copy && npm run replace",
+        "pretest": "npm run clean && npm run copy && npm run replace && npm run generateTestTypes",
+        "generateTestTypes": "ts-node generateTestTypes.ts --system-test",
         "clean": "rimraf *.test.ts",
         "copy": "cpy \"../*.ts\" .",
-        "replace": "replace \"from '../.';\" \"from 'java-bridge';\" . -r --include=\"*.test.ts\""
+        "replace": "replace \"from '../.';\" \"from 'java-bridge';\" . -r --include=\"*.ts\""
     },
     "keywords": [],
     "author": "MarkusJx",
@@ -16,8 +18,8 @@
     "devDependencies": {
         "@types/chai": "^4.3.4",
         "@types/is-ci": "^3.0.0",
-        "@types/mocha": "^10.0.0",
-        "@types/node": "^18.7.14",
+        "@types/mocha": "^10.0.1",
+        "@types/node": "^18.11.10",
         "@types/semver": "^7.3.12",
         "chai": "^4.3.7",
         "cpy-cli": "^4.2.0",
@@ -31,6 +33,6 @@
         "typescript": "^4.9.3"
     },
     "dependencies": {
-        "java-bridge": "latest"
+        "java-bridge": "^2.1.8-beta.2"
     }
 }
