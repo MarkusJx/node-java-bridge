@@ -68,7 +68,7 @@ export interface JVMOptions extends JavaOptions {
  * Let the plugin find the jvm.(dylib|dll|so)
  * ```ts
  * ensureJvm({
- *     JavaVersion.VER_9,
+ *     version: JavaVersion.VER_9,
  *     useDaemonThreads: true
  * });
  * ```
@@ -246,7 +246,7 @@ function createClassFromConstructor<T extends JavaClassConstructorType>(
  *     public constructor();
  * }
  *
- * // This causes the class to be import when the module is loaded.
+ * // This causes the class to be imported when the module is loaded.
  * class ArrayList<T> extends importClass<typeof ArrayListClass>('java.util.ArrayList')<T> {}
  *
  * // Create a new ArrayList instance
