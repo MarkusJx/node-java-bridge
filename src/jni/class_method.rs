@@ -239,9 +239,14 @@ impl ClassMethod {
             _ => {
                 let m = StaticJavaObjectMethod::from_global(self.method.clone(), &class)?;
                 let res = m.call(args)?;
-                JavaCallResult::Object {
-                    object: GlobalJavaObject::try_from(res)?,
-                    signature: self.return_type.clone(),
+
+                if res.is_null() {
+                    JavaCallResult::Null
+                } else {
+                    JavaCallResult::Object {
+                        object: GlobalJavaObject::try_from(res)?,
+                        signature: self.return_type.clone(),
+                    }
                 }
             }
         })
