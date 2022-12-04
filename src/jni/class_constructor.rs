@@ -29,13 +29,13 @@ impl ClassConstructor {
         let get_constructors = java_class
             .get_object_method("getConstructors", "()[Ljava/lang/reflect/Constructor;")?
             .bind(JavaObject::from(local_class.to_object()));
-        let constructors = JavaObjectArray::from(get_constructors.call(vec![])?);
+        let constructors = JavaObjectArray::from(get_constructors.call(vec![])?.ok_or("Class.getConstructors() returned null".to_string())?);
 
         let num_constructors = constructors.len()?;
         let mut res: Vec<ClassConstructor> = vec![];
 
         for i in 0..num_constructors {
-            let constructor = constructors.get(i)?;
+            let constructor = constructors.get(i)?.ok_or("A value in the array returned by Class.getConstructors() was null".to_string())?;
             res.push(ClassConstructor::new(
                 vm.clone(),
                 &env,
@@ -58,12 +58,12 @@ impl ClassConstructor {
             .get_object_method("getParameters", "()[Ljava/lang/reflect/Parameter;")?
             .bind(JavaObject::from(constructor.clone()));
 
-        let parameters = JavaObjectArray::from(get_parameters.call(vec![])?);
+        let parameters = JavaObjectArray::from(get_parameters.call(vec![])?.ok_or("Constructor.getParameters() returned null".to_string())?);
         let num_parameters = parameters.len()?;
 
         let mut parameter_types: Vec<JavaType> = vec![];
         for i in 0..num_parameters {
-            let parameter = parameter_to_type(&env, &parameters.get(i)?)?;
+            let parameter = parameter_to_type(&env, &parameters.get(i)?.ok_or("A value in the array returned by Constructor.getParameters() was null".to_string())?)?;
 
             parameter_types.push(parameter);
         }

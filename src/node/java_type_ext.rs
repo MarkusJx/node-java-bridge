@@ -129,7 +129,7 @@ pub trait NapiToJava {
         env: &'a JavaEnv,
         node_env: &'a Env,
         value: JsUnknown,
-    ) -> ResultType<JavaObject<'a>>;
+    ) -> ResultType<Option<JavaObject<'a>>>;
 
     fn convert_to_java_value<'a>(
         &self,
@@ -152,8 +152,8 @@ impl NapiToJava for JavaType {
         env: &'a JavaEnv,
         node_env: &'a Env,
         value: JsUnknown,
-    ) -> ResultType<JavaObject<'a>> {
-        Ok(match self.type_enum() {
+    ) -> ResultType<Option<JavaObject<'a>>> {
+        Ok(Some(match self.type_enum() {
             Type::LangInteger | Type::Integer => {
                 if value.get_type()? == ValueType::Object {
                     JavaObject::from(value.into_java_object(node_env)?)
@@ -238,7 +238,7 @@ impl NapiToJava for JavaType {
                 }
             }
             Type::Object | Type::LangObject => match value.get_type()? {
-                ValueType::Null | ValueType::Undefined => GlobalJavaObject::null(env)?.into(),
+                ValueType::Null | ValueType::Undefined => return Ok(None),
                 ValueType::Boolean => {
                     LocalJavaObject::from_bool(env, value.coerce_to_bool()?.get_value()?)?.into()
                 }
@@ -278,7 +278,7 @@ impl NapiToJava for JavaType {
                             )?;
                         }
 
-                        return Ok(GlobalJavaObject::try_from(res.into_object())?.into());
+                        return Ok(Some(GlobalJavaObject::try_from(res.into_object())?.into()));
                     }
 
                     let obj = value.coerce_to_object().map_err(err_fn)?;
@@ -311,7 +311,7 @@ impl NapiToJava for JavaType {
             Type::Void => {
                 return Err("Cannot use 'void' as input type".into());
             }
-        })
+        }))
     }
 
     fn convert_to_java_value<'a>(
@@ -348,11 +348,12 @@ impl NapiToJava for JavaType {
                 Type::Character => JavaCallResult::Character(env.object_to_char(
                     &LocalJavaObject::from(&value.into_java_object(node_env)?, env),
                 )?),
-                _ => JavaCallResult::Object {
-                    object: self
-                        .convert_to_java_object(env, node_env, value)?
-                        .try_into()?,
-                    signature: self.clone(),
+                _ => match self.convert_to_java_object(env, node_env, value)? {
+                    Some(obj) => JavaCallResult::Object {
+                        object: obj.try_into()?,
+                        signature: self.clone(),
+                    },
+                    None => JavaCallResult::Null,
                 },
             }
         } else {
@@ -386,13 +387,13 @@ impl NapiToJava for JavaType {
                         || value.get_type()? == ValueType::Undefined
                     {
                         JavaCallResult::Null
-                    } else {
+                    } else if let Some(obj) = self.convert_to_java_object(env, node_env, value)? {
                         JavaCallResult::Object {
-                            object: self
-                                .convert_to_java_object(env, node_env, value)?
-                                .try_into()?,
+                            object: obj.try_into()?,
                             signature: self.clone(),
                         }
+                    } else {
+                        JavaCallResult::Null
                     }
                 }
             }

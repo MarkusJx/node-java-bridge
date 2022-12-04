@@ -52,7 +52,7 @@ impl<'a> GetSignature for JavaString<'a> {
 impl<'a> ToJavaValue<'a> for JavaString<'a> {
     fn to_java_value(&'a self) -> JavaValue<'a> {
         JavaValue::new(sys::jvalue {
-            l: unsafe { self.0.get_raw_nullable() },
+            l: unsafe { self.0.get_raw() },
         })
     }
 }
@@ -75,9 +75,7 @@ impl TryInto<String> for JavaString<'_> {
     fn try_into(self) -> Result<String, Self::Error> {
         unsafe {
             self.0.env().get_string_utf_chars(
-                self.0
-                    .get_raw()
-                    .ok_or("Cannot convert null string to std::string".to_string())?,
+                self.0.get_raw(),
             )
         }
     }

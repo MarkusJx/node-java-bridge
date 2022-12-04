@@ -29,22 +29,22 @@ impl ClassField {
         let class = env.find_global_class_by_java_name(class_name.clone())?;
         let java_class = env.get_java_lang_class()?;
         let get_declared_fields = java_class
-            .get_object_method("getDeclaredFields", "()[Ljava/lang/reflect/Field;")?
+            .get_object_method("getFields", "()[Ljava/lang/reflect/Field;")?
             .bind(JavaObject::from(class));
 
         let field = JavaClass::by_name("java/lang/reflect/Field", &env)?;
         let get_name = field.get_object_method("getName", "()Ljava/lang/String;")?;
 
-        let fields = JavaObjectArray::from(get_declared_fields.call(vec![])?);
+        let fields = JavaObjectArray::from(get_declared_fields.call(vec![])?.ok_or("Class.getFields() returned null".to_string())?);
         let num_fields = fields.len()?;
 
         let mut res: HashMap<String, Self> = HashMap::new();
         for i in 0..num_fields {
-            let field = fields.get(i)?;
+            let field = fields.get(i)?.ok_or("A value in the array returned by Class.getFields() was null".to_string())?;
 
             if method_is_public(&env, &field, false, only_static)? {
-                let name = JavaString::from(get_name.call(JavaObject::from(&field), vec![])?)
-                    .to_string()?;
+                let name = JavaString::from(get_name.call(JavaObject::from(&field), vec![])?
+                    .ok_or("Field.getName() returned null".to_string())?).to_string()?;
 
                 let class_field = ClassField::from_field(
                     vm.clone(),

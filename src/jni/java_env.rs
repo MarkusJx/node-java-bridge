@@ -12,12 +12,12 @@ use std::sync::{Arc, Mutex};
 
 /// The pointer to a java environment.
 /// This should not be copied or created manually.
-/// It is created by the [`JavaVM`](crate::jni::java_vm::JavaVM) struct.
+/// It is created by the [`JavaVM`](JavaVM) struct.
 /// You should also not move this between threads as it will likely
 /// cause the program to segfault, or at least to panic once this is dropped,
 /// since an environment is tied to a thread.
 /// If you need a java environment inside a new thread, create a new on using
-/// [`JavaVM::attach_thread`](crate::jni::java_vm::JavaVM::attach_thread).
+/// [`JavaVM::attach_thread`](JavaVM::attach_thread).
 pub struct JavaEnv<'a>(JavaEnvWrapper<'a>);
 
 impl<'a> JavaEnv<'a> {
@@ -168,9 +168,7 @@ impl<'a> JavaEnv<'a> {
 
         unsafe {
             self.0.get_string_utf_chars(
-                object
-                    .get_raw()
-                    .ok_or("Cannot convert null object to string".to_string())?,
+                object.get_raw(),
             )
         }
     }
@@ -202,7 +200,8 @@ impl<'a> JavaEnv<'a> {
         let set_context_classloader =
             thread_class.get_void_method("setContextClassLoader", "(Ljava/lang/ClassLoader;)V")?;
 
-        let current_thread = get_current_thread.call(vec![])?;
+        let current_thread = get_current_thread.call(vec![])?
+            .ok_or("Thread.currentThread() returned null".to_string())?;
         set_context_classloader.call(
             JavaObject::from(current_thread),
             vec![Box::new(&self.get_class_loader()?)],

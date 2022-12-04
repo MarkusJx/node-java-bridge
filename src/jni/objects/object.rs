@@ -2,7 +2,6 @@ use crate::jni::java_env::JavaEnv;
 use crate::jni::java_env_wrapper::JavaEnvWrapper;
 use crate::jni::java_type::JavaType;
 use crate::jni::java_vm::{InternalJavaOptions, JavaVM};
-use crate::jni::jni_error::JNIError;
 use crate::jni::objects::args::JavaArg;
 use crate::jni::objects::class::JavaClass;
 use crate::jni::objects::java_object::JavaObject;
@@ -10,13 +9,12 @@ use crate::jni::objects::string::JavaString;
 use crate::jni::objects::value::{
     JavaBoolean, JavaByte, JavaChar, JavaDouble, JavaFloat, JavaInt, JavaLong, JavaShort, JavaValue,
 };
-use crate::jni::traits::{GetRaw, GetSignature, IsInstanceOf, IsNull, ToJavaValue};
+use crate::jni::traits::{GetRaw, GetSignature, IsInstanceOf, ToJavaValue};
 use crate::jni::util::util::ResultType;
 use crate::jni::vm_ptr::JavaVMPtr;
 use crate::{define_object_value_of_method, sys};
 use std::error::Error;
 use std::marker::PhantomData;
-use std::ptr;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -29,6 +27,10 @@ pub struct LocalJavaObject<'a> {
 
 impl<'a> LocalJavaObject<'a> {
     pub(in crate::jni) fn new(object: sys::jobject, env: &'a JavaEnvWrapper<'a>) -> Self {
+        if object.is_null() {
+            panic!("LocalJavaObject::new: object is null");
+        }
+
         Self {
             object,
             free: true,
@@ -38,6 +40,10 @@ impl<'a> LocalJavaObject<'a> {
     }
 
     pub unsafe fn from_raw(object: sys::jobject, env: &'a JavaEnv<'a>) -> Self {
+        if object.is_null() {
+            panic!("LocalJavaObject::from_raw: object is null");
+        }
+
         Self {
             object,
             free: true,
@@ -133,14 +139,8 @@ impl<'a> LocalJavaObject<'a> {
 }
 
 impl GetRaw for LocalJavaObject<'_> {
-    unsafe fn get_raw_nullable(&self) -> sys::jobject {
+    unsafe fn get_raw(&self) -> sys::jobject {
         self.object
-    }
-}
-
-impl IsNull for LocalJavaObject<'_> {
-    fn is_null(&self) -> bool {
-        self.object == ptr::null_mut()
     }
 }
 
@@ -170,7 +170,7 @@ impl<'a> From<&'a LocalJavaObject<'a>> for JavaArg<'a> {
 
 impl<'a> Drop for LocalJavaObject<'a> {
     fn drop(&mut self) {
-        if self.free && !self.is_null() {
+        if self.free {
             self.env.delete_local_ref(self.object);
         }
     }
@@ -189,6 +189,10 @@ impl GlobalJavaObjectInternal {
         jvm: Arc<Mutex<JavaVMPtr>>,
         options: InternalJavaOptions,
     ) -> Self {
+        if object.is_null() {
+            panic!("GlobalJavaObjectInternal::new: object is null");
+        }
+
         Self {
             object: AtomicPtr::new(object),
             jvm,
@@ -208,7 +212,7 @@ impl GlobalJavaObjectInternal {
 
 impl Drop for GlobalJavaObjectInternal {
     fn drop(&mut self) {
-        if self.free && !self.is_null() {
+        if self.free {
             let vm = JavaVM::from_existing(self.jvm.clone(), self.options);
             let env = vm.attach_thread();
 
@@ -219,40 +223,25 @@ impl Drop for GlobalJavaObjectInternal {
     }
 }
 
-impl IsNull for GlobalJavaObjectInternal {
-    fn is_null(&self) -> bool {
-        self.object.load(Ordering::Relaxed) == ptr::null_mut()
-    }
-}
-
 #[derive(Clone)]
 pub struct GlobalJavaObject(Arc<Mutex<GlobalJavaObjectInternal>>);
 
 impl GlobalJavaObject {
-    pub fn null(env: &JavaEnv) -> ResultType<Self> {
-        Ok(Self(Arc::new(Mutex::new(GlobalJavaObjectInternal {
-            object: AtomicPtr::new(ptr::null_mut()),
-            jvm: env.get_env().get_vm_ptr()?,
-            options: env.get_env().get_options()?,
-            free: true,
-        }))))
-    }
-
     pub fn new(
         object: sys::jobject,
         jvm: Arc<Mutex<JavaVMPtr>>,
         options: InternalJavaOptions,
     ) -> Self {
+        if object.is_null() {
+            panic!("GlobalJavaObject::new: object is null");
+        }
+
         Self(Arc::new(Mutex::new(GlobalJavaObjectInternal::new(
             object, jvm, options,
         ))))
     }
 
     pub fn get_class<'a>(&self, env: &'a JavaEnv<'a>) -> ResultType<JavaClass<'a>> {
-        if self.is_null() {
-            return Err("Cannot get class for null pointer".into());
-        }
-
         env.get_object_class(self.into())
     }
 
@@ -266,27 +255,12 @@ impl GlobalJavaObject {
     /// and allows the returned value to be `null`.
     pub unsafe fn into_return_value(self) -> sys::jobject {
         self.0.lock().unwrap().disable_free();
-        self.get_raw_nullable()
-    }
-}
-
-impl IsNull for GlobalJavaObject {
-    fn is_null(&self) -> bool {
-        self.0
-            .lock()
-            .unwrap()
-            .object
-            .load(Ordering::Relaxed)
-            .is_null()
+        self.get_raw()
     }
 }
 
 impl IsInstanceOf for GlobalJavaObject {
     fn is_instance_of(&self, classname: &str) -> ResultType<bool> {
-        if self.is_null() {
-            return Err("Cannot check instance of null pointer".into());
-        }
-
         let vm = self.0.lock().unwrap().get_vm();
         let env = vm.attach_thread()?;
 
@@ -295,17 +269,13 @@ impl IsInstanceOf for GlobalJavaObject {
 }
 
 impl GetRaw for GlobalJavaObject {
-    unsafe fn get_raw_nullable(&self) -> sys::jobject {
+    unsafe fn get_raw(&self) -> sys::jobject {
         self.0.lock().unwrap().object.load(Ordering::Relaxed)
     }
 }
 
 impl GetSignature for GlobalJavaObject {
     fn get_signature(&self) -> ResultType<JavaType> {
-        if self.is_null() {
-            return Err("Cannot get signature for null pointer".into());
-        }
-
         let vm = self.0.lock().unwrap().get_vm();
         let env = vm.attach_thread()?;
 
@@ -325,10 +295,6 @@ impl<'a> TryFrom<LocalJavaObject<'a>> for GlobalJavaObject {
     type Error = Box<dyn Error>;
 
     fn try_from(mut local: LocalJavaObject<'a>) -> Result<GlobalJavaObject, Self::Error> {
-        if local.is_null() {
-            return Err(JNIError::from("Cannot convert null local object to global object").into());
-        }
-
         local.free = false;
         local.env.new_global_object(local.object)
     }
@@ -338,10 +304,6 @@ impl<'a> TryFrom<JavaString<'a>> for GlobalJavaObject {
     type Error = Box<dyn Error>;
 
     fn try_from(mut string: JavaString<'a>) -> Result<GlobalJavaObject, Self::Error> {
-        if string.0.is_null() {
-            return Err(JNIError::from("Cannot convert null local object to global object").into());
-        }
-
         string.0.free = false;
         string.0.env.new_global_object(string.0.object)
     }

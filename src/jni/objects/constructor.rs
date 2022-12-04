@@ -24,7 +24,7 @@ impl<'a> JavaConstructor<'a> {
         env.get_env().new_instance(self, args)
     }
 
-    pub(in crate::jni) unsafe fn class(&self) -> ResultType<sys::jclass> {
+    pub(in crate::jni) unsafe fn class(&self) -> sys::jclass {
         self.class.class()
     }
 

@@ -11,9 +11,7 @@ macro_rules! define_call_methods {
                 let args = self.convert_args(args);
                 let $result_name = self.methods.$method.unwrap()(
                     self.env,
-                    object
-                        .get_raw()
-                        .ok_or("Cannot call method with null object".to_string())?,
+                    object.get_raw(),
                     method.id(),
                     args.as_ptr(),
                 );
@@ -40,7 +38,7 @@ macro_rules! define_call_methods {
                 let args = self.convert_args(args);
                 let $result_name = self.methods.$static_method.unwrap()(
                     self.env,
-                    class.class()?,
+                    class.class(),
                     method.id(),
                     args.as_ptr(),
                 );
@@ -292,21 +290,14 @@ macro_rules! define_array {
                     self.0
                         .object
                         .get_raw()
-                        .ok_or("Cannot get data of null array".to_string())?
                 })
-            }
-        }
-
-        impl IsNull for $name<'_> {
-            fn is_null(&self) -> bool {
-                self.0.is_null()
             }
         }
 
         impl<'a> ToJavaValue<'a> for $name<'a> {
             fn to_java_value(&'a self) -> JavaValue<'a> {
                 JavaValue::new(sys::jvalue {
-                    l: unsafe { self.0.get_raw_nullable() },
+                    l: unsafe { self.0.get_raw() },
                 })
             }
         }
@@ -416,7 +407,7 @@ macro_rules! define_object_value_of_method {
             let method = class.get_static_object_method("valueOf", format!("({})L{};", $java_input_type, $class_name).as_str())?;
 
             let val = <$java_value_type>::new(value);
-            let res = method.call(vec![Box::new(&val)])?;
+            let res = method.call(vec![Box::new(&val)])?.ok_or(format!("{}.valueOf() returned null", $class_name))?;
 
             Ok(res.assign_env(env.get_env()))
         }
@@ -559,9 +550,7 @@ macro_rules! define_field_methods {
             unsafe {
                 let res = self.methods.$getter_method.unwrap()(
                     self.env,
-                    object
-                        .get_raw()
-                        .ok_or("Cannot get field of null object".to_string())?,
+                    object.get_raw(),
                     field.id(),
                 );
                 if self.is_err() {
@@ -586,9 +575,7 @@ macro_rules! define_field_methods {
             unsafe {
                 self.methods.$setter_method.unwrap()(
                     self.env,
-                    object
-                        .get_raw()
-                        .ok_or("Cannot set field of null object".to_string())?,
+                    object.get_raw(),
                     field.id(),
                     value,
                 );
@@ -613,7 +600,7 @@ macro_rules! define_field_methods {
             unsafe {
                 let res = self.methods.$static_getter_method.unwrap()(
                     self.env,
-                    class.class()?,
+                    class.class(),
                     field.id(),
                 );
                 if self.is_err() {
@@ -638,7 +625,7 @@ macro_rules! define_field_methods {
             unsafe {
                 self.methods.$static_setter_method.unwrap()(
                     self.env,
-                    class.class()?,
+                    class.class(),
                     field.id(),
                     value,
                 );

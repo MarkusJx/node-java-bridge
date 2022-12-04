@@ -226,7 +226,11 @@ impl JavaCallResult {
                 let mut data: Vec<i8> = Vec::with_capacity(array.len()? as usize);
 
                 for i in 0..array.len()? {
-                    data.push(j_env.object_to_byte(&array.get(i)?)?);
+                    data.push(if let Some(obj) = array.get(i)? {
+                        j_env.object_to_byte(&obj)?
+                    } else {
+                        0
+                    });
                 }
 
                 let data = data.iter().map(|b| *b as u8).collect();
@@ -235,10 +239,14 @@ impl JavaCallResult {
             _ => {
                 let array = JavaObjectArray::from(arr);
                 for i in 0..array.len()? {
-                    let obj = GlobalJavaObject::try_from(array.get(i)?)?;
                     res.set(
                         i as u32,
-                        self.object_to_napi_value(&obj, j_env, env, sig.clone().borrow(), true)?,
+                        if let Some(obj) = array.get(i)? {
+                            let obj = GlobalJavaObject::try_from(obj)?;
+                            self.object_to_napi_value(&obj, j_env, env, sig.clone().borrow(), true)?
+                        } else {
+                            env.get_null()?.into_unknown()
+                        },
                     )?;
                 }
             }

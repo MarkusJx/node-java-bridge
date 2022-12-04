@@ -161,14 +161,12 @@ impl<'a> JavaClass<'a> {
         unsafe {
             self.0
                 .env()
-                .is_assignable_from(other.class()?, self.class()?)
+                .is_assignable_from(other.class(), self.class())
         }
     }
 
-    pub(in crate::jni) unsafe fn class(&self) -> ResultType<sys::jclass> {
-        self.0
-            .get_raw()
-            .ok_or("Cannot get class of null pointer".into())
+    pub(in crate::jni) unsafe fn class(&self) -> sys::jclass {
+        self.0.get_raw()
     }
 }
 
@@ -190,10 +188,8 @@ impl GlobalJavaClass {
         self.0
     }
 
-    pub(in crate::jni) unsafe fn class(&self) -> ResultType<sys::jclass> {
-        self.0
-            .get_raw()
-            .ok_or("Cannot get class of null pointer".into())
+    pub(in crate::jni) unsafe fn class(&self) -> sys::jclass {
+        self.0.get_raw()
     }
 }
 

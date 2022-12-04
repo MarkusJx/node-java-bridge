@@ -77,7 +77,7 @@ define_java_methods!(
     StaticJavaObjectMethod,
     call_object_method,
     call_static_object_method,
-    LocalJavaObject<'_>,
+    Option<LocalJavaObject<'_>>,
     [
         Type::Object,
         Type::LangBoolean,
@@ -101,7 +101,7 @@ impl<'a> JavaObjectMethod<'a> {
         object: JavaObject<'a>,
         args: JavaArgs<'a>,
         resolve_errors: bool,
-    ) -> ResultType<LocalJavaObject<'a>> {
+    ) -> ResultType<Option<LocalJavaObject<'a>>> {
         self.0
             .class
             .env()

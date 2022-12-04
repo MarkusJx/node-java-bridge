@@ -3,7 +3,7 @@ use crate::jni::objects::class::{GlobalJavaClass, JavaClass};
 use crate::jni::objects::object::{GlobalJavaObject, LocalJavaObject};
 use crate::jni::objects::string::JavaString;
 use crate::jni::objects::value::JavaValue;
-use crate::jni::traits::{GetRaw, GetSignature, IsNull, ToJavaValue};
+use crate::jni::traits::{GetRaw, GetSignature, ToJavaValue};
 use crate::jni::util::util::ResultType;
 use crate::sys;
 use std::error::Error;
@@ -32,22 +32,12 @@ impl<'a> JavaObject<'a> {
     }
 }
 
-impl<'a> IsNull for JavaObject<'a> {
-    fn is_null(&self) -> bool {
-        match self {
-            Self::LocalRef(local_object) => local_object.is_null(),
-            Self::Local(local_object) => local_object.is_null(),
-            Self::Global(global_object) => global_object.is_null(),
-        }
-    }
-}
-
 impl<'a> GetRaw for JavaObject<'a> {
-    unsafe fn get_raw_nullable(&self) -> sys::jobject {
+    unsafe fn get_raw(&self) -> sys::jobject {
         match self {
-            Self::LocalRef(local_object) => local_object.get_raw_nullable(),
-            Self::Local(local_object) => local_object.get_raw_nullable(),
-            Self::Global(global_object) => global_object.get_raw_nullable(),
+            Self::LocalRef(local_object) => local_object.get_raw(),
+            Self::Local(local_object) => local_object.get_raw(),
+            Self::Global(global_object) => global_object.get_raw(),
         }
     }
 }
@@ -117,7 +107,7 @@ impl<'a> From<&'a JavaClass<'a>> for JavaObject<'a> {
 impl<'a> ToJavaValue<'a> for JavaObject<'a> {
     fn to_java_value(&'a self) -> JavaValue<'a> {
         JavaValue::new(sys::jvalue {
-            l: unsafe { self.get_raw_nullable() },
+            l: unsafe { self.get_raw() },
         })
     }
 }

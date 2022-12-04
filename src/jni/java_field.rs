@@ -3,7 +3,6 @@ use crate::jni::java_env::JavaEnv;
 use crate::jni::java_type::{JavaType, Type};
 use crate::jni::objects::class::{GlobalJavaClass, JavaClass};
 use crate::jni::objects::java_object::JavaObject;
-use crate::jni::traits::IsNull;
 use crate::jni::util::util::ResultType;
 use crate::{define_field, sys};
 use std::marker::PhantomData;
@@ -185,11 +184,11 @@ impl<'a> JavaObjectField<'a> {
         Self(field)
     }
 
-    pub fn get(&self, object: &JavaObject<'_>) -> ResultType<JavaObject> {
+    pub fn get(&self, object: &JavaObject<'_>) -> ResultType<Option<JavaObject>> {
         self.0.class.env().get_object_field(&self, object)
     }
 
-    pub fn set(&self, object: &JavaObject<'_>, value: JavaObject) -> ResultType<()> {
+    pub fn set(&self, object: &JavaObject<'_>, value: Option<JavaObject>) -> ResultType<()> {
         self.0.class.env().set_object_field(self, object, value)
     }
 
@@ -218,21 +217,22 @@ impl<'a> JavaObjectField<'a> {
     }
 }
 
-fn get_field_value(object: JavaObject, inner: &JavaField) -> ResultType<JavaCallResult> {
-    Ok(if object.is_null() {
-        JavaCallResult::Null
-    } else {
+fn get_field_value(object: Option<JavaObject>, inner: &JavaField) -> ResultType<JavaCallResult> {
+    Ok(if let Some(object) = object {
         JavaCallResult::Object {
             object: object.into_global()?,
             signature: inner.field_type.clone(),
         }
+    } else {
+        JavaCallResult::Null
     })
 }
 
 impl<'a> JavaFieldValues for JavaObjectField<'a> {
     fn set(&self, obj: &JavaObject<'_>, value: JavaCallResult) -> ResultType<()> {
         match value {
-            JavaCallResult::Object { object, .. } => self.set(obj, JavaObject::from(object)),
+            JavaCallResult::Object { object, .. } => self.set(obj, Some(JavaObject::from(object))),
+            JavaCallResult::Null => self.set(obj, None),
             _ => Err("Invalid value type supplied for field StaticJavaObjectField".into()),
         }
     }
@@ -250,14 +250,14 @@ impl<'a> StaticJavaObjectField<'a> {
         Self(field)
     }
 
-    pub fn get(&self) -> ResultType<JavaObject> {
+    pub fn get(&self) -> ResultType<Option<JavaObject>> {
         self.0
             .class
             .env()
             .get_static_object_field(self, self.0.class)
     }
 
-    pub fn set(&self, value: JavaObject) -> ResultType<()> {
+    pub fn set(&self, value: Option<JavaObject>) -> ResultType<()> {
         self.0
             .class
             .env()
@@ -292,7 +292,8 @@ impl<'a> StaticJavaObjectField<'a> {
 impl<'a> StaticJavaFieldValues for StaticJavaObjectField<'a> {
     fn set(&self, value: JavaCallResult) -> ResultType<()> {
         match value {
-            JavaCallResult::Object { object, .. } => self.set(JavaObject::from(object)),
+            JavaCallResult::Object { object, .. } => self.set(Some(JavaObject::from(object))),
+            JavaCallResult::Null => self.set(None),
             _ => Err("Invalid value type supplied for field StaticJavaObjectField".into()),
         }
     }
