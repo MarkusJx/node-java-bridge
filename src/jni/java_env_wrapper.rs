@@ -809,7 +809,7 @@ impl<'a> JavaEnvWrapper<'a> {
                 self.env,
                 object.get_raw(),
                 field.id(),
-                value.map(|v| v.get_raw()).unwrap_or(ptr::null_mut()),
+                value.as_ref().map(|v| v.get_raw()).unwrap_or(ptr::null_mut()),
             );
             if self.is_err() {
                 Err(self.get_last_error(file!(), line!(), true, "SetObjectField failed")?)
@@ -848,7 +848,7 @@ impl<'a> JavaEnvWrapper<'a> {
                 self.env,
                 class.class(),
                 field.id(),
-                value.map(|v| v.get_raw()).unwrap_or(ptr::null_mut()),
+                value.as_ref().map(|v| v.get_raw()).unwrap_or(ptr::null_mut()),
             );
             if self.is_err() {
                 Err(self.get_last_error(
@@ -1004,18 +1004,11 @@ impl<'a> JavaEnvWrapper<'a> {
         element: Option<JavaObject<'a>>,
     ) -> ResultType<()> {
         unsafe {
-            let el = if let Some(el) = element {
-                el.get_raw()
-            } else {
-                ptr::null_mut()
-            };
-            println!("Element: {:?}", el);
-
             self.methods.SetObjectArrayElement.unwrap()(
                 self.env,
                 array.get_raw(),
                 index,
-                el,
+                element.as_ref().map(|e| e.get_raw()).unwrap_or(ptr::null_mut()),
             );
             if self.is_err() {
                 return Err(self.get_last_error(
@@ -1280,10 +1273,7 @@ impl<'a> JavaEnvWrapper<'a> {
             let url = to_url.call(JavaObject::from(uri), vec![])?
                 .ok_or("URI.toURL returned null".to_string())?;
 
-            println!("Object: {:?}", unsafe { url.get_raw() });
-            let o = JavaObject::from(url);
-            println!("Object1: {:?}", unsafe { o.get_raw() });
-            urls.set(i as i32, Some(o))?;
+            urls.set(i as i32, Some(JavaObject::from(url)))?;
         }
 
         let old_class_loader = self
@@ -1297,9 +1287,6 @@ impl<'a> JavaEnvWrapper<'a> {
             .unwrap()
             .clone();
 
-        println!("Paths len: {}", paths.len());
-        println!("URLs len: {}", urls.len()?);
-        println!("old class loader: {:?}, {:?}", unsafe { old_class_loader.get_raw() }, unsafe {urls.get(0).unwrap().map(|e| e.get_raw()).unwrap_or(ptr::null_mut())});
         let class_loader = self.new_instance(
             &class_loader_constructor,
             vec![Box::new(&urls), Box::new(&old_class_loader)],
