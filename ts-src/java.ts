@@ -180,15 +180,60 @@ function defineFields(object: Record<string, any>, getStatic: boolean): void {
     }
 }
 
+function overrideInstanceMethods<T extends Record<string, any>>(
+    instance: T,
+    isStatic: boolean
+): void {
+    const overrideFields = (el: any): void => {
+        if (typeof el === 'object' && Object.keys(el).includes('class.proxy')) {
+            overrideInstanceMethods(el, false);
+            defineFields(el, false);
+        }
+    };
+
+    const blacklistedNames: string[] = [
+        'class.proxy',
+        'constructor',
+        'newInstanceAsync',
+    ];
+
+    Object.getOwnPropertyNames(
+        isStatic ? instance : Object.getPrototypeOf(instance)
+    )
+        .filter((name) => !blacklistedNames.includes(name))
+        .filter((name) => typeof instance[name as keyof T] === 'function')
+        .forEach((name) => {
+            const method = (instance[name as keyof T] as Function).bind(
+                instance
+            );
+            Object.defineProperty(instance, name, {
+                value: function (...args: any[]): any {
+                    const res = method(...args);
+                    if (res instanceof Promise) {
+                        return res.then((result: any): any => {
+                            overrideFields(result);
+                            return result;
+                        });
+                    } else {
+                        overrideFields(res);
+                        return res;
+                    }
+                },
+            });
+        });
+}
+
 function createClassFromConstructor<T extends JavaClassConstructorType>(
     constructor: ImportedJavaClass
 ): T {
     defineFields(constructor, true);
+    overrideInstanceMethods(constructor, true);
 
     return class extends constructor {
         constructor(...args: any[]) {
             super(...args);
             defineFields(this, false);
+            overrideInstanceMethods(this, false);
         }
 
         static async newInstanceAsync(
@@ -196,6 +241,7 @@ function createClassFromConstructor<T extends JavaClassConstructorType>(
         ): Promise<UnknownJavaClass> {
             const instance = await super.newInstanceAsync(...args);
             defineFields(instance, false);
+            overrideInstanceMethods(instance, false);
             return instance;
         }
     } as unknown as T;

@@ -13,7 +13,7 @@ interface Diagnostics {
     code: number;
 }
 
-const timeoutMs: number = shouldIncreaseTimeout ? 600e3 : 30e3;
+const timeoutMs: number = shouldIncreaseTimeout ? 1200e3 : 60e3;
 
 function checkTypescriptSyntax(baseDirectory: string): Diagnostics[] {
     const program = ts.createProgram([path.join(baseDirectory, 'index.ts')], {
