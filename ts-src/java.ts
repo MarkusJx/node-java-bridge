@@ -43,6 +43,10 @@ export interface JVMOptions extends JavaOptions {
      * Additional arguments to pass to the JVM
      */
     opts?: Array<string> | null;
+    /**
+     * Whether this runs inside a packaged electron app
+     */
+    isPackagedElectron?: boolean;
 }
 
 /**
@@ -108,8 +112,8 @@ export function ensureJvm(options?: JVMOptions): boolean {
             options?.version,
             options?.opts,
             options,
-            getJavaLibPath(),
-            getNativeLibPath()
+            getJavaLibPath(options?.isPackagedElectron ?? false),
+            getNativeLibPath(options?.isPackagedElectron ?? false)
         );
 
         return true;
@@ -203,23 +207,28 @@ function overrideInstanceMethods<T extends Record<string, any>>(
         .filter((name) => !blacklistedNames.includes(name))
         .filter((name) => typeof instance[name as keyof T] === 'function')
         .forEach((name) => {
-            const method = (instance[name as keyof T] as Function).bind(
-                instance
-            );
-            Object.defineProperty(instance, name, {
-                value: function (...args: any[]): any {
-                    const res = method(...args);
-                    if (res instanceof Promise) {
-                        return res.then((result: any): any => {
-                            overrideFields(result);
-                            return result;
-                        });
-                    } else {
-                        overrideFields(res);
-                        return res;
-                    }
-                },
-            });
+            try {
+                const method = (instance[name as keyof T] as Function).bind(
+                    instance
+                );
+                Object.defineProperty(instance, name, {
+                    value: function (...args: any[]): any {
+                        const res = method(...args);
+                        if (res instanceof Promise) {
+                            return res.then((result: any): any => {
+                                overrideFields(result);
+                                return result;
+                            });
+                        } else {
+                            overrideFields(res);
+                            return res;
+                        }
+                    },
+                });
+            } catch (_) {
+                // TODO: Remove this
+                console.warn(`Failed to replace method ${name}`);
+            }
         });
 }
 

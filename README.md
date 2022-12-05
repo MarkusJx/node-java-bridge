@@ -113,6 +113,33 @@ ensureJvm({
 });
 ```
 
+#### Notes on electron
+
+When using this package in a packaged electron application, you should unpack this package and
+the appropriate binaries for your platform into the `app.asar.unpacked` folder. When using
+electron-builder, you can do this by adding the following to your `package.json`:
+
+```json
+{
+    "build": {
+        "asarUnpack": [
+            "node_modules/java-bridge/**",
+            "node_modules/java-bridge-*/**"
+        ]
+    }
+}
+```
+
+Additionally, you should set the `isPackagedElectron` option to `true` when creating the jvm:
+
+```ts
+ensureJvm({
+    isPackagedElectron: true,
+});
+```
+
+This option _should_ not have any effect when not using electron or not having the application packaged.
+
 ### Inject a JAR into the class path
 
 In order to import your own classes into the node environment, you need

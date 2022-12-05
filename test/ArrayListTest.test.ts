@@ -1,6 +1,9 @@
 import java, { JavaClass, JavaType, isInstanceOf } from '../.';
 import { it } from 'mocha';
 import { expect } from 'chai';
+import { shouldIncreaseTimeout } from './testUtil';
+
+const timeout = shouldIncreaseTimeout ? 10e3 : 2e3;
 
 declare class ListClass<T extends JavaType> extends JavaClass {
     containsSync(element: T): boolean;
@@ -175,5 +178,5 @@ describe('ArrayListTest', () => {
         expect(isInstanceOf(list!, 'java.util.ArrayList')).to.be.true;
         expect(isInstanceOf(list!, 'java.lang.Object')).to.be.true;
         expect(isInstanceOf(list!, 'java.lang.String')).to.be.false;
-    });
+    }).timeout(timeout);
 });

@@ -4,20 +4,30 @@ import glob from 'glob';
 
 const { platform, arch } = process;
 
-function getModule(base: string): string {
+function getModule(base: string, isPackagedElectron: boolean): string {
     const local = path.join(__dirname, base + '.node');
 
     if (fs.existsSync(local)) {
+        if (isPackagedElectron) {
+            console.warn('Using local native module in packaged Electron app');
+        }
+
         return local;
     } else {
         const module = base.replaceAll('.', '-').replace('java', 'java-bridge');
+
+        let res: string;
         // @ts-ignore
         if (__non_webpack_require__ && __non_webpack_require__.resolve) {
             // @ts-ignore
-            return __non_webpack_require__.resolve(module);
+            res = __non_webpack_require__.resolve(module);
         } else {
-            return require.resolve(module);
+            res = require.resolve(module);
         }
+
+        if (isPackagedElectron)
+            res = res.replace('app.asar', 'app.asar.unpacked');
+        return res;
     }
 }
 
@@ -40,32 +50,39 @@ function isMusl() {
     }
 }
 
-export function getNativeLibPath(): string {
+export function getNativeLibPath(isPackagedElectron: boolean): string {
     switch (platform) {
         case 'android':
             switch (arch) {
                 case 'arm64':
-                    return getModule('java.android-arm64');
+                    return getModule('java.android-arm64', isPackagedElectron);
                 case 'arm':
-                    return getModule('java.android-arm-eabi');
+                    return getModule(
+                        'java.android-arm-eabi',
+                        isPackagedElectron
+                    );
                 default:
                     throw UnsupportedPlatform();
             }
         case 'win32':
-            return getModule(`java.win32-${arch}-msvc`);
+            return getModule(`java.win32-${arch}-msvc`, isPackagedElectron);
         case 'darwin':
-            return getModule(`java.darwin-${arch}`);
+            return getModule(`java.darwin-${arch}`, isPackagedElectron);
         case 'freebsd':
-            return getModule(`java.freebsd-${arch}`);
+            return getModule(`java.freebsd-${arch}`, isPackagedElectron);
         case 'linux':
             switch (arch) {
                 case 'x64':
                 case 'arm64':
                     return getModule(
-                        `java.linux-${arch}-${isMusl() ? 'musl' : 'gnu'}`
+                        `java.linux-${arch}-${isMusl() ? 'musl' : 'gnu'}`,
+                        isPackagedElectron
                     );
                 case 'arm':
-                    return getModule('java.linux-arm-gnueabihf');
+                    return getModule(
+                        'java.linux-arm-gnueabihf',
+                        isPackagedElectron
+                    );
                 default:
                     throw UnsupportedPlatform();
             }
@@ -74,10 +91,11 @@ export function getNativeLibPath(): string {
     }
 }
 
-export function getJavaLibPath(): string {
-    const dir = path.join(__dirname, '..', 'java-src', 'build', 'libs');
-    let files = glob.sync('*.jar', { cwd: dir });
+export function getJavaLibPath(isPackagedElectron: boolean): string {
+    let dir = path.join(__dirname, '..', 'java-src', 'build', 'libs');
+    if (isPackagedElectron) dir = dir.replace('app.asar', 'app.asar.unpacked');
 
+    const files = glob.sync('*.jar', { cwd: dir });
     if (files.length === 0) {
         throw new Error(`No java lib found in ${dir}`);
     } else {
