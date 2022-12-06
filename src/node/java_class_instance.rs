@@ -297,7 +297,7 @@ pub struct ClassFieldInfo {
 /// @param getStatic whether to get only static fields or not
 /// @returns an array of field info objects
 #[napi]
-fn get_class_fields(
+pub fn get_class_fields(
     env: Env,
     proxy: JsObject,
     get_static: bool,
@@ -315,6 +315,36 @@ fn get_class_fields(
         res.push(ClassFieldInfo {
             name: field.0.to_string(),
             is_final: field.1.is_final(),
+        });
+    }
+
+    Ok(res)
+}
+
+/// Get the methods of a java class
+///
+/// @param proxy the java class proxy
+/// @param getStatic whether to get only static methods or not
+/// @returns an array of method info objects
+#[napi]
+pub fn get_class_methods(
+    env: Env,
+    proxy: JsObject,
+    get_static: bool,
+) -> napi::Result<Vec<ClassFieldInfo>> {
+    let proxy: &Arc<JavaClassProxy> = env.unwrap(&proxy)?;
+
+    let mut res = vec![];
+    let methods = if get_static {
+        &proxy.static_methods
+    } else {
+        &proxy.methods
+    };
+
+    for method in methods.iter() {
+        res.push(ClassFieldInfo {
+            name: method.0.to_string(),
+            is_final: false,
         });
     }
 

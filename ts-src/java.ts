@@ -1,5 +1,6 @@
 import {
     getClassFields,
+    getClassMethods,
     getField,
     getStaticField,
     Java,
@@ -160,12 +161,29 @@ export function setClassLoader(classLoader: UnknownJavaClass): void {
     javaInstance!.classLoader = classLoader;
 }
 
+function overrideFields(el: any): void {
+    if (
+        el != null &&
+        !Array.isArray(el) &&
+        typeof el === 'object' &&
+        Object.keys(el).includes('class.proxy')
+    ) {
+        overrideInstanceMethods(el, false);
+        defineFields(el, false);
+    }
+}
+
 function defineFields(object: Record<string, any>, getStatic: boolean): void {
     for (const field of getClassFields(object['class.proxy'], getStatic)) {
-        const getter = (): any =>
-            getStatic
+        const getter = (): any => {
+            const res = getStatic
                 ? getStaticField(object, field.name)
                 : getField(object, field.name);
+
+            overrideFields(res);
+            return res;
+        };
+
         if (field.isFinal) {
             Object.defineProperty(object, field.name, {
                 get: getter,
@@ -188,48 +206,30 @@ function overrideInstanceMethods<T extends Record<string, any>>(
     instance: T,
     isStatic: boolean
 ): void {
-    const overrideFields = (el: any): void => {
-        if (typeof el === 'object' && Object.keys(el).includes('class.proxy')) {
-            overrideInstanceMethods(el, false);
-            defineFields(el, false);
+    getClassMethods(instance['class.proxy'], isStatic).forEach(({ name }) => {
+        try {
+            const method = (instance[name as keyof T] as Function).bind(
+                instance
+            );
+            Object.defineProperty(instance, name, {
+                value: function (...args: any[]): any {
+                    const res = method(...args);
+                    if (res instanceof Promise) {
+                        return res.then((result: any): any => {
+                            overrideFields(result);
+                            return result;
+                        });
+                    } else {
+                        overrideFields(res);
+                        return res;
+                    }
+                },
+            });
+        } catch (_) {
+            // TODO: Remove this
+            console.warn(`Failed to replace method ${name}`);
         }
-    };
-
-    const blacklistedNames: string[] = [
-        'class.proxy',
-        'constructor',
-        'newInstanceAsync',
-    ];
-
-    Object.getOwnPropertyNames(
-        isStatic ? instance : Object.getPrototypeOf(instance)
-    )
-        .filter((name) => !blacklistedNames.includes(name))
-        .filter((name) => typeof instance[name as keyof T] === 'function')
-        .forEach((name) => {
-            try {
-                const method = (instance[name as keyof T] as Function).bind(
-                    instance
-                );
-                Object.defineProperty(instance, name, {
-                    value: function (...args: any[]): any {
-                        const res = method(...args);
-                        if (res instanceof Promise) {
-                            return res.then((result: any): any => {
-                                overrideFields(result);
-                                return result;
-                            });
-                        } else {
-                            overrideFields(res);
-                            return res;
-                        }
-                    },
-                });
-            } catch (_) {
-                // TODO: Remove this
-                console.warn(`Failed to replace method ${name}`);
-            }
-        });
+    });
 }
 
 function createClassFromConstructor<T extends JavaClassConstructorType>(
