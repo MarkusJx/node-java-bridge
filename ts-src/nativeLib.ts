@@ -4,6 +4,9 @@ import glob from 'glob';
 
 const { platform, arch } = process;
 
+const APP_ASAR_REGEX = /([\\/])app\.asar([\\/])/gim;
+const APP_ASAR_UNPACKED = '$1app.asar.unpacked$2';
+
 function getModule(base: string, isPackagedElectron: boolean): string {
     const local = path.join(__dirname, base + '.node');
 
@@ -26,7 +29,7 @@ function getModule(base: string, isPackagedElectron: boolean): string {
         }
 
         if (isPackagedElectron)
-            res = res.replace('app.asar', 'app.asar.unpacked');
+            res = res.replace(APP_ASAR_REGEX, APP_ASAR_UNPACKED);
         return res;
     }
 }
@@ -93,7 +96,8 @@ export function getNativeLibPath(isPackagedElectron: boolean): string {
 
 export function getJavaLibPath(isPackagedElectron: boolean): string {
     let dir = path.join(__dirname, '..', 'java-src', 'build', 'libs');
-    if (isPackagedElectron) dir = dir.replace('app.asar', 'app.asar.unpacked');
+    if (isPackagedElectron)
+        dir = dir.replace(APP_ASAR_REGEX, APP_ASAR_UNPACKED);
 
     const files = glob.sync('*.jar', { cwd: dir });
     if (files.length === 0) {
