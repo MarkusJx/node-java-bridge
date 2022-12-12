@@ -1,22 +1,48 @@
-use crate::jni::java_call_result::JavaCallResult;
-use crate::jni::java_env::JavaEnv;
-use crate::jni::java_type::{JavaType, Type};
-use crate::jni::objects::array::{
+use crate::node::java::get_class_proxy;
+use crate::node::java_class_instance::JavaClassInstance;
+use crate::node::util::ResultType;
+use java_rs::java_call_result::JavaCallResult;
+use java_rs::java_env::JavaEnv;
+use java_rs::java_type::{JavaType, Type};
+use java_rs::objects::array::{
     JavaArray, JavaBooleanArray, JavaByteArray, JavaCharArray, JavaDoubleArray, JavaFloatArray,
     JavaIntArray, JavaLongArray, JavaObjectArray, JavaShortArray,
 };
-use crate::jni::objects::java_object::JavaObject;
-use crate::jni::objects::object::{GlobalJavaObject, LocalJavaObject};
-use crate::jni::traits::IsInstanceOf;
-use crate::jni::util::util::ResultType;
-use crate::node::java::get_class_proxy;
-use crate::node::java_class_instance::JavaClassInstance;
+use java_rs::objects::java_object::JavaObject;
+use java_rs::objects::object::{GlobalJavaObject, LocalJavaObject};
+use java_rs::traits::IsInstanceOf;
 use napi::{Env, JsUnknown};
 use std::borrow::Borrow;
 use std::sync::{Arc, Mutex};
 
-impl JavaCallResult {
-    pub fn to_napi_value(&self, j_env: &JavaEnv, env: &Env) -> ResultType<JsUnknown> {
+pub trait ToNapiValue {
+    fn to_napi_value(&self, j_env: &JavaEnv, env: &Env) -> ResultType<JsUnknown>;
+    fn resolve_object_type(
+        &self,
+        object: &GlobalJavaObject,
+        env: &JavaEnv,
+        signature: &JavaType,
+        resolve: bool,
+    ) -> ResultType<JavaType>;
+    fn object_to_napi_value(
+        &self,
+        object: &GlobalJavaObject,
+        j_env: &JavaEnv,
+        env: &Env,
+        signature: &JavaType,
+        objects: bool,
+    ) -> ResultType<JsUnknown>;
+    fn array_to_napi_value(
+        &self,
+        object: &GlobalJavaObject,
+        j_env: &JavaEnv,
+        env: &Env,
+        signature: Arc<Mutex<JavaType>>,
+    ) -> ResultType<JsUnknown>;
+}
+
+impl ToNapiValue for JavaCallResult {
+    fn to_napi_value(&self, j_env: &JavaEnv, env: &Env) -> ResultType<JsUnknown> {
         Ok(match self {
             JavaCallResult::Void => env.get_undefined()?.into_unknown(),
             JavaCallResult::Null => env.get_null()?.into_unknown(),

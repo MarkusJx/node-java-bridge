@@ -1,8 +1,6 @@
 #![deny(clippy::all)]
 
-mod jni;
 mod node;
-mod sys;
 #[cfg(test)]
 mod tests;
 

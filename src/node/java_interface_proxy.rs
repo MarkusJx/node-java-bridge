@@ -1,18 +1,19 @@
-use crate::jni::java_call_result::JavaCallResult;
-use crate::jni::java_env::JavaEnv;
-use crate::jni::java_type::JavaType;
-use crate::jni::java_vm::{InternalJavaOptions, JavaVM};
-use crate::jni::objects::array::JavaObjectArray;
-use crate::jni::objects::class::JavaClass;
-use crate::jni::objects::java_object::JavaObject;
-use crate::jni::objects::object::{GlobalJavaObject, LocalJavaObject};
-use crate::jni::objects::string::JavaString;
-use crate::jni::objects::value::JavaLong;
-use crate::jni::util::util::ResultType;
+use crate::node::java_call_result_ext::ToNapiValue;
 use crate::node::java_type_ext::NapiToJava;
 use crate::node::napi_error::MapToNapiError;
-use crate::{function, sys};
+use crate::node::util::ResultType;
 use futures::channel::oneshot::{channel, Sender};
+use java_rs::java_call_result::JavaCallResult;
+use java_rs::java_env::JavaEnv;
+use java_rs::java_type::JavaType;
+use java_rs::java_vm::{InternalJavaOptions, JavaVM};
+use java_rs::objects::array::JavaObjectArray;
+use java_rs::objects::class::JavaClass;
+use java_rs::objects::java_object::JavaObject;
+use java_rs::objects::object::{GlobalJavaObject, LocalJavaObject};
+use java_rs::objects::string::JavaString;
+use java_rs::objects::value::JavaLong;
+use java_rs::{function, sys};
 use lazy_static::lazy_static;
 use napi::threadsafe_function::{
     ThreadSafeCallContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
@@ -78,7 +79,8 @@ unsafe fn call_node_function(
     let method_class = env.get_object_class(JavaObject::from(&method))?;
     let get_name = method_class.get_object_method("getName", "()Ljava/lang/String;")?;
 
-    let java_name = get_name.call(JavaObject::from(&method), vec![])?
+    let java_name = get_name
+        .call(JavaObject::from(&method), vec![])?
         .ok_or("Class.getName() returned null")?;
     let name = JavaString::from(java_name).to_string()?;
 
@@ -118,7 +120,10 @@ unsafe fn call_node_function(
     Ok(res.map(|o| o.map(|g| g.into_return_value()).unwrap_or(ptr::null_mut())))
 }
 
-fn js_callback(ctx: &CallContext, vm: &JavaVM) -> ResultType<Result<Option<GlobalJavaObject>, JsError>> {
+fn js_callback(
+    ctx: &CallContext,
+    vm: &JavaVM,
+) -> ResultType<Result<Option<GlobalJavaObject>, JsError>> {
     let err = ctx.get::<JsUnknown>(0)?;
 
     if err.is_error()? {
@@ -199,15 +204,21 @@ impl JsError {
         for i in 0..stack.len() {
             java_stack.set(
                 i as _,
-                Some(JavaObject::from(JavaString::try_from(stack.get(i).unwrap().clone(), &env)?)),
+                Some(JavaObject::from(JavaString::try_from(
+                    stack.get(i).unwrap().clone(),
+                    &env,
+                )?)),
             )?;
         }
 
-        let exception = exception_from_js_error.call(vec![
-            Box::new(&JavaString::try_from(self.message.clone(), &env)?),
-            Box::new(&java_stack),
-        ])?
-            .ok_or("io/github/markusjx/bridge/Util.exceptionFromJsError returned null".to_string())?;
+        let exception = exception_from_js_error
+            .call(vec![
+                Box::new(&JavaString::try_from(self.message.clone(), &env)?),
+                Box::new(&java_stack),
+            ])?
+            .ok_or(
+                "io/github/markusjx/bridge/Util.exceptionFromJsError returned null".to_string(),
+            )?;
         env.throw(JavaObject::from(exception));
         Ok(())
     }
@@ -294,11 +305,12 @@ impl JavaInterfaceProxy {
         let mut classes = JavaObjectArray::new(&class, 1)?;
         classes.set(0, Some(JavaObject::from(&proxied_class)))?;
 
-        let proxy_instance = new_proxy_instance.call(vec![
-            Box::new(&j_env.get_class_loader()?),
-            Box::new(&classes),
-            Box::new(&instance),
-        ])?
+        let proxy_instance = new_proxy_instance
+            .call(vec![
+                Box::new(&j_env.get_class_loader()?),
+                Box::new(&classes),
+                Box::new(&instance),
+            ])?
             .ok_or("java.lang.reflect.Proxy.newProxyInstance returned null".to_string())?;
 
         let global_proxy_instance = GlobalJavaObject::try_from(proxy_instance)?;

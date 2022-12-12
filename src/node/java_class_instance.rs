@@ -1,13 +1,14 @@
-use crate::jni::java_call_result::JavaCallResult;
-use crate::jni::java_type::JavaType;
-use crate::jni::objects::class::GlobalJavaClass;
-use crate::jni::objects::object::GlobalJavaObject;
 use crate::node::arg_convert::{call_context_to_java_args, call_results_to_args};
 use crate::node::java::Java;
+use crate::node::java_call_result_ext::ToNapiValue;
 use crate::node::java_class_proxy::JavaClassProxy;
 use crate::node::java_type_ext::NapiToJava;
 use crate::node::napi_error::MapToNapiError;
 use futures::future;
+use java_rs::java_call_result::JavaCallResult;
+use java_rs::java_type::JavaType;
+use java_rs::objects::class::GlobalJavaClass;
+use java_rs::objects::object::GlobalJavaObject;
 use napi::{
     CallContext, Env, JsBoolean, JsFunction, JsObject, JsString, JsUnknown, Property,
     PropertyAttributes, Status,

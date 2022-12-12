@@ -1,4 +1,4 @@
-use crate::jni::java_vm::InternalJavaOptions;
+use java_rs::java_vm::InternalJavaOptions;
 
 /// Options for the Java VM.
 /// Not the same as vm arguments.
@@ -29,11 +29,5 @@ impl From<JavaOptions> for InternalJavaOptions {
         InternalJavaOptions {
             use_daemon_threads: opts.use_daemon_threads.unwrap_or(false),
         }
-    }
-}
-
-impl From<Option<JavaOptions>> for InternalJavaOptions {
-    fn from(opts: Option<JavaOptions>) -> Self {
-        Self::from(opts.unwrap_or(JavaOptions::default()))
     }
 }

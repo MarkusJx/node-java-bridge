@@ -1,10 +1,10 @@
-use crate::jni::java_call_result::JavaCallResult;
-use crate::jni::java_env::JavaEnv;
-use crate::jni::java_type::JavaType;
-use crate::jni::objects::args::{JavaArg, JavaArgs};
-use crate::jni::traits::ToJavaValue;
 use crate::node::java_type_ext::NapiToJava;
 use crate::node::napi_error::MapToNapiError;
+use java_rs::java_call_result::JavaCallResult;
+use java_rs::java_env::JavaEnv;
+use java_rs::java_type::JavaType;
+use java_rs::objects::args::{JavaArg, JavaArgs};
+use java_rs::traits::ToJavaValue;
 use napi::{CallContext, JsUnknown};
 
 pub fn call_context_to_java_args<'a>(

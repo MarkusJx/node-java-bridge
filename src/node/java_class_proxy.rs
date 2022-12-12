@@ -1,10 +1,10 @@
-use crate::jni::class_constructor::ClassConstructor;
-use crate::jni::class_field::ClassField;
-use crate::jni::class_method::ClassMethod;
-use crate::jni::java_vm::JavaVM;
-use crate::jni::objects::class::GlobalJavaClass;
-use crate::jni::util::util::ResultType;
 use crate::node::class_ext::ArgumentMatch;
+use crate::node::util::ResultType;
+use java_rs::class_constructor::ClassConstructor;
+use java_rs::class_field::ClassField;
+use java_rs::class_method::ClassMethod;
+use java_rs::java_vm::JavaVM;
+use java_rs::objects::class::GlobalJavaClass;
 use napi::CallContext;
 use std::collections::HashMap;
 

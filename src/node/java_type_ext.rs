@@ -1,21 +1,21 @@
-use crate::jni::java_call_result::JavaCallResult;
-use crate::jni::java_env::JavaEnv;
-use crate::jni::java_type::{JavaType, Type};
-use crate::jni::objects::args::JavaArg;
-use crate::jni::objects::array::{
-    JavaBooleanArray, JavaByteArray, JavaCharArray, JavaDoubleArray, JavaFloatArray, JavaIntArray,
-    JavaLongArray, JavaObjectArray, JavaShortArray,
-};
-use crate::jni::objects::class::JavaClass;
-use crate::jni::objects::java_object::JavaObject;
-use crate::jni::objects::object::{GlobalJavaObject, LocalJavaObject};
-use crate::jni::objects::string::JavaString;
-use crate::jni::traits::GetSignature;
-use crate::jni::util::util::ResultType;
 use crate::node::java_class_instance::OBJECT_PROPERTY;
 use crate::node::java_interface_proxy::JavaInterfaceProxy;
 use crate::node::js_to_java_object::{JsIntoJavaObject, JsToJavaClass};
 use crate::node::napi_error::MapToNapiError;
+use crate::node::util::ResultType;
+use java_rs::java_call_result::JavaCallResult;
+use java_rs::java_env::JavaEnv;
+use java_rs::java_type::{JavaType, Type};
+use java_rs::objects::args::JavaArg;
+use java_rs::objects::array::{
+    JavaBooleanArray, JavaByteArray, JavaCharArray, JavaDoubleArray, JavaFloatArray, JavaIntArray,
+    JavaLongArray, JavaObjectArray, JavaShortArray,
+};
+use java_rs::objects::class::JavaClass;
+use java_rs::objects::java_object::JavaObject;
+use java_rs::objects::object::{GlobalJavaObject, LocalJavaObject};
+use java_rs::objects::string::JavaString;
+use java_rs::traits::GetSignature;
 use napi::{
     Env, JsBigInt, JsBoolean, JsBuffer, JsFunction, JsNumber, JsObject, JsString, JsTypedArray,
     JsUnknown, ValueType,

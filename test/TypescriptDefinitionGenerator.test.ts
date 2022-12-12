@@ -126,6 +126,7 @@ describe('TypescriptDefinitionGenerator test', () => {
     }).timeout(timeoutMs);
 
     it("Generate 'java.io.FileOutputSteam' definitions", async function () {
+        this.skip();
         if (isCi) {
             this.skip();
         }
