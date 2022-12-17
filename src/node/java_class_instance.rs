@@ -168,7 +168,7 @@ impl JavaClassInstance {
         let env = proxy.vm.attach_thread().map_napi_err()?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
         let args_ref = call_results_to_args(&args);
-        let res = method.call_static(args_ref).map_napi_err()?;
+        let res = method.call_static(args_ref.as_slice()).map_napi_err()?;
 
         res.to_napi_value(&env, ctx.env).map_napi_err()
     }
@@ -186,7 +186,7 @@ impl JavaClassInstance {
         ctx.env.execute_tokio_future(
             futures::future::lazy(move |_| {
                 let args_ref = call_results_to_args(&args);
-                method.call_static(args_ref).map_napi_err()
+                method.call_static(args_ref.as_slice()).map_napi_err()
             }),
             move |&mut env, res| {
                 let j_env = proxy.vm.attach_thread().map_napi_err()?;
@@ -207,7 +207,7 @@ impl JavaClassInstance {
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
         let args_ref = call_results_to_args(&args);
 
-        let result = method.call(&obj, args_ref).map_napi_err()?;
+        let result = method.call(&obj, args_ref.as_slice()).map_napi_err()?;
         result.to_napi_value(&env, ctx.env).map_napi_err()
     }
 
@@ -225,7 +225,7 @@ impl JavaClassInstance {
         ctx.env.execute_tokio_future(
             futures::future::lazy(move |_| {
                 let args_ref = call_results_to_args(&args);
-                Ok(method.call(&obj, args_ref).map_napi_err()?)
+                Ok(method.call(&obj, args_ref.as_slice()).map_napi_err()?)
             }),
             move |&mut env, res| {
                 let j_env = proxy.vm.attach_thread().map_napi_err()?;
@@ -255,7 +255,9 @@ fn constructor(ctx: CallContext) -> napi::Result<JsUnknown> {
 
     let args = call_context_to_java_args(&ctx, constructor.parameter_types(), &env)?;
     let args_ref = call_results_to_args(&args);
-    let instance = constructor.new_instance(args_ref).map_napi_err()?;
+    let instance = constructor
+        .new_instance(args_ref.as_slice())
+        .map_napi_err()?;
 
     this.set_named_property(CLASS_PROXY_PROPERTY, proxy_obj)?;
 
@@ -277,7 +279,7 @@ fn new_instance(ctx: CallContext) -> napi::Result<JsObject> {
     ctx.env.execute_tokio_future(
         future::lazy(move |_| {
             let args_ref = call_results_to_args(&args);
-            constructor.new_instance(args_ref).map_napi_err()
+            constructor.new_instance(args_ref.as_slice()).map_napi_err()
         }),
         move |env, instance| JavaClassInstance::from_existing(proxy.clone(), env, instance),
     )
@@ -412,7 +414,7 @@ fn get_class_field(ctx: CallContext) -> napi::Result<JsObject> {
     let class = GlobalJavaClass::by_name(proxy.class_name.as_str(), &j_env).map_napi_err()?;
 
     let res = JavaCallResult::Object {
-        object: class.to_object(),
+        object: class.into_object(),
         signature: JavaType::new("java.lang.Class".to_string(), false),
     };
 

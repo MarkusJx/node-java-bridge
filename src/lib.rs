@@ -1,5 +1,6 @@
 #![deny(clippy::all)]
 
+mod java;
 mod node;
 #[cfg(test)]
 mod tests;

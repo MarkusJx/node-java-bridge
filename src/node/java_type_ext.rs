@@ -234,7 +234,7 @@ impl NapiToJava for JavaType {
                     JavaObject::from(value.into_java_object(node_env)?)
                 } else {
                     let val = value.coerce_to_string()?.into_utf16()?.as_str()?;
-                    JavaString::try_from(val, env)?.into()
+                    JavaString::from_string(val, env)?.into()
                 }
             }
             Type::Object | Type::LangObject => match value.get_type()? {
@@ -244,7 +244,7 @@ impl NapiToJava for JavaType {
                 }
                 ValueType::String => {
                     let val = value.coerce_to_string()?.into_utf16()?.as_str()?;
-                    JavaString::try_from(val, env)?.into()
+                    JavaString::from_string(val, env)?.into()
                 }
                 ValueType::Number => {
                     let number = value.coerce_to_number()?;
@@ -291,7 +291,7 @@ impl NapiToJava for JavaType {
                         let java_obj: &mut GlobalJavaObject =
                             node_env.unwrap(&js_obj).map_err(err_fn)?;
 
-                        let signature = java_obj.get_signature()?;
+                        let signature = java_obj.get_signature();
                         let class = JavaClass::by_java_name(self.to_string(), env)?;
 
                         if !class.is_assignable_from(&java_obj.get_class(env)?)? {

@@ -7,7 +7,8 @@ use crate::node::stdout_redirect::StdoutRedirect;
 use crate::node::util::{list_files, parse_array_or_string, parse_classpath_args, ResultType};
 use futures::future;
 use java_rs::java_env::JavaEnv;
-use java_rs::java_vm::{InternalJavaOptions, JavaVM};
+use java_rs::java_vm::JavaVM;
+use java_rs::objects::args::AsJavaArg;
 use java_rs::objects::class::JavaClass;
 use java_rs::objects::java_object::JavaObject;
 use java_rs::objects::object::GlobalJavaObject;
@@ -73,13 +74,7 @@ impl Java {
             let parsed = parse_classpath_args(&cp, &mut args);
             args.push(parsed);
         }
-
-        let mut opt = InternalJavaOptions::default();
-        if let Some(o) = java_options {
-            opt.use_daemon_threads = o.use_daemon_threads.unwrap_or(false);
-        }
-
-        let root_vm = JavaVM::new(&ver, lib_path, &args, opt).map_napi_err()?;
+        let root_vm = JavaVM::new(&ver, lib_path, &args).map_napi_err()?;
 
         let env = root_vm.attach_thread().map_napi_err()?;
         env.append_class_path(vec![java_lib_path]).map_napi_err()?;
@@ -91,9 +86,9 @@ impl Java {
             .get_static_void_method("loadLibrary", "(Ljava/lang/String;)V")
             .map_napi_err()?;
         load_library
-            .call(vec![Box::new(
-                &JavaString::try_from(native_lib_path, &env).map_napi_err()?,
-            )])
+            .call(&[JavaString::from_string(native_lib_path, &env)
+                .map_napi_err()?
+                .as_arg()])
             .map_napi_err()?;
 
         Ok(Self {
