@@ -1,21 +1,21 @@
-use crate::jni::java_call_result::JavaCallResult;
-use crate::jni::java_env::JavaEnv;
-use crate::jni::java_type::{JavaType, Type};
-use crate::jni::objects::args::JavaArg;
-use crate::jni::objects::array::{
-    JavaBooleanArray, JavaByteArray, JavaCharArray, JavaDoubleArray, JavaFloatArray, JavaIntArray,
-    JavaLongArray, JavaObjectArray, JavaShortArray,
-};
-use crate::jni::objects::class::JavaClass;
-use crate::jni::objects::java_object::JavaObject;
-use crate::jni::objects::object::{GlobalJavaObject, LocalJavaObject};
-use crate::jni::objects::string::JavaString;
-use crate::jni::traits::GetSignature;
-use crate::jni::util::util::ResultType;
 use crate::node::java_class_instance::OBJECT_PROPERTY;
 use crate::node::java_interface_proxy::JavaInterfaceProxy;
 use crate::node::js_to_java_object::{JsIntoJavaObject, JsToJavaClass};
 use crate::node::napi_error::MapToNapiError;
+use crate::node::util::ResultType;
+use java_rs::java_call_result::JavaCallResult;
+use java_rs::java_env::JavaEnv;
+use java_rs::java_type::{JavaType, Type};
+use java_rs::objects::args::JavaArg;
+use java_rs::objects::array::{
+    JavaBooleanArray, JavaByteArray, JavaCharArray, JavaDoubleArray, JavaFloatArray, JavaIntArray,
+    JavaLongArray, JavaObjectArray, JavaShortArray,
+};
+use java_rs::objects::class::JavaClass;
+use java_rs::objects::java_object::JavaObject;
+use java_rs::objects::object::{GlobalJavaObject, LocalJavaObject};
+use java_rs::objects::string::JavaString;
+use java_rs::traits::GetSignature;
 use napi::{
     Env, JsBigInt, JsBoolean, JsBuffer, JsFunction, JsNumber, JsObject, JsString, JsTypedArray,
     JsUnknown, ValueType,
@@ -129,7 +129,7 @@ pub trait NapiToJava {
         env: &'a JavaEnv,
         node_env: &'a Env,
         value: JsUnknown,
-    ) -> ResultType<JavaObject<'a>>;
+    ) -> ResultType<Option<JavaObject<'a>>>;
 
     fn convert_to_java_value<'a>(
         &self,
@@ -152,8 +152,8 @@ impl NapiToJava for JavaType {
         env: &'a JavaEnv,
         node_env: &'a Env,
         value: JsUnknown,
-    ) -> ResultType<JavaObject<'a>> {
-        Ok(match self.type_enum() {
+    ) -> ResultType<Option<JavaObject<'a>>> {
+        Ok(Some(match self.type_enum() {
             Type::LangInteger | Type::Integer => {
                 if value.get_type()? == ValueType::Object {
                     JavaObject::from(value.into_java_object(node_env)?)
@@ -234,17 +234,17 @@ impl NapiToJava for JavaType {
                     JavaObject::from(value.into_java_object(node_env)?)
                 } else {
                     let val = value.coerce_to_string()?.into_utf16()?.as_str()?;
-                    JavaString::try_from(val, env)?.into()
+                    JavaString::from_string(val, env)?.into()
                 }
             }
             Type::Object | Type::LangObject => match value.get_type()? {
-                ValueType::Null | ValueType::Undefined => GlobalJavaObject::null(env)?.into(),
+                ValueType::Null | ValueType::Undefined => return Ok(None),
                 ValueType::Boolean => {
                     LocalJavaObject::from_bool(env, value.coerce_to_bool()?.get_value()?)?.into()
                 }
                 ValueType::String => {
                     let val = value.coerce_to_string()?.into_utf16()?.as_str()?;
-                    JavaString::try_from(val, env)?.into()
+                    JavaString::from_string(val, env)?.into()
                 }
                 ValueType::Number => {
                     let number = value.coerce_to_number()?;
@@ -278,7 +278,7 @@ impl NapiToJava for JavaType {
                             )?;
                         }
 
-                        return Ok(GlobalJavaObject::try_from(res.into_object())?.into());
+                        return Ok(Some(GlobalJavaObject::try_from(res.into_object())?.into()));
                     }
 
                     let obj = value.coerce_to_object().map_err(err_fn)?;
@@ -291,7 +291,7 @@ impl NapiToJava for JavaType {
                         let java_obj: &mut GlobalJavaObject =
                             node_env.unwrap(&js_obj).map_err(err_fn)?;
 
-                        let signature = java_obj.get_signature()?;
+                        let signature = java_obj.get_signature();
                         let class = JavaClass::by_java_name(self.to_string(), env)?;
 
                         if !class.is_assignable_from(&java_obj.get_class(env)?)? {
@@ -311,7 +311,7 @@ impl NapiToJava for JavaType {
             Type::Void => {
                 return Err("Cannot use 'void' as input type".into());
             }
-        })
+        }))
     }
 
     fn convert_to_java_value<'a>(
@@ -348,11 +348,12 @@ impl NapiToJava for JavaType {
                 Type::Character => JavaCallResult::Character(env.object_to_char(
                     &LocalJavaObject::from(&value.into_java_object(node_env)?, env),
                 )?),
-                _ => JavaCallResult::Object {
-                    object: self
-                        .convert_to_java_object(env, node_env, value)?
-                        .try_into()?,
-                    signature: self.clone(),
+                _ => match self.convert_to_java_object(env, node_env, value)? {
+                    Some(obj) => JavaCallResult::Object {
+                        object: obj.try_into()?,
+                        signature: self.clone(),
+                    },
+                    None => JavaCallResult::Null,
                 },
             }
         } else {
@@ -386,13 +387,13 @@ impl NapiToJava for JavaType {
                         || value.get_type()? == ValueType::Undefined
                     {
                         JavaCallResult::Null
-                    } else {
+                    } else if let Some(obj) = self.convert_to_java_object(env, node_env, value)? {
                         JavaCallResult::Object {
-                            object: self
-                                .convert_to_java_object(env, node_env, value)?
-                                .try_into()?,
+                            object: obj.try_into()?,
                             signature: self.clone(),
                         }
+                    } else {
+                        JavaCallResult::Null
                     }
                 }
             }

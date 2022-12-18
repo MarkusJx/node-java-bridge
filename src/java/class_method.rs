@@ -1,23 +1,22 @@
-use crate::jni::java_call_result::JavaCallResult;
-use crate::jni::java_env::JavaEnv;
-use crate::jni::java_type::{JavaType, Type};
-use crate::jni::java_vm::JavaVM;
-use crate::jni::objects::args::JavaArgs;
-use crate::jni::objects::array::JavaObjectArray;
-use crate::jni::objects::java_object::JavaObject;
-use crate::jni::objects::method::{
+use java_rs::java_call_result::JavaCallResult;
+use java_rs::java_env::JavaEnv;
+use java_rs::java_type::{JavaType, Type};
+use java_rs::java_vm::JavaVM;
+use java_rs::objects::args::JavaArgs;
+use java_rs::objects::array::JavaObjectArray;
+use java_rs::objects::java_object::JavaObject;
+use java_rs::objects::method::{
     GlobalJavaMethod, JavaBooleanMethod, JavaByteMethod, JavaCharMethod, JavaDoubleMethod,
     JavaFloatMethod, JavaIntMethod, JavaLongMethod, JavaObjectMethod, JavaShortMethod,
     JavaVoidMethod, StaticJavaBooleanMethod, StaticJavaByteMethod, StaticJavaCharMethod,
     StaticJavaDoubleMethod, StaticJavaFloatMethod, StaticJavaIntMethod, StaticJavaLongMethod,
     StaticJavaObjectMethod, StaticJavaShortMethod, StaticJavaVoidMethod,
 };
-use crate::jni::objects::object::{GlobalJavaObject, LocalJavaObject};
-use crate::jni::traits::IsNull;
-use crate::jni::util::conversion::{
+use java_rs::objects::object::{GlobalJavaObject, LocalJavaObject};
+use java_rs::util::conversion::{
     get_method_from_signature, get_method_name, get_method_parameters, get_method_return_type,
 };
-use crate::jni::util::util::{method_is_public, ResultType};
+use java_rs::util::util::{method_is_public, ResultType};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
@@ -43,12 +42,18 @@ impl ClassMethod {
         let get_methods = java_class
             .get_object_method("getMethods", "()[Ljava/lang/reflect/Method;")?
             .bind(JavaObject::from(class));
-        let methods = JavaObjectArray::from(get_methods.call(vec![])?);
+        let methods = JavaObjectArray::from(
+            get_methods
+                .call(&[])?
+                .ok_or("Class.getMethods() returned null".to_string())?,
+        );
         let num_methods = methods.len()?;
 
         let mut res: HashMap<String, Vec<Self>> = HashMap::new();
         for i in 0..num_methods {
-            let method = methods.get(i)?;
+            let method = methods.get(i)?.ok_or(
+                "A value in the array returned by Class.getMethods() was null".to_string(),
+            )?;
 
             if method_is_public(&env, &method, true, only_static)? {
                 let method = ClassMethod::from_method(
@@ -66,7 +71,7 @@ impl ClassMethod {
         Ok(res)
     }
 
-    pub(crate) fn parameter_types(&self) -> &Vec<JavaType> {
+    pub fn parameter_types(&self) -> &Vec<JavaType> {
         &self.parameter_types
     }
 
@@ -95,6 +100,16 @@ impl ClassMethod {
             parameter_types,
             return_type,
             is_static,
+        })
+    }
+
+    fn object_to_call_result(&self, obj: Option<LocalJavaObject>) -> ResultType<JavaCallResult> {
+        Ok(match obj {
+            Some(obj) => JavaCallResult::Object {
+                object: GlobalJavaObject::try_from(obj)?,
+                signature: self.return_type.clone(),
+            },
+            None => JavaCallResult::Null,
         })
     }
 
@@ -169,15 +184,7 @@ impl ClassMethod {
                 let m = JavaObjectMethod::from_global(self.method.clone(), &class)?
                     .bind(JavaObject::from(object));
                 let res = m.call(args)?;
-
-                if res.is_null() {
-                    JavaCallResult::Null
-                } else {
-                    JavaCallResult::Object {
-                        object: GlobalJavaObject::try_from(res)?,
-                        signature: self.return_type.clone(),
-                    }
-                }
+                self.object_to_call_result(res)?
             }
         };
 
@@ -239,15 +246,7 @@ impl ClassMethod {
             _ => {
                 let m = StaticJavaObjectMethod::from_global(self.method.clone(), &class)?;
                 let res = m.call(args)?;
-
-                if res.is_null() {
-                    JavaCallResult::Null
-                } else {
-                    JavaCallResult::Object {
-                        object: GlobalJavaObject::try_from(res)?,
-                        signature: self.return_type.clone(),
-                    }
-                }
+                self.object_to_call_result(res)?
             }
         })
     }

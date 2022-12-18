@@ -1,7 +1,7 @@
-use crate::jni::class_constructor::ClassConstructor;
-use crate::jni::class_method::ClassMethod;
-use crate::jni::java_type::{JavaType, Type};
+use crate::java::class_constructor::ClassConstructor;
+use crate::java::class_method::ClassMethod;
 use crate::node::java_type_ext::JsTypeEq;
+use java_rs::java_type::{JavaType, Type};
 use napi::{CallContext, Env, JsUnknown};
 
 pub trait ArgumentMatch {

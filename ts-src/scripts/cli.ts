@@ -48,9 +48,7 @@ const handler: YargsHandler<Args> = async ({
     let spinner: Ora | null = null;
     try {
         const startTime = performance.now();
-        ensureJvm({
-            useDaemonThreads: true,
-        });
+        ensureJvm();
 
         if (classpath) {
             java.classpath.append(classpath);

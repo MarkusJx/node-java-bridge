@@ -1,6 +1,6 @@
-use crate::jni::objects::object::GlobalJavaObject;
 use crate::node::java_class_instance::{CLASS_PROXY_PROPERTY, OBJECT_PROPERTY};
 use crate::node::java_class_proxy::JavaClassProxy;
+use java_rs::objects::object::GlobalJavaObject;
 use napi::{Env, JsObject, JsUnknown};
 use std::sync::Arc;
 

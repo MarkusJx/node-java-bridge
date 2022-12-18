@@ -1,18 +1,18 @@
-use crate::jni::java_env::JavaEnv;
-use crate::jni::java_vm::{InternalJavaOptions, JavaVM};
-use crate::jni::objects::class::JavaClass;
-use crate::jni::objects::java_object::JavaObject;
-use crate::jni::objects::object::GlobalJavaObject;
-use crate::jni::objects::string::JavaString;
-use crate::jni::util::util::ResultType;
 use crate::node::java_class_instance::{JavaClassInstance, CLASS_PROXY_PROPERTY, OBJECT_PROPERTY};
 use crate::node::java_class_proxy::JavaClassProxy;
 use crate::node::java_interface_proxy::JavaInterfaceProxy;
 use crate::node::java_options::JavaOptions;
 use crate::node::napi_error::{MapToNapiError, StrIntoNapiError};
 use crate::node::stdout_redirect::StdoutRedirect;
-use crate::node::util::{list_files, parse_array_or_string, parse_classpath_args};
+use crate::node::util::{list_files, parse_array_or_string, parse_classpath_args, ResultType};
 use futures::future;
+use java_rs::java_env::JavaEnv;
+use java_rs::java_vm::JavaVM;
+use java_rs::objects::args::AsJavaArg;
+use java_rs::objects::class::JavaClass;
+use java_rs::objects::java_object::JavaObject;
+use java_rs::objects::object::GlobalJavaObject;
+use java_rs::objects::string::JavaString;
 use lazy_static::lazy_static;
 use napi::{Env, JsFunction, JsObject, JsUnknown, ValueType};
 use std::collections::HashMap;
@@ -74,14 +74,7 @@ impl Java {
             let parsed = parse_classpath_args(&cp, &mut args);
             args.push(parsed);
         }
-
-        let root_vm = JavaVM::new(
-            &ver,
-            lib_path,
-            &args,
-            InternalJavaOptions::from(java_options),
-        )
-        .map_napi_err()?;
+        let root_vm = JavaVM::new(&ver, lib_path, &args).map_napi_err()?;
 
         let env = root_vm.attach_thread().map_napi_err()?;
         env.append_class_path(vec![java_lib_path]).map_napi_err()?;
@@ -93,9 +86,9 @@ impl Java {
             .get_static_void_method("loadLibrary", "(Ljava/lang/String;)V")
             .map_napi_err()?;
         load_library
-            .call(vec![Box::new(
-                &JavaString::try_from(native_lib_path, &env).map_napi_err()?,
-            )])
+            .call(&[JavaString::from_string(native_lib_path, &env)
+                .map_napi_err()?
+                .as_arg()])
             .map_napi_err()?;
 
         Ok(Self {
