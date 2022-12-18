@@ -63,7 +63,7 @@
         "prettier": "prettier --write .",
         "prebuild": "rimraf dist",
         "prebuild:debug": "rimraf dist",
-        "benchmark": "ts-node -P test/tsconfig.json test/benchmark/benchmark.ts && ts-node -P test/tsconfig.json test/benchmark/benchmarkDaemonThreads.ts",
+        "benchmark": "ts-node -P test/tsconfig.json test/benchmark/benchmark.ts",
         "prebenchmark": "npm run build",
         "docs": "typedoc --out docs ts-src/index.ts",
         "generateTestTypes": "ts-node -P test/tsconfig.json test/generateTestTypes.ts"

@@ -1,15 +1,15 @@
-use crate::jni::java_call_result::JavaCallResult;
-use crate::jni::java_env::JavaEnv;
-use crate::jni::java_field::GlobalJavaField;
-use crate::jni::java_type::JavaType;
-use crate::jni::java_vm::JavaVM;
-use crate::jni::objects::array::JavaObjectArray;
-use crate::jni::objects::class::JavaClass;
-use crate::jni::objects::java_object::JavaObject;
-use crate::jni::objects::object::{GlobalJavaObject, LocalJavaObject};
-use crate::jni::objects::string::JavaString;
-use crate::jni::util::conversion::{get_field_from_signature, get_field_type};
-use crate::jni::util::util::{field_is_final, method_is_public, ResultType};
+use java_rs::java_call_result::JavaCallResult;
+use java_rs::java_env::JavaEnv;
+use java_rs::java_field::GlobalJavaField;
+use java_rs::java_type::JavaType;
+use java_rs::java_vm::JavaVM;
+use java_rs::objects::array::JavaObjectArray;
+use java_rs::objects::class::JavaClass;
+use java_rs::objects::java_object::JavaObject;
+use java_rs::objects::object::{GlobalJavaObject, LocalJavaObject};
+use java_rs::objects::string::JavaString;
+use java_rs::util::conversion::{get_field_from_signature, get_field_type};
+use java_rs::util::util::{field_is_final, method_is_public, ResultType};
 use std::collections::HashMap;
 
 pub struct ClassField {
@@ -29,22 +29,32 @@ impl ClassField {
         let class = env.find_global_class_by_java_name(class_name.clone())?;
         let java_class = env.get_java_lang_class()?;
         let get_declared_fields = java_class
-            .get_object_method("getDeclaredFields", "()[Ljava/lang/reflect/Field;")?
+            .get_object_method("getFields", "()[Ljava/lang/reflect/Field;")?
             .bind(JavaObject::from(class));
 
         let field = JavaClass::by_name("java/lang/reflect/Field", &env)?;
         let get_name = field.get_object_method("getName", "()Ljava/lang/String;")?;
 
-        let fields = JavaObjectArray::from(get_declared_fields.call(vec![])?);
+        let fields = JavaObjectArray::from(
+            get_declared_fields
+                .call(&[])?
+                .ok_or("Class.getFields() returned null".to_string())?,
+        );
         let num_fields = fields.len()?;
 
         let mut res: HashMap<String, Self> = HashMap::new();
         for i in 0..num_fields {
-            let field = fields.get(i)?;
+            let field = fields
+                .get(i)?
+                .ok_or("A value in the array returned by Class.getFields() was null".to_string())?;
 
             if method_is_public(&env, &field, false, only_static)? {
-                let name = JavaString::from(get_name.call(JavaObject::from(&field), vec![])?)
-                    .to_string()?;
+                let name = JavaString::try_from(
+                    get_name
+                        .call(JavaObject::from(&field), &[])?
+                        .ok_or("Field.getName() returned null".to_string())?,
+                )?
+                .to_string()?;
 
                 let class_field = ClassField::from_field(
                     vm.clone(),

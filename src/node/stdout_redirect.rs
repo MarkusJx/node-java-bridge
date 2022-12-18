@@ -1,13 +1,14 @@
-use crate::jni::java_env::JavaEnv;
-use crate::jni::java_vm::{InternalJavaOptions, JavaVM};
-use crate::jni::objects::class::JavaClass;
-use crate::jni::objects::java_object::JavaObject;
-use crate::jni::objects::object::GlobalJavaObject;
-use crate::jni::objects::string::JavaString;
-use crate::jni::objects::value::JavaBoolean;
-use crate::jni::util::util::ResultType;
 use crate::node::napi_error::MapToNapiError;
-use crate::sys;
+use crate::node::util::ResultType;
+use java_rs::java_env::JavaEnv;
+use java_rs::java_vm::JavaVM;
+use java_rs::objects::args::AsJavaArg;
+use java_rs::objects::class::JavaClass;
+use java_rs::objects::java_object::JavaObject;
+use java_rs::objects::object::GlobalJavaObject;
+use java_rs::objects::string::JavaString;
+use java_rs::objects::value::JavaBoolean;
+use java_rs::sys;
 use lazy_static::lazy_static;
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{Env, JsFunction, Status};
@@ -19,8 +20,6 @@ static mut STDERR_CALLBACK: Mutex<Option<ThreadsafeFunction<String>>> = Mutex::n
 lazy_static! {
     static ref STDOUT_OWNER: Mutex<StdoutOwner> = Mutex::new(StdoutOwner::new());
 }
-
-static OPTIONS: Mutex<Option<InternalJavaOptions>> = Mutex::new(None);
 
 struct StdoutOwner {
     current_owner: Option<u32>,
@@ -61,7 +60,7 @@ pub extern "system" fn Java_io_github_markusjx_bridge_StdoutRedirect_00024Callba
 ) {
     let is_stdout = is_stdout != 0;
 
-    let env = unsafe { JavaEnv::from_raw(env, OPTIONS.lock().unwrap().unwrap()) };
+    let env = unsafe { JavaEnv::from_raw(env) };
     let string = unsafe { JavaString::from_raw(&env, line) };
 
     if is_stdout {
@@ -116,11 +115,6 @@ impl StdoutRedirect {
         stderr_callback: Option<JsFunction>,
     ) -> ResultType<Self> {
         let mut owner = STDOUT_OWNER.lock().unwrap();
-        let mut options = OPTIONS.lock().unwrap();
-        if options.is_none() {
-            options.replace(vm.options());
-        }
-        drop(options);
 
         let class_instance = set_stdout_callbacks(
             env,
@@ -243,9 +237,9 @@ fn set_stdout_callbacks(
 
     let instance = constructor.new_instance(
         &j_env,
-        vec![
-            Box::new(&JavaBoolean::new(stdout_set)),
-            Box::new(&JavaBoolean::new(stderr_set)),
+        &[
+            JavaBoolean::new(stdout_set).as_arg(),
+            JavaBoolean::new(stderr_set).as_arg(),
         ],
     )?;
 
@@ -263,7 +257,7 @@ fn reset_stdout_callbacks(env: &JavaEnv, java_class: Option<&GlobalJavaObject>) 
             JavaClass::by_java_name("io.github.markusjx.bridge.StdoutRedirect".to_string(), &env)?;
         let reset = class.get_void_method("reset", "()V")?;
 
-        reset.call(JavaObject::from(java_class), vec![])?;
+        reset.call(JavaObject::from(java_class), &[])?;
     }
 
     Ok(())

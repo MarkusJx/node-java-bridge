@@ -1,14 +1,14 @@
-use crate::jni::java_env::JavaEnv;
-use crate::jni::java_type::JavaType;
-use crate::jni::java_vm::JavaVM;
-use crate::jni::objects::args::JavaArgs;
-use crate::jni::objects::array::JavaObjectArray;
-use crate::jni::objects::class::{GlobalJavaClass, JavaClass};
-use crate::jni::objects::constructor::{GlobalJavaConstructor, JavaConstructor};
-use crate::jni::objects::java_object::JavaObject;
-use crate::jni::objects::object::GlobalJavaObject;
-use crate::jni::util::conversion::{get_constructor_from_signature, parameter_to_type};
-use crate::jni::util::util::ResultType;
+use crate::node::util::ResultType;
+use java_rs::java_env::JavaEnv;
+use java_rs::java_type::JavaType;
+use java_rs::java_vm::JavaVM;
+use java_rs::objects::args::JavaArgs;
+use java_rs::objects::array::JavaObjectArray;
+use java_rs::objects::class::{GlobalJavaClass, JavaClass};
+use java_rs::objects::constructor::{GlobalJavaConstructor, JavaConstructor};
+use java_rs::objects::java_object::JavaObject;
+use java_rs::objects::object::GlobalJavaObject;
+use java_rs::util::conversion::{get_constructor_from_signature, parameter_to_type};
 use std::fmt::Display;
 
 #[derive(Clone)]
@@ -29,13 +29,19 @@ impl ClassConstructor {
         let get_constructors = java_class
             .get_object_method("getConstructors", "()[Ljava/lang/reflect/Constructor;")?
             .bind(JavaObject::from(local_class.to_object()));
-        let constructors = JavaObjectArray::from(get_constructors.call(vec![])?);
+        let constructors = JavaObjectArray::from(
+            get_constructors
+                .call(&[])?
+                .ok_or("Class.getConstructors() returned null".to_string())?,
+        );
 
         let num_constructors = constructors.len()?;
         let mut res: Vec<ClassConstructor> = vec![];
 
         for i in 0..num_constructors {
-            let constructor = constructors.get(i)?;
+            let constructor = constructors.get(i)?.ok_or(
+                "A value in the array returned by Class.getConstructors() was null".to_string(),
+            )?;
             res.push(ClassConstructor::new(
                 vm.clone(),
                 &env,
@@ -58,12 +64,22 @@ impl ClassConstructor {
             .get_object_method("getParameters", "()[Ljava/lang/reflect/Parameter;")?
             .bind(JavaObject::from(constructor.clone()));
 
-        let parameters = JavaObjectArray::from(get_parameters.call(vec![])?);
+        let parameters = JavaObjectArray::from(
+            get_parameters
+                .call(&[])?
+                .ok_or("Constructor.getParameters() returned null".to_string())?,
+        );
         let num_parameters = parameters.len()?;
 
         let mut parameter_types: Vec<JavaType> = vec![];
         for i in 0..num_parameters {
-            let parameter = parameter_to_type(&env, &parameters.get(i)?)?;
+            let parameter = parameter_to_type(
+                &env,
+                &parameters.get(i)?.ok_or(
+                    "A value in the array returned by Constructor.getParameters() was null"
+                        .to_string(),
+                )?,
+            )?;
 
             parameter_types.push(parameter);
         }

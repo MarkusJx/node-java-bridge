@@ -9,5 +9,6 @@ pub mod java_options;
 mod java_type_ext;
 mod js_to_java_object;
 pub mod napi_error;
+//mod napi_property;
 mod stdout_redirect;
 pub mod util;

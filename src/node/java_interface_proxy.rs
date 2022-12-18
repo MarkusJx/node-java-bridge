@@ -1,18 +1,20 @@
-use crate::jni::java_call_result::JavaCallResult;
-use crate::jni::java_env::JavaEnv;
-use crate::jni::java_type::JavaType;
-use crate::jni::java_vm::{InternalJavaOptions, JavaVM};
-use crate::jni::objects::array::JavaObjectArray;
-use crate::jni::objects::class::JavaClass;
-use crate::jni::objects::java_object::JavaObject;
-use crate::jni::objects::object::{GlobalJavaObject, LocalJavaObject};
-use crate::jni::objects::string::JavaString;
-use crate::jni::objects::value::JavaLong;
-use crate::jni::util::util::ResultType;
+use crate::node::java_call_result_ext::ToNapiValue;
 use crate::node::java_type_ext::NapiToJava;
 use crate::node::napi_error::MapToNapiError;
-use crate::{function, sys};
+use crate::node::util::ResultType;
 use futures::channel::oneshot::{channel, Sender};
+use java_rs::java_call_result::JavaCallResult;
+use java_rs::java_env::JavaEnv;
+use java_rs::java_type::JavaType;
+use java_rs::java_vm::JavaVM;
+use java_rs::objects::args::AsJavaArg;
+use java_rs::objects::array::JavaObjectArray;
+use java_rs::objects::class::JavaClass;
+use java_rs::objects::java_object::JavaObject;
+use java_rs::objects::object::{GlobalJavaObject, LocalJavaObject};
+use java_rs::objects::string::JavaString;
+use java_rs::objects::value::JavaLong;
+use java_rs::{function, sys};
 use lazy_static::lazy_static;
 use napi::threadsafe_function::{
     ThreadSafeCallContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
@@ -25,13 +27,11 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 type MethodsType = Arc<Mutex<HashMap<String, ThreadsafeFunction<InterfaceCall>>>>;
 type ProxiesType = HashMap<usize, MethodsType>;
-type JsCallResult = Result<Result<GlobalJavaObject, JsError>, String>;
+type JsCallResult = Result<Result<Option<GlobalJavaObject>, JsError>, String>;
 
 lazy_static! {
     static ref PROXIES: Mutex<ProxiesType> = Mutex::new(HashMap::new());
 }
-
-static OPTIONS: Mutex<Option<InternalJavaOptions>> = Mutex::new(None);
 
 #[no_mangle]
 #[allow(non_snake_case, dead_code)]
@@ -43,12 +43,11 @@ pub extern "system" fn Java_io_github_markusjx_bridge_JavaFunctionCaller_callNod
     args: sys::jobjectArray,
 ) -> sys::jobject {
     let res = unsafe { call_node_function(env, id, method, args) };
-    let options = OPTIONS.lock().unwrap().unwrap();
     match res {
         Ok(obj) => match obj {
             Ok(obj) => obj,
             Err(mut err) => {
-                let env = unsafe { JavaEnv::from_raw(env, options) };
+                let env = unsafe { JavaEnv::from_raw(env) };
                 err.push(function!(), file!(), line!());
                 if err.throw(&env).is_err() {
                     env.throw_error(err.message);
@@ -59,7 +58,7 @@ pub extern "system" fn Java_io_github_markusjx_bridge_JavaFunctionCaller_callNod
         },
         Err(err) => {
             let err_str = err.to_string();
-            let env = unsafe { JavaEnv::from_raw(env, options) };
+            let env = unsafe { JavaEnv::from_raw(env) };
 
             env.throw_error(err_str);
             ptr::null_mut()
@@ -73,13 +72,15 @@ unsafe fn call_node_function(
     method: sys::jobject,
     args: sys::jobjectArray,
 ) -> ResultType<Result<sys::jobject, JsError>> {
-    let env = JavaEnv::from_raw(env, OPTIONS.lock().unwrap().unwrap());
-    let method = LocalJavaObject::from_raw(method, &env);
+    let env = JavaEnv::from_raw(env);
+    let method = LocalJavaObject::from_raw(method, &env, None);
     let method_class = env.get_object_class(JavaObject::from(&method))?;
     let get_name = method_class.get_object_method("getName", "()Ljava/lang/String;")?;
 
-    let java_name = get_name.call(JavaObject::from(&method), vec![])?;
-    let name = JavaString::from(java_name).to_string()?;
+    let java_name = get_name
+        .call(JavaObject::from(&method), &[])?
+        .ok_or("Class.getName() returned null")?;
+    let name = JavaString::try_from(java_name)?.to_string()?;
 
     let proxies = PROXIES.lock().unwrap();
     let methods = proxies
@@ -93,10 +94,14 @@ unsafe fn call_node_function(
 
     let mut converted_args: Vec<JavaCallResult> = Vec::new();
     if args != ptr::null_mut() {
-        let args = JavaObjectArray::from_raw(args, &env);
+        let args = JavaObjectArray::from_raw(args, &env, None);
         for i in 0..args.len()? {
             let arg = args.get(i)?;
-            converted_args.push(JavaCallResult::try_from(JavaObject::from(arg))?);
+            converted_args.push(if let Some(arg) = arg {
+                JavaCallResult::try_from(JavaObject::from(arg))?
+            } else {
+                JavaCallResult::Null
+            });
         }
     }
 
@@ -110,10 +115,13 @@ unsafe fn call_node_function(
     drop(proxies);
 
     let res = futures::executor::block_on(rx)??;
-    Ok(res.map(|o| o.into_return_value()))
+    Ok(res.map(|o| o.map(|g| g.into_return_value()).unwrap_or(ptr::null_mut())))
 }
 
-fn js_callback(ctx: &CallContext, vm: &JavaVM) -> ResultType<Result<GlobalJavaObject, JsError>> {
+fn js_callback(
+    ctx: &CallContext,
+    vm: &JavaVM,
+) -> ResultType<Result<Option<GlobalJavaObject>, JsError>> {
     let err = ctx.get::<JsUnknown>(0)?;
 
     if err.is_error()? {
@@ -151,7 +159,11 @@ fn js_callback(ctx: &CallContext, vm: &JavaVM) -> ResultType<Result<GlobalJavaOb
         let result = ctx.get::<JsUnknown>(1)?;
         let converted = JavaType::object().convert_to_java_object(&env, &ctx.env, result)?;
 
-        Ok(Ok(converted.into_global()?))
+        Ok(Ok(if let Some(converted) = converted {
+            Some(converted.into_global()?)
+        } else {
+            None
+        }))
     }
 }
 
@@ -190,14 +202,21 @@ impl JsError {
         for i in 0..stack.len() {
             java_stack.set(
                 i as _,
-                JavaObject::from(JavaString::try_from(stack.get(i).unwrap().clone(), &env)?),
+                Some(JavaObject::from(JavaString::from_string(
+                    stack.get(i).unwrap().clone(),
+                    &env,
+                )?)),
             )?;
         }
 
-        let exception = exception_from_js_error.call(vec![
-            Box::new(&JavaString::try_from(self.message.clone(), &env)?),
-            Box::new(&java_stack),
-        ])?;
+        let exception = exception_from_js_error
+            .call(&[
+                JavaString::from_string(self.message.clone(), &env)?.as_arg(),
+                java_stack.as_arg(),
+            ])?
+            .ok_or(
+                "io/github/markusjx/bridge/Util.exceptionFromJsError returned null".to_string(),
+            )?;
         env.throw(JavaObject::from(exception));
         Ok(())
     }
@@ -246,20 +265,14 @@ impl JavaInterfaceProxy {
     ) -> ResultType<Self> {
         let j_env = vm.attach_thread()?;
 
-        let mut options = OPTIONS.lock().unwrap();
-        if options.is_none() {
-            options.replace(vm.options());
-        }
-        drop(options);
-
         let mut proxies = PROXIES.lock().unwrap();
         let id = Self::generate_id(&proxies);
 
         let string = JavaClass::by_name("java/lang/String", &j_env)?;
         let mut implemented_methods = JavaObjectArray::new(&string, methods.len())?;
         for i in 0..methods.len() {
-            let str = JavaString::try_from(methods.keys().nth(i).unwrap().into(), &j_env)?;
-            implemented_methods.set(i as _, JavaObject::from(str))?;
+            let str = JavaString::from_string(methods.keys().nth(i).unwrap().into(), &j_env)?;
+            implemented_methods.set(i as _, Some(JavaObject::from(str)))?;
         }
 
         let java_class = JavaClass::by_java_name(
@@ -270,9 +283,9 @@ impl JavaInterfaceProxy {
 
         let instance = constructor.new_instance(
             &j_env,
-            vec![
-                Box::new(&implemented_methods),
-                Box::new(&JavaLong::new(id as _)),
+            &[
+                implemented_methods.as_arg(),
+                JavaLong::new(id as _).as_arg(),
             ],
         )?;
 
@@ -282,13 +295,15 @@ impl JavaInterfaceProxy {
         let class = j_env.get_java_lang_class()?;
         let proxied_class = JavaClass::by_java_name(classname, &j_env)?;
         let mut classes = JavaObjectArray::new(&class, 1)?;
-        classes.set(0, JavaObject::from(&proxied_class))?;
+        classes.set(0, Some(JavaObject::from(&proxied_class)))?;
 
-        let proxy_instance = new_proxy_instance.call(vec![
-            Box::new(&j_env.get_class_loader()?),
-            Box::new(&classes),
-            Box::new(&instance),
-        ])?;
+        let proxy_instance = new_proxy_instance
+            .call(&[
+                j_env.get_class_loader()?.as_arg(),
+                classes.as_arg(),
+                instance.as_arg(),
+            ])?
+            .ok_or("java.lang.reflect.Proxy.newProxyInstance returned null".to_string())?;
 
         let global_proxy_instance = GlobalJavaObject::try_from(proxy_instance)?;
         let global_function_caller_instance = GlobalJavaObject::try_from(instance)?;
@@ -315,9 +330,8 @@ impl JavaInterfaceProxy {
                                 ctx1.env.get_undefined()
                             })?
                             .into_unknown()];
-                        let env = vm_copy.attach_thread().map_napi_err()?;
-
                         for value in args {
+                            let env = vm_copy.attach_thread().map_napi_err()?;
                             res.push(value.to_napi_value(&env, &ctx.env).map_napi_err()?);
                         }
 
@@ -360,7 +374,7 @@ impl JavaInterfaceProxy {
 
     #[napi]
     pub fn reset(&mut self) -> napi::Result<()> {
-        let _lock = self.methods.lock().unwrap();
+        let mut methods = self.methods.lock().unwrap();
         if self.function_caller_instance.is_none() || self.proxy_instance.is_none() {
             return Err(napi::Error::new(
                 Status::Unknown,
@@ -380,7 +394,7 @@ impl JavaInterfaceProxy {
         destruct
             .call(
                 JavaObject::from(self.function_caller_instance.as_ref().unwrap()),
-                vec![],
+                &[],
             )
             .map_napi_err()?;
 
@@ -389,6 +403,7 @@ impl JavaInterfaceProxy {
 
         self.proxy_instance.take();
         self.function_caller_instance.take();
+        methods.clear();
 
         Ok(())
     }
