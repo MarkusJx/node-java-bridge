@@ -97,6 +97,36 @@ describe('ClassTest', () => {
             'ClassWithExplicitJavaTypes'
         );
 
+        classTool.createClass(
+            `
+        public class ClassWithProperties {
+            public static String test = "test";
+            public static final String test2 = "test2";
+            public String s1 = "abc";
+            public final String s2 = "def";
+        }
+            `,
+            'ClassWithProperties'
+        );
+
+        classTool.createClass(
+            `
+        public class ClassWithComplexProperties {
+            public static class InnerClass {
+                public String s1 = "abc";
+            }
+            
+            public InnerClass innerClass;
+            public static InnerClass staticInnerClass = new InnerClass();
+            
+            public ClassWithComplexProperties() {
+                this.innerClass = new InnerClass();
+            }
+        }
+            `,
+            'ClassWithComplexProperties'
+        );
+
         createJarWithBasicClass('test', 'ClassWithPackage', 'first.jar');
         createJarWithBasicClass(
             'test',
@@ -420,6 +450,48 @@ describe('ClassTest', () => {
 
         const instance2 = ext.newInstanceSync();
         expect(instance2).to.be.an('object');
+    });
+
+    it('Class with properties', () => {
+        const Class = importClass('ClassWithProperties');
+
+        expect(Class).to.be.a('function');
+        expect(Class.test).to.be.a('string');
+        expect(Class.test).to.equal('test');
+        expect(() => (Class.test = 't')).to.not.throw();
+        expect(Class.test).to.equal('t');
+
+        expect(Class.test2).to.be.a('string');
+        expect(Class.test2).to.equal('test2');
+        expect(() => (Class.test2 = 't2')).to.throw();
+
+        const instance = new Class();
+        expect(instance).to.be.an('object');
+        expect(instance.s1).to.be.a('string');
+        expect(instance.s1).to.equal('abc');
+        expect(() => (instance.s1 = 'def')).to.not.throw();
+        expect(instance.s1).to.equal('def');
+
+        expect(instance.s2).to.be.a('string');
+        expect(instance.s2).to.equal('def');
+        expect(() => (instance.s2 = 'def')).to.throw();
+    });
+
+    it('Class with complex properties', () => {
+        const Class = importClass('ClassWithComplexProperties');
+
+        expect(Class).to.be.a('function');
+        expect(Class.staticInnerClass).to.be.an('object');
+        expect(Class.staticInnerClass).to.have.property('s1');
+        expect(Class.staticInnerClass.s1).to.be.a('string');
+        expect(Class.staticInnerClass.s1).to.equal('abc');
+
+        const instance = new Class();
+        expect(instance).to.be.an('object');
+        expect(instance.innerClass).to.be.an('object');
+        expect(instance.innerClass).to.have.property('s1');
+        expect(instance.innerClass.s1).to.be.a('string');
+        expect(instance.innerClass.s1).to.equal('abc');
     });
 
     after(() => {
