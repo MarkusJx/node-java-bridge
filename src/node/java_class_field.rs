@@ -17,13 +17,7 @@ pub(crate) unsafe extern "C" fn get_class_field(
     cb_info: sys::napi_callback_info,
 ) -> sys::napi_value {
     call_trampoline_func(raw_env, cb_info, |ctx, data| {
-        let name = unsafe {
-            data.cast::<String>()
-                .as_ref()
-                .expect("data is null")
-                .clone()
-        };
-
+        let name: &String = data.ok_or("data is null").map_napi_err()?;
         let this: JsObject = ctx.this()?;
 
         let proxy_obj: JsObject = this.get_named_property(CLASS_PROXY_PROPERTY)?;
@@ -44,13 +38,7 @@ pub(crate) unsafe extern "C" fn set_class_field(
     cb_info: sys::napi_callback_info,
 ) -> sys::napi_value {
     call_trampoline_func(raw_env, cb_info, |ctx, data| {
-        let name = unsafe {
-            data.cast::<String>()
-                .as_ref()
-                .expect("data is null")
-                .clone()
-        };
-
+        let name: &String = data.ok_or("data is null").map_napi_err()?;
         let this: JsObject = ctx.this()?;
         let value: JsUnknown = ctx.get(0)?;
 
@@ -77,13 +65,7 @@ pub(crate) unsafe extern "C" fn get_static_class_field(
     cb_info: sys::napi_callback_info,
 ) -> sys::napi_value {
     call_trampoline_func(raw_env, cb_info, |ctx, data| {
-        let name = unsafe {
-            data.cast::<String>()
-                .as_ref()
-                .expect("data is null")
-                .clone()
-        };
-
+        let name: &String = data.ok_or("data is null").map_napi_err()?;
         let this = ctx.this::<JsFunction>()?.coerce_to_object()?;
 
         let proxy_obj: JsObject = this.get_named_property(CLASS_PROXY_PROPERTY)?;
@@ -104,13 +86,7 @@ pub(crate) unsafe extern "C" fn set_static_class_field(
     cb_info: sys::napi_callback_info,
 ) -> sys::napi_value {
     call_trampoline_func(raw_env, cb_info, |ctx, data| {
-        let name = unsafe {
-            data.cast::<String>()
-                .as_ref()
-                .expect("data is null")
-                .clone()
-        };
-
+        let name: &String = data.ok_or("data is null").map_napi_err()?;
         let this = ctx.this::<JsFunction>()?.coerce_to_object()?;
 
         let proxy_obj: JsObject = this.get_named_property(CLASS_PROXY_PROPERTY)?;

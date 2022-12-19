@@ -31,7 +31,7 @@ pub(crate) fn get_trampoline_args(
     };
     let mut raw_args = vec![ptr::null_mut(); argc];
     let mut raw_this = ptr::null_mut();
-    let mut closure_data_ptr = ptr::null_mut();
+    let mut data_ptr = ptr::null_mut();
 
     let status = unsafe {
         sys::napi_get_cb_info(
@@ -40,19 +40,20 @@ pub(crate) fn get_trampoline_args(
             &mut { argc },
             raw_args.as_mut_ptr(),
             &mut raw_this,
-            &mut closure_data_ptr,
+            &mut data_ptr,
         )
     };
     debug_assert!(
         Status::from(status) == Status::Ok,
         "napi_get_cb_info failed"
     );
-    (raw_this, raw_args, closure_data_ptr)
+    (raw_this, raw_args, data_ptr)
 }
 
 pub(crate) fn call_trampoline_func<
-    F: Fn(CallContext, *mut c_void) -> napi::Result<R>,
+    F: Fn(CallContext, Option<&T>) -> napi::Result<R>,
     R: NapiRaw,
+    T,
 >(
     raw_env: sys::napi_env,
     cb_info: sys::napi_callback_info,
@@ -64,7 +65,8 @@ pub(crate) fn call_trampoline_func<
         let env = &mut unsafe { Env::from_raw(raw_env) };
         let ctx = CallContext::new(env, cb_info, raw_this, raw_args, raw_args.len());
 
-        cb(ctx, data_ptr).map(|v| unsafe { v.raw() })
+        let data = unsafe { data_ptr.cast::<T>().as_ref() };
+        cb(ctx, data).map(|v| unsafe { v.raw() })
     }))
     .map_err(|e| {
         napi::Error::from_reason(format!(

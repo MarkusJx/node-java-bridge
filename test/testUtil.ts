@@ -121,10 +121,6 @@ export class ClassTool {
     }
 
     public dispose(): void {
-        try {
-            fs.rmSync(this.outDir, { recursive: true, force: true });
-        } catch (e) {
-            console.error(e);
-        }
+        fs.rmSync(this.outDir, { recursive: true, force: true });
     }
 }

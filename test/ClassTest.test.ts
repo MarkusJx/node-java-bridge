@@ -494,7 +494,10 @@ describe('ClassTest', () => {
         expect(instance.innerClass.s1).to.equal('abc');
     });
 
-    after(() => {
-        classTool?.dispose();
+    after(function() {
+        try {
+            classTool?.dispose();
+        } catch (_) {
+        }
     });
 });
