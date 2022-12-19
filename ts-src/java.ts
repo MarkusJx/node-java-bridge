@@ -51,7 +51,6 @@ export interface JVMOptions extends JavaOptions {
  * ensureJvm({
  *     libPath: 'path/to/jvm.dll',
  *     version: JavaVersion.VER_9,
- *     useDaemonThreads: true
  * });
  * ```
  *
@@ -59,7 +58,6 @@ export interface JVMOptions extends JavaOptions {
  * ```ts
  * ensureJvm({
  *     version: JavaVersion.VER_9,
- *     useDaemonThreads: true
  * });
  * ```
  *
