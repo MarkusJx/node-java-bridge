@@ -62,6 +62,7 @@ impl Java {
     ) -> napi::Result<Self> {
         let ver = version.unwrap_or("1.8".to_string());
         let mut args = opts.unwrap_or(vec![]);
+        let mut loaded_jars = vec![];
 
         if let Some(cp) = java_options.as_ref().and_then(|o| o.classpath.as_ref()) {
             let cp = list_files(
@@ -71,6 +72,8 @@ impl Java {
                     .and_then(|o| o.ignore_unreadable_class_path_entries)
                     .unwrap_or(false),
             )?;
+
+            loaded_jars.extend(cp.clone());
             let parsed = parse_classpath_args(&cp, &mut args);
             args.push(parsed);
         }
@@ -94,7 +97,7 @@ impl Java {
         Ok(Self {
             root_vm,
             wanted_version: ver,
-            loaded_jars: vec![],
+            loaded_jars,
         })
     }
 

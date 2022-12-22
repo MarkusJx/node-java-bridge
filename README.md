@@ -93,25 +93,15 @@ import { ensureJvm, JavaVersion } from 'java-bridge';
 ensureJvm({
     libPath: 'path/to/jvm.dll',
     version: JavaVersion.VER_9,
-    opts: '-Xms512m -Xmx512m',
+    opts: ['-Xms512m', '-Xmx512m'],
 });
 ```
 
-#### Use daemon threads
+All threads will be attached as daemon threads, allowing the jvm to exit when the main thread exits.
+This behaviour can not be changed, as it may introduce undefined behaviour.
 
-By default, new threads will **not** be attached as daemon threads, meaning any thread attached to the
-jvm will be automatically detached once it is not required anymore. This slows down asynchronous calls
-but will prevent the jvm from being terminated if any thread is still running.
-
-If you want to change this behaviour, you can pass the `useDaemonThreads` option to the `ensureJvm` function.
-This will make the jvm attach threads as daemon threads causing those threads to not be detached
-once not required anymore.
-
-```ts
-ensureJvm({
-    useDaemonThreads: true,
-});
-```
+Important note on jvm options: Different arguments must be parsed as separate strings in the `opts` array.
+Otherwise, the jvm will not be able to parse the arguments correctly.
 
 #### Notes on electron
 

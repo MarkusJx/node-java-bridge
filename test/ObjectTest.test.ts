@@ -10,4 +10,11 @@ describe('Object test', () => {
         const l2 = new JLong(l1);
         expect(l2.longValueSync()).to.equal(12000n);
     });
+
+    it('System.out', () => {
+        const System = importClass('java.lang.System');
+
+        expect(System.out).to.be.an('object');
+        expect(() => (System.out = null)).to.throw();
+    });
 });

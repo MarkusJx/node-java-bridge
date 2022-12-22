@@ -1,12 +1,4 @@
-import {
-    getClassFields,
-    getField,
-    getStaticField,
-    Java,
-    JavaOptions,
-    setField,
-    setStaticField,
-} from '../native';
+import { Java, JavaOptions } from '../native';
 import {
     JavaClass,
     JavaClassConstructorType,
@@ -20,12 +12,6 @@ import { getJavaLibPath, getNativeLibPath } from './nativeLib';
  * The static java instance
  */
 let javaInstance: Java | null = null;
-
-interface ImportedJavaClass {
-    'class.proxy': object;
-    new (...args: any[]): any;
-    newInstanceAsync(...args: any[]): Promise<UnknownJavaClass>;
-}
 
 /**
  * Options for creating the Java VM.
@@ -65,7 +51,6 @@ export interface JVMOptions extends JavaOptions {
  * ensureJvm({
  *     libPath: 'path/to/jvm.dll',
  *     version: JavaVersion.VER_9,
- *     useDaemonThreads: true
  * });
  * ```
  *
@@ -73,7 +58,6 @@ export interface JVMOptions extends JavaOptions {
  * ```ts
  * ensureJvm({
  *     version: JavaVersion.VER_9,
- *     useDaemonThreads: true
  * });
  * ```
  *
@@ -160,102 +144,6 @@ export function setClassLoader(classLoader: UnknownJavaClass): void {
     javaInstance!.classLoader = classLoader;
 }
 
-function defineFields(object: Record<string, any>, getStatic: boolean): void {
-    for (const field of getClassFields(object['class.proxy'], getStatic)) {
-        const getter = (): any =>
-            getStatic
-                ? getStaticField(object, field.name)
-                : getField(object, field.name);
-        if (field.isFinal) {
-            Object.defineProperty(object, field.name, {
-                get: getter,
-                enumerable: true,
-            });
-        } else {
-            Object.defineProperty(object, field.name, {
-                get: getter,
-                set: (value: any) =>
-                    getStatic
-                        ? setStaticField(object, field.name, value)
-                        : setField(object, field.name, value),
-                enumerable: true,
-            });
-        }
-    }
-}
-
-function overrideInstanceMethods<T extends Record<string, any>>(
-    instance: T,
-    isStatic: boolean
-): void {
-    const overrideFields = (el: any): void => {
-        if (typeof el === 'object' && Object.keys(el).includes('class.proxy')) {
-            overrideInstanceMethods(el, false);
-            defineFields(el, false);
-        }
-    };
-
-    const blacklistedNames: string[] = [
-        'class.proxy',
-        'constructor',
-        'newInstanceAsync',
-    ];
-
-    Object.getOwnPropertyNames(
-        isStatic ? instance : Object.getPrototypeOf(instance)
-    )
-        .filter((name) => !blacklistedNames.includes(name))
-        .filter((name) => typeof instance[name as keyof T] === 'function')
-        .forEach((name) => {
-            try {
-                const method = (instance[name as keyof T] as Function).bind(
-                    instance
-                );
-                Object.defineProperty(instance, name, {
-                    value: function (...args: any[]): any {
-                        const res = method(...args);
-                        if (res instanceof Promise) {
-                            return res.then((result: any): any => {
-                                overrideFields(result);
-                                return result;
-                            });
-                        } else {
-                            overrideFields(res);
-                            return res;
-                        }
-                    },
-                });
-            } catch (_) {
-                // TODO: Remove this
-                console.warn(`Failed to replace method ${name}`);
-            }
-        });
-}
-
-function createClassFromConstructor<T extends JavaClassConstructorType>(
-    constructor: ImportedJavaClass
-): T {
-    defineFields(constructor, true);
-    overrideInstanceMethods(constructor, true);
-
-    return class extends constructor {
-        constructor(...args: any[]) {
-            super(...args);
-            defineFields(this, false);
-            overrideInstanceMethods(this, false);
-        }
-
-        static async newInstanceAsync(
-            ...args: any[]
-        ): Promise<UnknownJavaClass> {
-            const instance = await super.newInstanceAsync(...args);
-            defineFields(instance, false);
-            overrideInstanceMethods(instance, false);
-            return instance;
-        }
-    } as unknown as T;
-}
-
 /**
  * Import a class.
  * Returns the constructor of the class to be created.
@@ -325,25 +213,17 @@ export function importClass<
     T extends JavaClassConstructorType = UnknownJavaClassType
 >(classname: string): T {
     ensureJvm();
-    const constructor = javaInstance!.importClass(
-        classname
-    ) as ImportedJavaClass;
-
-    return createClassFromConstructor<T>(constructor);
+    return javaInstance!.importClass(classname) as T;
 }
 
 /**
  * @inheritDoc importClass
  */
-export async function importClassAsync<
+export function importClassAsync<
     T extends JavaClassConstructorType = UnknownJavaClassType
 >(classname: string): Promise<T> {
     ensureJvm();
-    const constructor = (await javaInstance!.importClassAsync(
-        classname
-    )) as ImportedJavaClass;
-
-    return createClassFromConstructor<T>(constructor);
+    return javaInstance!.importClassAsync(classname) as Promise<T>;
 }
 
 /**

@@ -1,8 +1,10 @@
 use crate::node::arg_convert::{call_context_to_java_args, call_results_to_args};
 use crate::node::java::Java;
 use crate::node::java_call_result_ext::ToNapiValue;
+use crate::node::java_class_field::{
+    get_static_class_field, set_class_field, set_static_class_field, PropertyWithData,
+};
 use crate::node::java_class_proxy::JavaClassProxy;
-use crate::node::java_type_ext::NapiToJava;
 use crate::node::napi_error::MapToNapiError;
 use futures::future;
 use java_rs::java_call_result::JavaCallResult;
@@ -10,9 +12,10 @@ use java_rs::java_type::JavaType;
 use java_rs::objects::class::GlobalJavaClass;
 use java_rs::objects::object::GlobalJavaObject;
 use napi::{
-    CallContext, Env, JsBoolean, JsFunction, JsObject, JsString, JsUnknown, Property,
+    CallContext, Callback, Env, JsBoolean, JsFunction, JsObject, JsUnknown, Property,
     PropertyAttributes, Status,
 };
+use std::ops::Not;
 use std::sync::Arc;
 
 pub const CLASS_PROXY_PROPERTY: &str = "class.proxy";
@@ -68,6 +71,22 @@ impl JavaClassInstance {
             )?;
         }
 
+        for field in &proxy.static_fields {
+            let name = field.0.clone();
+            constructor.create_property_with_data(
+                env,
+                name.clone(),
+                PropertyAttributes::Enumerable,
+                Some(get_static_class_field),
+                field
+                    .1
+                    .is_final()
+                    .not()
+                    .then(|| set_static_class_field as Callback),
+                name,
+            )?;
+        }
+
         JsFunction::try_from(constructor.into_unknown())
     }
 
@@ -118,6 +137,22 @@ impl JavaClassInstance {
                         Self::call_method_async(&ctx, &name)
                     },
                 )?,
+            )?;
+        }
+
+        for field in &proxy.fields {
+            let name = field.0.clone();
+            this.create_property_with_data(
+                env,
+                name.clone(),
+                PropertyAttributes::Enumerable,
+                Some(crate::node::java_class_field::get_class_field),
+                field
+                    .1
+                    .is_final()
+                    .not()
+                    .then(|| set_class_field as Callback),
+                name,
             )?;
         }
 
@@ -283,123 +318,6 @@ fn new_instance(ctx: CallContext) -> napi::Result<JsObject> {
         }),
         move |env, instance| JavaClassInstance::from_existing(proxy.clone(), env, instance),
     )
-}
-
-/// An object storing information about java class fields
-#[napi(object)]
-pub struct ClassFieldInfo {
-    /// The name of the field
-    pub name: String,
-    /// Whether the field is final
-    pub is_final: bool,
-}
-
-/// Get the fields of a java class
-///
-/// @param proxy the java class proxy
-/// @param getStatic whether to get only static fields or not
-/// @returns an array of field info objects
-#[napi]
-fn get_class_fields(
-    env: Env,
-    proxy: JsObject,
-    get_static: bool,
-) -> napi::Result<Vec<ClassFieldInfo>> {
-    let proxy: &Arc<JavaClassProxy> = env.unwrap(&proxy)?;
-
-    let mut res = vec![];
-    let fields = if get_static {
-        &proxy.static_fields
-    } else {
-        &proxy.fields
-    };
-
-    for field in fields.iter() {
-        res.push(ClassFieldInfo {
-            name: field.0.to_string(),
-            is_final: field.1.is_final(),
-        });
-    }
-
-    Ok(res)
-}
-
-/// Get the value of a non-static java class field
-///
-/// @param cls the class to get the field from
-/// @param name the name of the field to get
-/// @returns the value of the field
-#[napi]
-fn get_field(env: Env, cls: JsObject, name: JsString) -> napi::Result<JsUnknown> {
-    let proxy_obj: JsObject = cls.get_named_property(CLASS_PROXY_PROPERTY)?;
-    let instance_obj: JsObject = cls.get_named_property(OBJECT_PROPERTY)?;
-    let proxy: &Arc<JavaClassProxy> = env.unwrap(&proxy_obj)?;
-    let obj: &GlobalJavaObject = env.unwrap(&instance_obj)?;
-    let name_u8 = name.into_utf8()?;
-    let name = name_u8.as_str()?;
-
-    let field = proxy.get_field_by_name(name).map_napi_err()?;
-
-    let res = field.get(obj).map_napi_err()?;
-    let j_env = proxy.vm.attach_thread().map_napi_err()?;
-    res.to_napi_value(&j_env, &env).map_napi_err()
-}
-
-/// Set the value of a java field
-///
-/// @param cls the java class instance
-/// @param name the field name
-/// @param value the value to set the field to
-#[napi]
-fn set_field(env: Env, cls: JsObject, name: JsString, value: JsUnknown) -> napi::Result<()> {
-    let proxy_obj: JsObject = cls.get_named_property(CLASS_PROXY_PROPERTY)?;
-    let instance_obj: JsObject = cls.get_named_property(OBJECT_PROPERTY)?;
-    let proxy: &Arc<JavaClassProxy> = env.unwrap(&proxy_obj)?;
-    let obj: &GlobalJavaObject = env.unwrap(&instance_obj)?;
-    let name_u8 = name.into_utf8()?;
-    let name = name_u8.as_str()?;
-
-    let field = proxy.get_field_by_name(name).map_napi_err()?;
-
-    let field_type = field.get_type();
-    let j_env = proxy.vm.attach_thread().map_napi_err()?;
-    let val = field_type
-        .convert_to_java_value(&j_env, &env, value)
-        .map_napi_err()?;
-    field.set(obj, val).map_napi_err()
-}
-
-/// Get the value of a static java class field
-#[napi]
-fn get_static_field(env: Env, cls: JsObject, name: JsString) -> napi::Result<JsUnknown> {
-    let proxy_obj: JsObject = cls.get_named_property(CLASS_PROXY_PROPERTY)?;
-    let proxy: &Arc<JavaClassProxy> = env.unwrap(&proxy_obj)?;
-    let name_u8 = name.into_utf8()?;
-    let name = name_u8.as_str()?;
-
-    let field = proxy.get_static_field_by_name(name).map_napi_err()?;
-
-    let res = field.get_static().map_napi_err()?;
-    let j_env = proxy.vm.attach_thread().map_napi_err()?;
-    res.to_napi_value(&j_env, &env).map_napi_err()
-}
-
-#[napi]
-fn set_static_field(env: Env, cls: JsObject, name: JsString, value: JsUnknown) -> napi::Result<()> {
-    let proxy_obj: JsObject = cls.get_named_property(CLASS_PROXY_PROPERTY)?;
-    let proxy: &Arc<JavaClassProxy> = env.unwrap(&proxy_obj)?;
-    let name_u8 = name.into_utf8()?;
-    let name = name_u8.as_str()?;
-
-    let field = proxy.get_static_field_by_name(name).map_napi_err()?;
-
-    let field_type = field.get_type();
-    let j_env = proxy.vm.attach_thread().map_napi_err()?;
-    let val = field_type
-        .convert_to_java_value(&j_env, &env, value)
-        .map_napi_err()?;
-
-    field.set_static(val).map_napi_err()
 }
 
 #[js_function(0)]
