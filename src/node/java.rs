@@ -1,10 +1,12 @@
+use crate::node::helpers::napi_error::{MapToNapiError, StrIntoNapiError};
 use crate::node::java_class_instance::{JavaClassInstance, CLASS_PROXY_PROPERTY, OBJECT_PROPERTY};
 use crate::node::java_class_proxy::JavaClassProxy;
 use crate::node::java_interface_proxy::JavaInterfaceProxy;
 use crate::node::java_options::JavaOptions;
-use crate::node::napi_error::{MapToNapiError, StrIntoNapiError};
 use crate::node::stdout_redirect::StdoutRedirect;
-use crate::node::util::{list_files, parse_array_or_string, parse_classpath_args, ResultType};
+use crate::node::util::util::{
+    list_files, parse_array_or_string, parse_classpath_args, ResultType,
+};
 use futures::future;
 use java_rs::java_env::JavaEnv;
 use java_rs::java_vm::JavaVM;

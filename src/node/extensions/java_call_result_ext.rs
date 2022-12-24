@@ -1,6 +1,6 @@
 use crate::node::java::get_class_proxy;
 use crate::node::java_class_instance::JavaClassInstance;
-use crate::node::util::ResultType;
+use crate::node::util::util::ResultType;
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_env::JavaEnv;
 use java_rs::java_type::{JavaType, Type};

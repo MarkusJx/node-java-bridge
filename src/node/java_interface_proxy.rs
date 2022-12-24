@@ -1,7 +1,6 @@
-use crate::node::java_call_result_ext::ToNapiValue;
-use crate::node::java_type_ext::NapiToJava;
-use crate::node::napi_error::MapToNapiError;
-use crate::node::util::ResultType;
+use crate::node::extensions::java_call_result_ext::ToNapiValue;
+use crate::node::extensions::java_type_ext::NapiToJava;
+use crate::node::helpers::napi_error::MapToNapiError;
 use futures::channel::oneshot::{channel, Sender};
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_env::JavaEnv;
@@ -14,6 +13,7 @@ use java_rs::objects::java_object::JavaObject;
 use java_rs::objects::object::{GlobalJavaObject, LocalJavaObject};
 use java_rs::objects::string::JavaString;
 use java_rs::objects::value::JavaLong;
+use java_rs::util::util::ResultType;
 use java_rs::{function, sys};
 use lazy_static::lazy_static;
 use napi::threadsafe_function::{

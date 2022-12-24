@@ -1,11 +1,12 @@
-use crate::node::arg_convert::{call_context_to_java_args, call_results_to_args};
+use crate::node::extensions::java_call_result_ext::ToNapiValue;
+use crate::node::extensions::property_with_data::{DefinePropertiesWithData, PropertyWithData};
+use crate::node::helpers::arg_convert::{call_context_to_java_args, call_results_to_args};
+use crate::node::helpers::napi_error::MapToNapiError;
 use crate::node::java::Java;
-use crate::node::java_call_result_ext::ToNapiValue;
 use crate::node::java_class_field::{
-    get_static_class_field, set_class_field, set_static_class_field, PropertyWithData,
+    get_static_class_field, set_class_field, set_static_class_field,
 };
 use crate::node::java_class_proxy::JavaClassProxy;
-use crate::node::napi_error::MapToNapiError;
 use futures::future;
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_type::JavaType;
@@ -71,21 +72,24 @@ impl JavaClassInstance {
             )?;
         }
 
-        for field in &proxy.static_fields {
-            let name = field.0.clone();
-            constructor.create_property_with_data(
-                env,
-                name.clone(),
-                PropertyAttributes::Enumerable,
-                Some(get_static_class_field),
-                field
-                    .1
-                    .is_final()
-                    .not()
-                    .then(|| set_static_class_field as Callback),
-                name,
-            )?;
-        }
+        constructor.define_properties_with_data(
+            env,
+            (&proxy.static_fields)
+                .into_iter()
+                .map(|(name, field)| {
+                    Ok(PropertyWithData::new(name.clone(), name.clone())?
+                        .with_attributes(PropertyAttributes::Enumerable)
+                        .with_getter_and_setter(
+                            Some(get_static_class_field),
+                            field
+                                .is_final()
+                                .not()
+                                .then(|| set_static_class_field as Callback),
+                        ))
+                })
+                .collect::<napi::Result<Vec<_>>>()?
+                .as_ref(),
+        )?;
 
         JsFunction::try_from(constructor.into_unknown())
     }
@@ -140,21 +144,21 @@ impl JavaClassInstance {
             )?;
         }
 
-        for field in &proxy.fields {
-            let name = field.0.clone();
-            this.create_property_with_data(
-                env,
-                name.clone(),
-                PropertyAttributes::Enumerable,
-                Some(crate::node::java_class_field::get_class_field),
-                field
-                    .1
-                    .is_final()
-                    .not()
-                    .then(|| set_class_field as Callback),
-                name,
-            )?;
-        }
+        this.define_properties_with_data(
+            env,
+            (&proxy.fields)
+                .into_iter()
+                .map(|(name, field)| {
+                    Ok(PropertyWithData::new(name.clone(), name.clone())?
+                        .with_attributes(PropertyAttributes::Enumerable)
+                        .with_getter_and_setter(
+                            Some(crate::node::java_class_field::get_class_field),
+                            field.is_final().not().then(|| set_class_field as Callback),
+                        ))
+                })
+                .collect::<napi::Result<Vec<_>>>()?
+                .as_ref(),
+        )?;
 
         if !proxy.methods.contains_key("instanceOf") {
             this.set_named_property(

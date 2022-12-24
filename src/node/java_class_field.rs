@@ -1,15 +1,11 @@
-use crate::node::java_call_result_ext::ToNapiValue;
+use crate::node::extensions::java_call_result_ext::ToNapiValue;
+use crate::node::extensions::java_type_ext::NapiToJava;
+use crate::node::helpers::napi_error::MapToNapiError;
 use crate::node::java_class_instance::{CLASS_PROXY_PROPERTY, OBJECT_PROPERTY};
 use crate::node::java_class_proxy::JavaClassProxy;
-use crate::node::java_type_ext::NapiToJava;
-use crate::node::napi_error::MapToNapiError;
-use crate::node::napi_util::call_trampoline_func;
+use crate::node::util::napi_util::call_trampoline_func;
 use java_rs::objects::object::GlobalJavaObject;
-use napi::{
-    check_status, sys, Callback, Env, JsFunction, JsObject, JsUnknown, NapiRaw, PropertyAttributes,
-};
-use std::ffi::CString;
-use std::ptr;
+use napi::{sys, JsFunction, JsObject, JsUnknown};
 use std::sync::Arc;
 
 pub(crate) unsafe extern "C" fn get_class_field(
@@ -105,50 +101,4 @@ pub(crate) unsafe extern "C" fn set_static_class_field(
         field.set_static(val).map_napi_err()?;
         ctx.env.get_undefined()
     })
-}
-
-pub(crate) trait PropertyWithData {
-    fn create_property_with_data<T: 'static + Send + Sync>(
-        &mut self,
-        env: &Env,
-        name: String,
-        attributes: PropertyAttributes,
-        getter: Option<Callback>,
-        setter: Option<Callback>,
-        data: T,
-    ) -> napi::Result<()>;
-}
-
-impl PropertyWithData for JsObject {
-    fn create_property_with_data<T: 'static + Send + Sync>(
-        &mut self,
-        env: &Env,
-        name: String,
-        attributes: PropertyAttributes,
-        getter: Option<Callback>,
-        setter: Option<Callback>,
-        data: T,
-    ) -> napi::Result<()> {
-        let name = CString::new(name)?;
-        let data = Box::into_raw(Box::new(data));
-
-        self.add_finalizer(data, name.clone(), |ctx| unsafe {
-            drop(Box::from_raw(ctx.value));
-        })?;
-
-        let descriptor = sys::napi_property_descriptor {
-            utf8name: name.as_ptr(),
-            name: ptr::null_mut(),
-            method: None,
-            getter,
-            setter,
-            value: ptr::null_mut(),
-            attributes: attributes.into(),
-            data: data as _,
-        };
-
-        check_status!(unsafe {
-            sys::napi_define_properties(env.raw(), self.raw(), 1, vec![descriptor].as_ptr())
-        })
-    }
 }

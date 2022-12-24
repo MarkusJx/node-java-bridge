@@ -1,5 +1,4 @@
-use crate::node::napi_error::MapToNapiError;
-use crate::node::util::ResultType;
+use crate::node::helpers::napi_error::MapToNapiError;
 use java_rs::java_env::JavaEnv;
 use java_rs::java_vm::JavaVM;
 use java_rs::objects::args::AsJavaArg;
@@ -9,6 +8,7 @@ use java_rs::objects::object::GlobalJavaObject;
 use java_rs::objects::string::JavaString;
 use java_rs::objects::value::JavaBoolean;
 use java_rs::sys;
+use java_rs::util::util::ResultType;
 use lazy_static::lazy_static;
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{Env, JsFunction, Status};

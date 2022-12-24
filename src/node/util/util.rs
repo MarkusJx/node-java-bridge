@@ -1,4 +1,4 @@
-use crate::node::napi_error::{MapToNapiError, StrIntoNapiError};
+use crate::node::helpers::napi_error::{MapToNapiError, StrIntoNapiError};
 use glob::glob;
 use napi::{JsString, JsUnknown};
 use std::error::Error;
