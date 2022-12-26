@@ -61,6 +61,7 @@ jobs:
               run: npm ci
             - name: Set beta version
               if: ${{ github.ref != 'refs/heads/main' }}
+              shell: bash
               run: |
                   npm run set-beta-version
                   npm i
@@ -78,17 +79,19 @@ jobs:
               shell: bash
             - name: NPM Publish Binary
               uses: JS-DevTools/npm-publish@v1
-              if: ${{ matrix.os != 'ubuntu-latest' && github.event.inputs.dry-run != 'true' }}
+              if: ${{ matrix.os != 'ubuntu-latest' }}
               with:
                   access: public
                   token: ${{ secrets.NPM_TOKEN }}
                   package: npm/${{ matrix.package }}/package.json
+                  dry-run: ${{ github.event.inputs.dry-run == 'true' }}
             - name: NPM Publish
               uses: JS-DevTools/npm-publish@v1
-              if: ${{ matrix.os == 'ubuntu-latest' && github.event.inputs.dry-run != 'true' }}
+              if: ${{ matrix.os == 'ubuntu-latest' }}
               with:
                   access: public
                   token: ${{ secrets.NPM_TOKEN }}
+                  dry-run: ${{ github.event.inputs.dry-run == 'true' }}
 
     draft-release:
         needs: [build]
