@@ -85,6 +85,7 @@
         "@types/node": "^18.11.17",
         "@types/semver": "^7.3.13",
         "@types/webpack-node-externals": "^2.5.3",
+        "@types/which": "^2.0.1",
         "@types/yargs": "^17.0.17",
         "chai": "^4.3.7",
         "cpy-cli": "^4.2.0",
@@ -106,7 +107,8 @@
         "typedoc": "^0.23.23",
         "webpack": "^5.75.0",
         "webpack-cli": "^5.0.1",
-        "webpack-node-externals": "^3.0.0"
+        "webpack-node-externals": "^3.0.0",
+        "which": "^3.0.0"
     },
     "optionalDependencies": {
         "java-bridge-darwin-arm64": "2.1.5",

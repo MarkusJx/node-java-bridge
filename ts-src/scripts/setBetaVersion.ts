@@ -2,9 +2,11 @@ import { execSync, spawn } from 'child_process';
 import semver from 'semver';
 import { name, version as packageVersion } from '../../package.json';
 import path from 'path';
+import which from 'which';
 
+const npm = which.sync('npm');
 const npmVersion = semver.parse(
-    execSync(`npm view ${name} version`, {
+    execSync(`${npm} view ${name} version`, {
         encoding: 'utf8',
     }).trim()
 );
@@ -66,7 +68,7 @@ if (!nextVersion) {
 
 console.log(`Setting version to ${nextVersion}`);
 const child = spawn(
-    'npm',
+    npm,
     [
         'version',
         nextVersion.format(),
