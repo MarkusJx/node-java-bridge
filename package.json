@@ -1,6 +1,6 @@
 {
     "name": "java-bridge",
-    "version": "2.2.2",
+    "version": "2.2.2-beta.1",
     "main": "dist/index.prod.min.js",
     "types": "dist/ts-src/index.d.ts",
     "description": "A bridge between Node.js and Java APIs",
@@ -66,8 +66,7 @@
         "benchmark": "ts-node -P test/tsconfig.json test/benchmark/benchmark.ts",
         "prebenchmark": "npm run build",
         "docs": "typedoc --out docs ts-src/index.ts",
-        "generateTestTypes": "ts-node -P test/tsconfig.json test/generateTestTypes.ts",
-        "set-beta-version": "ts-node ts-src/scripts/setBetaVersion.ts"
+        "generateTestTypes": "ts-node -P test/tsconfig.json test/generateTestTypes.ts"
     },
     "dependencies": {
         "chalk": "^5.2.0",

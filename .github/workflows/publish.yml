@@ -59,12 +59,6 @@ jobs:
                   printf '[target.aarch64-unknown-linux-gnu]\nlinker = "aarch64-linux-gnu-gcc"\n' >> .cargo/config
             - name: Install Dependencies
               run: npm ci
-            - name: Set beta version
-              if: ${{ github.ref != 'refs/heads/main' }}
-              shell: bash
-              run: |
-                  npm run set-beta-version
-                  npm i
             - name: Build
               run: npm run build -- -- --target ${{ matrix.target }}
             - name: Get version
