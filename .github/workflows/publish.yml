@@ -2,6 +2,12 @@ name: Publish
 
 on:
     workflow_dispatch:
+        inputs:
+            dry-run:
+                description: 'Dry run'
+                type: boolean
+                required: false
+                default: 'false'
 
 jobs:
     build:
@@ -53,6 +59,11 @@ jobs:
                   printf '[target.aarch64-unknown-linux-gnu]\nlinker = "aarch64-linux-gnu-gcc"\n' >> .cargo/config
             - name: Install Dependencies
               run: npm ci
+            - name: Set beta version
+              if: ${{ github.ref != 'refs/heads/main' }}
+              run: |
+                  npm run set-beta-version
+                  npm i
             - name: Build
               run: npm run build -- -- --target ${{ matrix.target }}
             - name: Get version
@@ -67,14 +78,14 @@ jobs:
               shell: bash
             - name: NPM Publish Binary
               uses: JS-DevTools/npm-publish@v1
-              if: ${{ matrix.os != 'ubuntu-latest' }}
+              if: ${{ matrix.os != 'ubuntu-latest' && github.event.inputs.dry-run != 'true' }}
               with:
                   access: public
                   token: ${{ secrets.NPM_TOKEN }}
                   package: npm/${{ matrix.package }}/package.json
             - name: NPM Publish
               uses: JS-DevTools/npm-publish@v1
-              if: ${{ matrix.os == 'ubuntu-latest' }}
+              if: ${{ matrix.os == 'ubuntu-latest' && github.event.inputs.dry-run != 'true' }}
               with:
                   access: public
                   token: ${{ secrets.NPM_TOKEN }}
@@ -82,7 +93,7 @@ jobs:
     draft-release:
         needs: [build]
         runs-on: ubuntu-latest
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && github.event.inputs.dry-run != 'true'
         steps:
             - name: Checkout
               uses: actions/checkout@v2.4.2
