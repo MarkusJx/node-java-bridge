@@ -1,8 +1,7 @@
+use crate::node::helpers::js_to_java_object::{JsIntoJavaObject, JsToJavaClass};
+use crate::node::helpers::napi_error::MapToNapiError;
 use crate::node::java_class_instance::OBJECT_PROPERTY;
 use crate::node::java_interface_proxy::JavaInterfaceProxy;
-use crate::node::js_to_java_object::{JsIntoJavaObject, JsToJavaClass};
-use crate::node::napi_error::MapToNapiError;
-use crate::node::util::ResultType;
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_env::JavaEnv;
 use java_rs::java_type::{JavaType, Type};
@@ -16,6 +15,7 @@ use java_rs::objects::java_object::JavaObject;
 use java_rs::objects::object::{GlobalJavaObject, LocalJavaObject};
 use java_rs::objects::string::JavaString;
 use java_rs::traits::GetSignature;
+use java_rs::util::util::ResultType;
 use napi::{
     Env, JsBigInt, JsBoolean, JsBuffer, JsFunction, JsNumber, JsObject, JsString, JsTypedArray,
     JsUnknown, ValueType,

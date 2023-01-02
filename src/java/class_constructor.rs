@@ -1,4 +1,4 @@
-use crate::node::util::ResultType;
+use crate::node::util::util::ResultType;
 use java_rs::java_env::JavaEnv;
 use java_rs::java_type::JavaType;
 use java_rs::java_vm::JavaVM;

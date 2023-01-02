@@ -2,6 +2,12 @@ name: Publish
 
 on:
     workflow_dispatch:
+        inputs:
+            dry-run:
+                description: 'Dry run'
+                type: boolean
+                required: false
+                default: 'false'
 
 jobs:
     build:
@@ -72,17 +78,19 @@ jobs:
                   access: public
                   token: ${{ secrets.NPM_TOKEN }}
                   package: npm/${{ matrix.package }}/package.json
+                  dry-run: ${{ github.event.inputs.dry-run == 'true' }}
             - name: NPM Publish
               uses: JS-DevTools/npm-publish@v1
               if: ${{ matrix.os == 'ubuntu-latest' }}
               with:
                   access: public
                   token: ${{ secrets.NPM_TOKEN }}
+                  dry-run: ${{ github.event.inputs.dry-run == 'true' }}
 
     draft-release:
         needs: [build]
         runs-on: ubuntu-latest
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && github.event.inputs.dry-run != 'true'
         steps:
             - name: Checkout
               uses: actions/checkout@v2.4.2

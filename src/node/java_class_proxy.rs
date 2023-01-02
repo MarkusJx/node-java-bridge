@@ -1,10 +1,10 @@
 use crate::java::class_constructor::ClassConstructor;
 use crate::java::class_field::ClassField;
 use crate::java::class_method::ClassMethod;
-use crate::node::class_ext::ArgumentMatch;
-use crate::node::util::ResultType;
+use crate::node::extensions::class_ext::ArgumentMatch;
 use java_rs::java_vm::JavaVM;
 use java_rs::objects::class::GlobalJavaClass;
+use java_rs::util::util::ResultType;
 use napi::CallContext;
 use std::collections::HashMap;
 

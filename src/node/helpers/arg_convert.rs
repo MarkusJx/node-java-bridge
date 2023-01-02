@@ -1,5 +1,5 @@
-use crate::node::java_type_ext::NapiToJava;
-use crate::node::napi_error::MapToNapiError;
+use crate::node::extensions::java_type_ext::NapiToJava;
+use crate::node::helpers::napi_error::MapToNapiError;
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_env::JavaEnv;
 use java_rs::java_type::JavaType;

@@ -1,6 +1,6 @@
 use crate::java::class_constructor::ClassConstructor;
 use crate::java::class_method::ClassMethod;
-use crate::node::java_type_ext::JsTypeEq;
+use crate::node::extensions::java_type_ext::JsTypeEq;
 use java_rs::java_type::{JavaType, Type};
 use napi::{CallContext, Env, JsUnknown};
 

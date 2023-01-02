@@ -9,8 +9,8 @@ mod tests;
 extern crate napi_derive;
 extern crate core;
 
-use crate::node::napi_error::StrIntoNapiError;
 use napi::Status;
+use node::helpers::napi_error::StrIntoNapiError;
 use std::path::Path;
 
 /// Get the path to the jvm.(dll|so|dylib) file.
