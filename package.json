@@ -1,6 +1,6 @@
 {
     "name": "java-bridge",
-    "version": "2.2.2-beta.1",
+    "version": "2.2.2-rc.1",
     "main": "dist/index.prod.min.js",
     "types": "dist/ts-src/index.d.ts",
     "description": "A bridge between Node.js and Java APIs",
@@ -76,16 +76,16 @@
         "yargs": "^17.6.2"
     },
     "devDependencies": {
-        "@napi-rs/cli": "^2.13.3",
+        "@napi-rs/cli": "^2.14.0",
         "@types/chai": "^4.3.4",
         "@types/glob": "^8.0.0",
         "@types/is-ci": "^3.0.0",
         "@types/mocha": "^10.0.1",
-        "@types/node": "^18.11.17",
+        "@types/node": "^18.11.18",
         "@types/semver": "^7.3.13",
         "@types/webpack-node-externals": "^2.5.3",
         "@types/which": "^2.0.1",
-        "@types/yargs": "^17.0.17",
+        "@types/yargs": "^17.0.18",
         "chai": "^4.3.7",
         "cpy-cli": "^4.2.0",
         "expose-gc": "^1.0.0",
