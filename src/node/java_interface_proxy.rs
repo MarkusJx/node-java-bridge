@@ -1,6 +1,6 @@
 use crate::node::extensions::java_call_result_ext::ToNapiValue;
 use crate::node::extensions::java_type_ext::NapiToJava;
-use crate::node::helpers::napi_error::MapToNapiError;
+use crate::node::helpers::napi_error::{MapToNapiError, NapiError};
 use futures::channel::oneshot::{channel, Sender};
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_env::JavaEnv;
@@ -19,7 +19,7 @@ use lazy_static::lazy_static;
 use napi::threadsafe_function::{
     ThreadSafeCallContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
 };
-use napi::{CallContext, Env, JsFunction, JsObject, JsString, JsUnknown, Status};
+use napi::{CallContext, Env, JsFunction, JsObject, JsString, JsUnknown, ValueType};
 use rand::Rng;
 use std::collections::HashMap;
 use std::ptr;
@@ -376,10 +376,7 @@ impl JavaInterfaceProxy {
     pub fn reset(&mut self) -> napi::Result<()> {
         let mut methods = self.methods.lock().unwrap();
         if self.function_caller_instance.is_none() || self.proxy_instance.is_none() {
-            return Err(napi::Error::new(
-                Status::Unknown,
-                "This instance is already destroyed".into(),
-            ));
+            return Err(NapiError::from("This instance is already destroyed").into());
         }
 
         let env = self.vm.attach_thread().map_napi_err()?;
@@ -406,6 +403,22 @@ impl JavaInterfaceProxy {
         methods.clear();
 
         Ok(())
+    }
+
+    pub fn call_context_contains_interface(ctx: &CallContext) -> napi::Result<bool> {
+        Ok(ctx
+            .get_all()
+            .into_iter()
+            .map(|value| -> napi::Result<bool> {
+                Ok(value.get_type()? == ValueType::Object
+                    && JavaInterfaceProxy::instance_of(
+                        ctx.env.clone(),
+                        &value.coerce_to_object()?,
+                    )?)
+            })
+            .collect::<napi::Result<Vec<bool>>>()?
+            .into_iter()
+            .any(|value| value))
     }
 }
 

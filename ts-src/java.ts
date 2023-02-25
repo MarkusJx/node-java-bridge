@@ -633,9 +633,6 @@ type InternalProxyRecord = Parameters<
  * * If any method is queried by the java process and not implemented in here,
  *   an exception will be thrown in the java process.
  * * Any errors thrown in the javascript process will be rethrown in the java process.
- * * **When calling a java method that uses an interface defined by this, you must call
- *   that method using the interface asynchronously as Node.js is single threaded and can't
- *   wait for the java method to return while calling the proxy method at the same time.**
  *
  * ## See also
  * * {@link JavaInterfaceProxy}
