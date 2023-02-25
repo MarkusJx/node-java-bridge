@@ -1,6 +1,7 @@
 #![allow(clippy::too_many_arguments, non_camel_case_types, dead_code)]
 
 use std::os::raw::c_int;
+#[cfg(windows)]
 use std::sync::Once;
 
 #[cfg(windows)]
@@ -96,9 +97,11 @@ generate!(
     }
 );
 
+#[cfg(windows)]
 static LOAD: Once = Once::new();
 
 pub fn load_napi_library() {
+    #[cfg(windows)]
     LOAD.call_once(|| {
         let host: libloading::Library = match libloading::os::windows::Library::this() {
             Ok(lib) => lib.into(),
