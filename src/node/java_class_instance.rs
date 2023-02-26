@@ -249,7 +249,7 @@ impl JavaClassInstance {
         let env = proxy.vm.attach_thread().map_napi_err()?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
 
-        let result = if JavaInterfaceProxy::call_context_contains_interface(ctx)? {
+        let result = if JavaInterfaceProxy::interface_proxy_exists() {
             // If the call context contains an interface proxy, we need to call the method
             // on a different thread as calling it on the same thread may cause a deadlock.
             // Additionally, we need to run the event loop to allow the javascript thread to

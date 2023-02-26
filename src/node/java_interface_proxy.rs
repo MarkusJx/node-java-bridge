@@ -19,7 +19,7 @@ use lazy_static::lazy_static;
 use napi::threadsafe_function::{
     ThreadSafeCallContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
 };
-use napi::{CallContext, Env, JsFunction, JsObject, JsString, JsUnknown, ValueType};
+use napi::{CallContext, Env, JsFunction, JsObject, JsString, JsUnknown};
 use rand::Rng;
 use std::collections::HashMap;
 use std::ptr;
@@ -405,20 +405,8 @@ impl JavaInterfaceProxy {
         Ok(())
     }
 
-    pub fn call_context_contains_interface(ctx: &CallContext) -> napi::Result<bool> {
-        Ok(ctx
-            .get_all()
-            .into_iter()
-            .map(|value| -> napi::Result<bool> {
-                Ok(value.get_type()? == ValueType::Object
-                    && JavaInterfaceProxy::instance_of(
-                        ctx.env.clone(),
-                        &value.coerce_to_object()?,
-                    )?)
-            })
-            .collect::<napi::Result<Vec<bool>>>()?
-            .into_iter()
-            .any(|value| value))
+    pub fn interface_proxy_exists() -> bool {
+        !PROXIES.lock().unwrap().is_empty()
     }
 }
 
