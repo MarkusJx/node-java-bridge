@@ -511,7 +511,13 @@ export namespace stdout {
  * ## See also
  * * {@link newProxy}
  */
-export interface JavaInterfaceProxy {
+export interface JavaInterfaceProxy<T extends ProxyRecord<T> = AnyProxyRecord> {
+    /**
+     * A dummy property to make sure the type is correct.
+     * This property will never be set.
+     */
+    _dummy?: T;
+
     /**
      * Destroy the proxy class.
      * After this call any call to any method defined by the
@@ -647,7 +653,7 @@ type AnyProxyRecord = Record<string, ProxyMethod>;
 export function newProxy<T extends ProxyRecord<T> = AnyProxyRecord>(
     interfaceName: string,
     methods: T
-): JavaInterfaceProxy {
+): JavaInterfaceProxy<T> {
     ensureJvm();
     const proxyMethods: InternalProxyRecord = Object.create(null);
 
@@ -677,7 +683,7 @@ export function newProxy<T extends ProxyRecord<T> = AnyProxyRecord>(
     return javaInstance!.createInterfaceProxy(
         interfaceName,
         proxyMethods
-    ) as JavaInterfaceProxy;
+    ) as JavaInterfaceProxy<T>;
 }
 
 /**

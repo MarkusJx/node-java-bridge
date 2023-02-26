@@ -1,5 +1,5 @@
 import ts, { SyntaxKind } from 'typescript';
-import { importClassAsync, JavaClass } from './.';
+import { importClass, importClassAsync, JavaClass } from './.';
 import fs from 'fs';
 import path from 'path';
 
@@ -68,6 +68,7 @@ declare class ClassClass extends JavaClass {
     public getFields(): Promise<FieldClass[]>;
     public getModifiers(): Promise<number>;
     public isInterface(): Promise<boolean>;
+    public isInterfaceSync(): boolean;
 }
 
 declare class FieldClass extends JavaClass {
@@ -109,8 +110,10 @@ const nonNullReturnMethods: string[] = [
 export default class TypescriptDefinitionGenerator {
     private usesBasicOrJavaType: boolean = false;
     private usesNewProxy: boolean = false;
+    private usesInterfaceProxy: boolean = false;
     private readonly additionalImports: string[] = [];
     private readonly importsToResolve: string[] = [];
+    private readonly interfaceImports: string[] = [];
 
     /**
      * Create a new `TypescriptDefinitionGenerator` instance
@@ -376,14 +379,16 @@ export default class TypescriptDefinitionGenerator {
         isParam: boolean,
         strictNullTypes: boolean = true
     ): ts.TypeNode {
-        const createType = (type: ts.TypeNode): ts.TypeNode => {
+        const createType = (...type: ts.TypeNode[]): ts.TypeNode => {
             if (strictNullTypes) {
                 return ts.factory.createUnionTypeNode([
-                    type,
+                    ...type,
                     ts.factory.createLiteralTypeNode(ts.factory.createNull()),
                 ]);
+            } else if (type.length > 1) {
+                return ts.factory.createUnionTypeNode(type);
             } else {
-                return type;
+                return type[0];
             }
         };
 
@@ -404,21 +409,44 @@ export default class TypescriptDefinitionGenerator {
             );
         }
 
-        const createTypeReferenceNode = (
-            name: string
-        ): ts.TypeReferenceNode => {
+        const createTypeReferenceNode = (name: string): ts.TypeNode[] => {
+            const isInterface = (
+                importClass(name).class as ClassClass
+            ).isInterfaceSync();
+            const interfaceProxy: ts.TypeNode[] = [];
+            if (isInterface && isParam) {
+                this.usesInterfaceProxy = true;
+                if (!this.interfaceImports.includes(name)) {
+                    this.interfaceImports.push(name);
+                }
+
+                interfaceProxy.push(
+                    ts.factory.createTypeReferenceNode('JavaInterfaceProxy', [
+                        ts.factory.createTypeReferenceNode(
+                            name === this.classname
+                                ? name.substring(name.lastIndexOf('.') + 1) +
+                                      'Interface'
+                                : name.replaceAll('.', '_') + 'Interface'
+                        ),
+                    ])
+                );
+            }
+
             if (!this.resolvedImports.includes(name)) {
                 this.additionalImports.push(name);
             }
 
             this.importsToResolve.push(name);
             const isSelf = name === this.classname && isParam;
-            return ts.factory.createTypeReferenceNode(
-                name === this.classname
-                    ? name.substring(name.lastIndexOf('.') + 1) +
-                          (isSelf ? 'Class' : '')
-                    : name.replaceAll('.', '_')
-            );
+            return [
+                ts.factory.createTypeReferenceNode(
+                    name === this.classname
+                        ? name.substring(name.lastIndexOf('.') + 1) +
+                              (isSelf ? 'Class' : '')
+                        : name.replaceAll('.', '_')
+                ),
+                ...interfaceProxy,
+            ];
         };
 
         const createUnion = (
@@ -440,7 +468,7 @@ export default class TypescriptDefinitionGenerator {
             }
 
             return ts.factory.createUnionTypeNode([
-                createTypeReferenceNode(this.primitiveToClassType(javaType)),
+                ...createTypeReferenceNode(this.primitiveToClassType(javaType)),
                 ...additionalTypes.map((t) =>
                     ts.factory.createKeywordTypeNode(t)
                 ),
@@ -484,7 +512,7 @@ export default class TypescriptDefinitionGenerator {
                     ts.factory.createTypeReferenceNode('BasicOrJavaType')
                 );
             default:
-                return createType(createTypeReferenceNode(javaType));
+                return createType(...createTypeReferenceNode(javaType));
         }
     }
 
@@ -507,9 +535,13 @@ export default class TypescriptDefinitionGenerator {
         return params.parameters.map(this.convertParameter.bind(this));
     }
 
-    private static createMethodComment(declaration: MethodDeclaration) {
+    private static createMethodComment(
+        declaration: MethodDeclaration,
+        additionalComment: string = ''
+    ): string {
         return (
             '*\n' +
+            additionalComment +
             declaration.parameters
                 .map((p, i) => ` * @param var${i} original type: '${p}'\n`)
                 .join('') +
@@ -548,10 +580,16 @@ export default class TypescriptDefinitionGenerator {
             );
         }
 
+        let requiredNote = '';
+        if (!m.isDefault && isDefault) {
+            requiredNote =
+                ' * **Note: Although this method is marked as optional, it actually must be implemented.**\n *\n';
+        }
+
         return ts.addSyntheticLeadingComment(
             declaration,
             ts.SyntaxKind.MultiLineCommentTrivia,
-            TypescriptDefinitionGenerator.createMethodComment(m),
+            TypescriptDefinitionGenerator.createMethodComment(m, requiredNote),
             true
         );
     }
@@ -579,6 +617,8 @@ export default class TypescriptDefinitionGenerator {
 
     private createNewProxyMethod(simpleName: string): ts.FunctionDeclaration {
         this.usesNewProxy = true;
+        this.usesInterfaceProxy = true;
+        const interfaceName = simpleName + 'Interface';
         let decl = ts.factory.createFunctionDeclaration(
             [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
             undefined,
@@ -591,23 +631,21 @@ export default class TypescriptDefinitionGenerator {
                     'methods',
                     undefined,
                     ts.factory.createTypeReferenceNode(
-                        simpleName + 'Interface',
+                        interfaceName,
                         undefined
                     ),
                     undefined
                 ),
             ],
-            ts.factory.createTypeReferenceNode('JavaInterfaceProxy', undefined),
+            ts.factory.createTypeReferenceNode('JavaInterfaceProxy', [
+                ts.factory.createTypeReferenceNode(interfaceName),
+            ]),
             ts.factory.createBlock(
                 [
                     ts.factory.createReturnStatement(
                         ts.factory.createCallExpression(
                             ts.factory.createIdentifier('newProxy'),
-                            [
-                                ts.factory.createTypeReferenceNode(
-                                    simpleName + 'Interface'
-                                ),
-                            ],
+                            [ts.factory.createTypeReferenceNode(interfaceName)],
                             [
                                 ts.factory.createStringLiteral(
                                     this.classname,
@@ -740,6 +778,24 @@ export default class TypescriptDefinitionGenerator {
             return self.indexOf(value) === index;
         };
 
+        const getSimpleName = (i: string) =>
+            i.substring(i.lastIndexOf('.') + 1);
+
+        const createInterfaceImports = (i: string) =>
+            this.interfaceImports.includes(i) && i !== this.classname
+                ? [
+                      ts.factory.createImportSpecifier(
+                          false,
+                          ts.factory.createIdentifier(
+                              getSimpleName(i) + 'Interface'
+                          ),
+                          ts.factory.createIdentifier(
+                              i.replaceAll('.', '_') + 'Interface'
+                          )
+                      ),
+                  ]
+                : [];
+
         return this.importsToResolve
             .filter((i) => i != this.classname)
             .filter(unique)
@@ -752,13 +808,12 @@ export default class TypescriptDefinitionGenerator {
                         ts.factory.createNamedImports([
                             ts.factory.createImportSpecifier(
                                 false,
-                                ts.factory.createIdentifier(
-                                    i.substring(i.lastIndexOf('.') + 1)
-                                ),
+                                ts.factory.createIdentifier(getSimpleName(i)),
                                 ts.factory.createIdentifier(
                                     i.replaceAll('.', '_')
                                 )
                             ),
+                            ...createInterfaceImports(i),
                         ])
                     ),
                     ts.factory.createStringLiteral(getPath(i))
@@ -796,7 +851,12 @@ export default class TypescriptDefinitionGenerator {
                     false,
                     undefined,
                     ts.factory.createIdentifier('newProxy')
-                ),
+                )
+            );
+        }
+
+        if (this.usesInterfaceProxy) {
+            importElements.push(
                 ts.factory.createImportSpecifier(
                     false,
                     undefined,
