@@ -537,6 +537,9 @@ type InternalProxyRecord = Parameters<
     typeof Java.prototype.createInterfaceProxy
 >[1];
 
+type ProxyRecord<T> = Partial<Record<keyof T, ProxyMethod>>;
+type AnyProxyRecord = Record<string, ProxyMethod>;
+
 /**
  * Create a new java interface proxy.
  * This allows you to implement java interfaces in javascript.
@@ -641,9 +644,9 @@ type InternalProxyRecord = Parameters<
  * @param methods the methods to implement.
  * @returns a proxy class to pass back to the java process
  */
-export function newProxy(
+export function newProxy<T extends ProxyRecord<T> = AnyProxyRecord>(
     interfaceName: string,
-    methods: Record<string, ProxyMethod>
+    methods: T
 ): JavaInterfaceProxy {
     ensureJvm();
     const proxyMethods: InternalProxyRecord = Object.create(null);
@@ -659,7 +662,7 @@ export function newProxy(
             }
 
             try {
-                const res = method(...args);
+                const res = (method as ProxyMethod)(...args);
                 callback(null, res);
             } catch (e: any) {
                 if (e instanceof Error) {

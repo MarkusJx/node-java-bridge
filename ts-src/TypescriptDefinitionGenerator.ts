@@ -15,6 +15,7 @@ export interface MethodDeclaration {
     returnType: string;
     parameters: string[];
     isStatic: boolean;
+    isDefault: boolean;
 }
 
 /**
@@ -53,6 +54,7 @@ declare class DeclaredMethodClass extends JavaClass {
     public getName(): Promise<string>;
     public getReturnType(): Promise<TypeClass>;
     public getParameterTypes(): Promise<TypeClass[]>;
+    public isDefault(): Promise<boolean>;
 }
 
 declare class DeclaredConstructorClass extends JavaClass {
@@ -106,6 +108,7 @@ const nonNullReturnMethods: string[] = [
  */
 export default class TypescriptDefinitionGenerator {
     private usesBasicOrJavaType: boolean = false;
+    private usesNewProxy: boolean = false;
     private readonly additionalImports: string[] = [];
     private readonly importsToResolve: string[] = [];
 
@@ -138,6 +141,7 @@ export default class TypescriptDefinitionGenerator {
                 const name = await method.getName();
                 const returnType = await method.getReturnType();
                 const parameterTypes = await method.getParameterTypes();
+                const isDefault = await method.isDefault();
 
                 const data: MethodDeclaration = {
                     returnType: await returnType.getTypeName(),
@@ -145,6 +149,7 @@ export default class TypescriptDefinitionGenerator {
                         parameterTypes.map((p) => p.getTypeName())
                     ),
                     isStatic: await Modifier.isStatic(modifiers),
+                    isDefault,
                 };
 
                 if (Object.hasOwn(result, name)) {
@@ -318,6 +323,7 @@ export default class TypescriptDefinitionGenerator {
                     returnType: this.classname,
                     parameters: t,
                     isStatic: true,
+                    isDefault: false,
                 },
                 'newInstance',
                 i,
@@ -511,6 +517,123 @@ export default class TypescriptDefinitionGenerator {
         );
     }
 
+    private createMethodSignature(
+        m: MethodDeclaration,
+        name: string,
+        i: number,
+        isDefault: boolean,
+        nonNullReturnType: boolean
+    ): ts.MethodSignature {
+        let declaration = ts.factory.createMethodSignature(
+            [],
+            name,
+            isDefault
+                ? ts.factory.createToken(SyntaxKind.QuestionToken)
+                : undefined,
+            undefined,
+            this.convertParameters(m),
+            this.javaTypeToTypescriptType(
+                m.returnType,
+                false,
+                !nonNullReturnType
+            )
+        );
+
+        if (i === 0) {
+            declaration = ts.addSyntheticLeadingComment(
+                declaration,
+                ts.SyntaxKind.SingleLineCommentTrivia,
+                ` ================== Method ${name} ==================`,
+                true
+            );
+        }
+
+        return ts.addSyntheticLeadingComment(
+            declaration,
+            ts.SyntaxKind.MultiLineCommentTrivia,
+            TypescriptDefinitionGenerator.createMethodComment(m),
+            true
+        );
+    }
+
+    private createInterfaceMethodSignatures(
+        interfaceMethods: Record<string, MethodDeclaration[]>
+    ): ts.MethodSignature[] {
+        return Object.entries(interfaceMethods)
+            .map(([key, method]) => ({
+                key,
+                method: method.filter((m) => !m.isStatic),
+            }))
+            .flatMap(({ key, method }) =>
+                method.map((m, i) =>
+                    this.createMethodSignature(
+                        m,
+                        key,
+                        i,
+                        method.some((m) => m.isDefault),
+                        nonNullReturnMethods.includes(key)
+                    )
+                )
+            );
+    }
+
+    private createNewProxyMethod(simpleName: string): ts.FunctionDeclaration {
+        this.usesNewProxy = true;
+        let decl = ts.factory.createFunctionDeclaration(
+            [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
+            undefined,
+            `create${simpleName}Proxy`,
+            undefined,
+            [
+                ts.factory.createParameterDeclaration(
+                    undefined,
+                    undefined,
+                    'methods',
+                    undefined,
+                    ts.factory.createTypeReferenceNode(
+                        simpleName + 'Interface',
+                        undefined
+                    ),
+                    undefined
+                ),
+            ],
+            ts.factory.createTypeReferenceNode('JavaInterfaceProxy', undefined),
+            ts.factory.createBlock(
+                [
+                    ts.factory.createReturnStatement(
+                        ts.factory.createCallExpression(
+                            ts.factory.createIdentifier('newProxy'),
+                            [
+                                ts.factory.createTypeReferenceNode(
+                                    simpleName + 'Interface'
+                                ),
+                            ],
+                            [
+                                ts.factory.createStringLiteral(
+                                    this.classname,
+                                    true
+                                ),
+                                ts.factory.createIdentifier('methods'),
+                            ]
+                        )
+                    ),
+                ],
+                true
+            )
+        );
+
+        return ts.addSyntheticLeadingComment(
+            decl,
+            ts.SyntaxKind.MultiLineCommentTrivia,
+            `*\n * Create a proxy for the {@link ${simpleName}} interface.\n` +
+                ` * All required methods in {@link ${simpleName}Interface} must be implemented.\n` +
+                ` *\n` +
+                ` * @param methods the methods to implement\n` +
+                ` * @return the proxy\n `,
+            true
+        );
+    }
+
     private createMethod(
         m: MethodDeclaration,
         name: string,
@@ -667,6 +790,21 @@ export default class TypescriptDefinitionGenerator {
             );
         }
 
+        if (this.usesNewProxy) {
+            importElements.push(
+                ts.factory.createImportSpecifier(
+                    false,
+                    undefined,
+                    ts.factory.createIdentifier('newProxy')
+                ),
+                ts.factory.createImportSpecifier(
+                    false,
+                    undefined,
+                    ts.factory.createIdentifier('JavaInterfaceProxy')
+                )
+            );
+        }
+
         const imports = ts.factory.createNamedImports(importElements);
         return ts.factory.createImportDeclaration(
             undefined,
@@ -687,7 +825,7 @@ export default class TypescriptDefinitionGenerator {
                 ts.factory.createHeritageClause(ts.SyntaxKind.ExtendsKeyword, [
                     ts.factory.createExpressionWithTypeArguments(
                         ts.factory.createIdentifier(
-                            `importClass<typeof ${simpleName}Class>("${this.classname}")`
+                            `importClass<typeof ${simpleName}Class>('${this.classname}')`
                         ),
                         undefined
                     ),
@@ -702,7 +840,7 @@ export default class TypescriptDefinitionGenerator {
                 SyntaxKind.MultiLineCommentTrivia,
                 `*\n * Class ${this.classname}.\n *\n` +
                     ' * This actually imports the java class for further use.\n' +
-                    ` * The class ${simpleName}Class only defines types, this is the class you should actually import.\n` +
+                    ` * The class {@link ${simpleName}Class} only defines types, this is the class you should actually import.\n` +
                     ' * Please note that this statement imports the underlying java class at runtime, which may take a while.\n' +
                     ' * This was generated by java-bridge.\n * You should probably not edit this.\n ',
                 true
@@ -786,6 +924,38 @@ export default class TypescriptDefinitionGenerator {
             classMembers.push(...convertedConstructors);
         }
 
+        const interfaceDeclaration: (ts.Node | null)[] = [];
+        if (await cls.isInterface()) {
+            const interfaceMethods =
+                await TypescriptDefinitionGenerator.convertMethods(methods);
+
+            let decl = ts.factory.createInterfaceDeclaration(
+                [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword)],
+                simpleName + 'Interface',
+                undefined,
+                [],
+                this.createInterfaceMethodSignatures(interfaceMethods)
+            );
+
+            decl = ts.addSyntheticLeadingComment(
+                decl,
+                ts.SyntaxKind.MultiLineCommentTrivia,
+                '*\n * This interface just defines types for creating proxies,\n' +
+                    ` * you should use {@link create${simpleName}Proxy} for actually creating the proxies.\n` +
+                    ' *\n' +
+                    ' * Optional methods in here may still be required by java.\n' +
+                    ' * This is caused by typescript not allowing to have both optional and\n' +
+                    ' * non-optional signatures for the same interface member.\n' +
+                    ' *\n' +
+                    ' * This was generated by java-bridge.\n * You should probably not edit this.\n ',
+                true
+            );
+
+            interfaceDeclaration.push(
+                ...[null, decl, null, this.createNewProxyMethod(simpleName)]
+            );
+        }
+
         let tsClass = ts.factory.createClassDeclaration(
             [
                 ts.factory.createModifier(ts.SyntaxKind.ExportKeyword),
@@ -807,8 +977,9 @@ export default class TypescriptDefinitionGenerator {
         tsClass = ts.addSyntheticLeadingComment(
             tsClass,
             ts.SyntaxKind.MultiLineCommentTrivia,
-            `*\n * This class just defines types, you should import ${simpleName} instead of this.\n` +
-                ' * This was generated by java-bridge.\n * You should probably not edit this.\n ',
+            `*\n * This class just defines types, you should import {@link ${simpleName}} instead of this.\n` +
+                ' * This was generated by java-bridge.\n' +
+                ' * You should probably not edit this.\n ',
             true
         );
 
@@ -817,6 +988,7 @@ export default class TypescriptDefinitionGenerator {
             ...this.getAdditionalImports(),
             null,
             tsClass,
+            ...interfaceDeclaration,
             null,
             ...this.getExportStatement(simpleName, isAbstractOrInterface),
         ]);
