@@ -1,4 +1,9 @@
-import { Java, JavaOptions } from '../native';
+import {
+    InterfaceProxyOptions,
+    Java,
+    JavaOptions,
+    JavaConfig,
+} from '../native';
 import {
     JavaClass,
     JavaClassConstructorType,
@@ -7,6 +12,7 @@ import {
     UnknownJavaClassType,
 } from './definitions';
 import { getJavaLibPath, getNativeLibPath } from './nativeLib';
+export { clearDaemonProxies } from '../native';
 
 /**
  * The static java instance
@@ -520,8 +526,11 @@ export interface JavaInterfaceProxy {
      * specifically implementing methods that will be called
      * from another (java) thread.
      * Throws an error if the proxy has already been destroyed.
+     *
+     * @param force whether to force the destruction of the proxy
+     * if it should be kept alive as a daemon
      */
-    reset(): void;
+    reset(force?: boolean): void;
 }
 
 /**
@@ -634,16 +643,44 @@ type InternalProxyRecord = Parameters<
  *   an exception will be thrown in the java process.
  * * Any errors thrown in the javascript process will be rethrown in the java process.
  *
+ * ### Possible deadlock warning
+ * When calling a java method that uses an interface defined by this, you must call
+ * that method using the interface asynchronously as Node.js is single threaded
+ * and can't wait for the java method to return while calling the proxy method at the
+ * same time.
+ *
+ * If you still want to call everything in a synchronous manner, make sure to enable
+ * running the event loop while waiting for a java method to return by setting
+ * {@link config.runEventLoopWhenInterfaceProxyIsActive} to true.
+ * **This may cause application crashes, so it is strongly recommended to just use async methods.**
+ *
+ * ### Keeping the proxy alive
+ * If you want to keep the proxy alive, you must keep this instance in scope.
+ * If that is not an option for you, you can manually keep the proxy alive
+ * by setting the {@link InterfaceProxyOptions.keepAsDaemon} option to true.
+ *
+ * This will keep the proxy alive internally, thus the instance can be moved
+ * out of scope. However, this will also keep the JVM alive, so you should
+ * only use this if you are sure that you want to keep the JVM alive.
+ *
+ * If you want to destroy the proxy, you must call {@link clearDaemonProxies}.
+ * This will destroy all proxies which are kept alive by this option.
+ * Calling {@link JavaInterfaceProxy.reset} will not destroy a proxy
+ * kept alive by this option unless the force option is set to true.
+ *
  * ## See also
  * * {@link JavaInterfaceProxy}
+ * * {@link InterfaceProxyOptions}
  *
  * @param interfaceName the name of the java interface to implement
  * @param methods the methods to implement.
+ * @param opts the options to use
  * @returns a proxy class to pass back to the java process
  */
 export function newProxy(
     interfaceName: string,
-    methods: Record<string, ProxyMethod>
+    methods: Record<string, ProxyMethod>,
+    opts?: InterfaceProxyOptions
 ): JavaInterfaceProxy {
     ensureJvm();
     const proxyMethods: InternalProxyRecord = Object.create(null);
@@ -673,7 +710,8 @@ export function newProxy(
 
     return javaInstance!.createInterfaceProxy(
         interfaceName,
-        proxyMethods
+        proxyMethods,
+        opts
     ) as JavaInterfaceProxy;
 }
 
@@ -683,4 +721,33 @@ export function newProxy(
  */
 export function getJavaInstance(): Java | null {
     return javaInstance;
+}
+
+/**
+ * Configuration options for the java bridge.
+ */
+export class config {
+    /**
+     * Set whether to run the event loop when an interface proxy is active.
+     * This is disabled by default. Enabling this will cause the bridge
+     * to run the event loop when an interface proxy either as direct
+     * proxy or as daemon proxy is active. This is only required if the
+     * proxied method calls back into the javascript process in the same thread.
+     * If the proxy is used either in an async method or in a different thread,
+     * this is not required.
+     *
+     * **Note:** Enabling this may cause the application to crash. Use with caution.
+     *
+     * @param value whether to run the event loop when an interface proxy is active
+     */
+    static set runEventLoopWhenInterfaceProxyIsActive(value: boolean) {
+        JavaConfig.setRunEventLoopWhenInterfaceProxyIsActive(value);
+    }
+
+    /**
+     * Get whether to run the event loop when an interface proxy is active.
+     */
+    static get runEventLoopWhenInterfaceProxyIsActive(): boolean {
+        return JavaConfig.getRunEventLoopWhenInterfaceProxyIsActive();
+    }
 }
