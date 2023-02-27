@@ -94,7 +94,7 @@ describe('ProxyTest', () => {
 
         before(() => {
             java.config.runEventLoopWhenInterfaceProxyIsActive = true;
-        })
+        });
 
         it('Create a new proxy', async function () {
             if (shouldSkip) this.skip();
