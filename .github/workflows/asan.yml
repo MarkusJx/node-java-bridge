@@ -37,7 +37,7 @@ jobs:
               run: npm ci
 
             - name: 'Build TypeScript'
-              run: npm build
+              run: npm run build
 
             - name: Unit tests with address sanitizer
               run: |
