@@ -49,7 +49,7 @@ jobs:
               run: npm ci
 
             - name: Build tests
-              run: npm run build:tests
+              run: npm run build:debug
               env:
                   RUST_TARGET: x86_64-unknown-linux-gnu
                   RUST_BACKTRACE: 1
@@ -68,6 +68,7 @@ jobs:
             - name: Unit tests with address sanitizer
               run: |
                   LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/9/libasan.so npm run generateTestTypes
+                  npm run build:tests
                   LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/9/libasan.so npm run test:asan
               env:
                   RUST_TARGET: x86_64-unknown-linux-gnu

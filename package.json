@@ -54,7 +54,7 @@
         "build:java": "run-script-os",
         "build:java:darwin:linux": "cd java-src && chmod +x gradlew && ./gradlew shadowJar",
         "build:java:win32": "cd java-src && .\\gradlew.bat shadowJar",
-        "build:tests": "npm run build:debug && tsc -p test/tsconfig.json",
+        "build:tests": "tsc -p test/tsconfig.json",
         "test:asan": "mocha testOut/*.test.js",
         "prepublishOnly": "napi prepublish -t npm",
         "test": "npm run testOnly",
