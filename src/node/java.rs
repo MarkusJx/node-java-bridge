@@ -63,10 +63,6 @@ impl Java {
         java_lib_path: String,
         native_lib_path: String,
     ) -> napi::Result<Self> {
-        // TODO: Remove this
-        let xs = [0, 1, 2, 3];
-        let _y = unsafe { *xs.as_ptr().offset(4) };
-
         let ver = version.unwrap_or("1.8".to_string());
         let mut args = opts.unwrap_or(vec![]);
         let mut loaded_jars = vec![];

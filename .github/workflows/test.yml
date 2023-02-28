@@ -65,6 +65,11 @@ jobs:
                   architecture: ${{matrix.arch}}
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.2.1
+            - name: Cache java definitions
+              uses: actions/cache@v3
+              with:
+                  path: test/javaDefinitions
+                  key: ${{ runner.os }}-javaDefinitions-${{ hashFiles('test/javaDefinitions/**') }}
             - name: Install
               run: npm ci
             - name: Build
