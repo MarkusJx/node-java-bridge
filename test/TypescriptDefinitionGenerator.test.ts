@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import ts from 'typescript';
 import path from 'path';
 import * as fs from 'fs';
-import { shouldIncreaseTimeout } from './testUtil';
+import { forceRunAllTests, shouldIncreaseTimeout } from './testUtil';
 import isCi from 'is-ci';
 
 interface Diagnostics {
@@ -126,7 +126,7 @@ describe('TypescriptDefinitionGenerator test', () => {
     }).timeout(timeoutMs);
 
     it("Generate 'java.io.FileOutputSteam' definitions", async function () {
-        if (isCi) {
+        if (isCi && !forceRunAllTests) {
             this.skip();
         }
 
