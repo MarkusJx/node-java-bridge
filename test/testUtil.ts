@@ -16,7 +16,10 @@ import FileInputStream from './javaDefinitions/java/io/FileInputStream';
 import System from './javaDefinitions/java/lang/System';
 
 export const shouldIncreaseTimeout =
-    isCi && (process.arch === 'arm64' || process.arch === 'arm');
+    isCi &&
+    (process.arch === 'arm64' ||
+        process.arch === 'arm' ||
+        process.env.INCREASE_TIMEOUT === 'true');
 export const forceRunAllTests = process.env.FORCE_RUN_ALL_TESTS === 'true';
 
 console.log('Process arch:', process.arch);

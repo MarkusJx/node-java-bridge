@@ -42,7 +42,7 @@ jobs:
             - name: Cache java definitions
               uses: actions/cache@v3
               with:
-                  path: test/javaDefinitions
+                  path: test/javaDefinitions/**
                   key: ${{ runner.os }}-javaDefinitions-${{ hashFiles('test/javaDefinitions/**') }}
 
             - name: Install dependencies
@@ -76,6 +76,7 @@ jobs:
                   RUSTFLAGS: -Z sanitizer=address
                   ASAN_OPTIONS: detect_leaks=0
                   FORCE_RUN_ALL_TESTS: true
+                  INCREASE_TIMEOUT: true
 
             - name: Clear the cargo caches
               run: |
