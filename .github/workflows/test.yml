@@ -68,7 +68,7 @@ jobs:
             - name: Cache java definitions
               uses: actions/cache@v3
               with:
-                  path: ${{runner.workspace}}/test/javaDefinitions/**
+                  path: test/javaDefinitions/**
                   key: ${{runner.os}}-${{matrix.node-version}}-${{matrix.arch}}-javaDefinitions-${{hashFiles('**/test/javaDefinitions/**')}}
             - name: Install
               run: npm ci
@@ -83,6 +83,13 @@ jobs:
             - name: Run tests
               run: npm run testOnly
               timeout-minutes: 20
+
+            - run: ls
+            - run: ls
+              working-directory: test
+            - run: ls
+              working-directory: test/javaDefinitions
+
             - name: Create test summary
               uses: test-summary/action@dist
               if: always()
@@ -111,7 +118,7 @@ jobs:
         steps:
             - uses: actions/checkout@v3
             - name: Setup Node.js ${{matrix.node-version}} environment
-              uses: actions/setup-node@v3.4.1
+              uses: actions/setup-node@v3.6.0
               with:
                   node-version: ${{matrix.node-version}}
             - name: Setup java 17
@@ -184,7 +191,7 @@ jobs:
         steps:
             - uses: actions/checkout@v3
             - name: Setup Node.js environment
-              uses: actions/setup-node@v3.4.1
+              uses: actions/setup-node@v3.6.0
               with:
                   node-version: 16.x
             - uses: actions/setup-java@v3
