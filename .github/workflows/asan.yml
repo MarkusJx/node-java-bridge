@@ -41,7 +41,7 @@ jobs:
 
             - name: Unit tests with address sanitizer
               run: |
-                  LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/9/libasan.so npm test
+                  LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/9/libasan.so npm testOnly
               env:
                   RUST_TARGET: x86_64-unknown-linux-gnu
                   RUST_BACKTRACE: 1
