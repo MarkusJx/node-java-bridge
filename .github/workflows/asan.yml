@@ -42,8 +42,8 @@ jobs:
             - name: Cache java definitions
               uses: actions/cache@v3
               with:
-                  path: test/javaDefinitions/**
-                  key: ${{ runner.os }}-javaDefinitions-${{ hashFiles('test/javaDefinitions/**') }}
+                  path: ${{runner.workspace}}/test/javaDefinitions/**
+                  key: ${{ runner.os }}-javaDefinitions-${{ hashFiles('**/test/javaDefinitions/**') }}
 
             - name: Install dependencies
               run: npm ci

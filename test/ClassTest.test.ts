@@ -428,7 +428,7 @@ describe('ClassTest', () => {
 
         const ext = instance.getExtSync();
         expect(ext).to.be.an('object');
-    });
+    }).timeout(timeout);
 
     it('Class with external dependency loaded dynamically', () => {
         expect(() => importClass('dyn.importing.Class2')).to.throw();
@@ -450,7 +450,7 @@ describe('ClassTest', () => {
 
         const instance2 = ext.newInstanceSync();
         expect(instance2).to.be.an('object');
-    });
+    }).timeout(timeout);
 
     it('Class with properties', () => {
         const Class = importClass('ClassWithProperties');
@@ -475,7 +475,7 @@ describe('ClassTest', () => {
         expect(instance.s2).to.be.a('string');
         expect(instance.s2).to.equal('def');
         expect(() => (instance.s2 = 'def')).to.throw();
-    });
+    }).timeout(timeout);
 
     it('Class with complex properties', () => {
         const Class = importClass('ClassWithComplexProperties');
@@ -492,9 +492,10 @@ describe('ClassTest', () => {
         expect(instance.innerClass).to.have.property('s1');
         expect(instance.innerClass.s1).to.be.a('string');
         expect(instance.innerClass.s1).to.equal('abc');
-    });
+    }).timeout(timeout);
 
     after(function () {
+        this.timeout(timeout);
         try {
             classTool?.dispose();
         } catch (_) {}
