@@ -56,15 +56,6 @@ jobs:
                   RUSTFLAGS: -Z sanitizer=address
                   ASAN_OPTIONS: detect_leaks=0
 
-            #- name: Cargo tests with address sanitizer
-            #  run: |
-            #      LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/9/libasan.so cargo test --verbose --all-features
-            #  env:
-            #      RUST_TARGET: x86_64-unknown-linux-gnu
-            #      RUST_BACKTRACE: 1
-            #      RUSTFLAGS: -Z sanitizer=address
-            #      ASAN_OPTIONS: detect_leaks=0
-
             - name: Unit tests with address sanitizer
               run: |
                   LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/9/libasan.so npm run generateTestTypes
