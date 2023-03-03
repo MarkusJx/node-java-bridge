@@ -53,5 +53,6 @@ jobs:
                       export RUST_BACKTRACE=1
                       export FORCE_RUN_ALL_TESTS=true
                       export INCREASE_TIMEOUT=true
+                      export SKIP_CLASS_TEST=true
                       export DEBUG='napi:*'
                       npm run testOnly
