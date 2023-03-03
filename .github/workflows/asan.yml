@@ -42,8 +42,8 @@ jobs:
                   image: ghcr.io/markusjx/prebuilt-debug-jdk:17-bullseye
                   options: -v ${{ github.workspace }}:/app
                   run: |
-                      curl -fsSL https://deb.nodesource.com/setup_19.x | bash -
-                      apt-get install -y nodejs
+                      curl -fsSL https://deb.nodesource.com/setup_18.x | bash - >> /dev/null
+                      apt-get install -yqq nodejs
                       cargo update
                       npm run build:napi:debug -- --target=x86_64-unknown-linux-gnu \
                         --cargo-flags="-Zbuild-std"
