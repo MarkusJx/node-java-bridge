@@ -1,14 +1,18 @@
-import { TypescriptBulkDefinitionGenerator } from '../.';
+import { TypescriptBulkDefinitionGenerator, importClass } from '../.';
 import path from 'path';
 import fs from 'fs';
 import type { Ora } from 'ora';
 import isCi from 'is-ci';
 import type { ChalkInstance } from 'chalk';
+import { hashElement } from 'folder-hash';
 
 const isSystemTest = process.argv.includes('--system-test');
 
 interface Cache {
     classes: string[];
+    distHash: string;
+    os: string;
+    javaVersion: string;
 }
 
 const gen = new TypescriptBulkDefinitionGenerator();
@@ -45,17 +49,44 @@ function arrayEquals<T>(a: T[], b: T[]) {
     );
 }
 
+function allEqual<T extends Record<string, any>>(
+    expected: T,
+    actual: T
+): boolean {
+    return Object.keys(expected).every((key) => {
+        if (!actual) return false;
+
+        if (Array.isArray(expected[key])) {
+            return arrayEquals(expected[key], actual[key]);
+        } else if (!!expected[key] && typeof expected[key] === 'object') {
+            return allEqual(expected[key], actual[key]);
+        } else {
+            return expected[key] === actual[key];
+        }
+    });
+}
+
+async function calculateCache(): Promise<Cache> {
+    const System = importClass('java.lang.System');
+    const distDir = path.dirname(require.resolve('../.'));
+
+    return {
+        classes: classesToGenerate,
+        distHash: (await hashElement(distDir)).hash,
+        javaVersion: System.getPropertySync('java.version'),
+        os: process.platform,
+    };
+}
+
 async function run() {
+    const newCache = await calculateCache();
     if (fs.existsSync(cacheFile)) {
         try {
             const contents: Cache = JSON.parse(
                 fs.readFileSync(cacheFile, 'utf8')
             );
 
-            if (
-                contents.classes &&
-                arrayEquals(contents.classes, classesToGenerate)
-            ) {
+            if (allEqual(newCache, contents)) {
                 return;
             }
         } catch (_) {}
@@ -95,10 +126,7 @@ async function run() {
 
     await gen.save(outDir);
 
-    const cache: Cache = {
-        classes: classesToGenerate,
-    };
-    fs.writeFileSync(cacheFile, JSON.stringify(cache, null, 4), 'utf8');
+    fs.writeFileSync(cacheFile, JSON.stringify(newCache, null, 4), 'utf8');
     spinner?.succeed('Generated Java definitions');
 }
 

@@ -17,17 +17,8 @@ jobs:
                   check-latest: true
                   cache: 'npm'
 
-            - name: Setup java 17
-              uses: actions/setup-java@v3
-              with:
-                  distribution: 'temurin'
-                  java-version: '17'
-
             - name: Install dependencies
               run: npm ci
-
-            - name: Build java
-              run: npm run build:java
 
             - name: Run tests with address sanitizer
               uses: addnab/docker-run-action@v3
@@ -41,7 +32,7 @@ jobs:
                       cargo update
                       npm run build:napi:debug -- --target=x86_64-unknown-linux-gnu \
                         --cargo-flags="-Zbuild-std"
-                      npm run build:ts
+                      npm run postbuild
 
                       export LD_PRELOAD=$(clang -print-file-name=libclang_rt.asan-x86_64.so)
                       export RUST_BACKTRACE=1

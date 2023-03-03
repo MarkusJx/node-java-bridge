@@ -80,6 +80,7 @@
     "devDependencies": {
         "@napi-rs/cli": "^2.14.8",
         "@types/chai": "^4.3.4",
+        "@types/folder-hash": "^4.0.2",
         "@types/glob": "^8.1.0",
         "@types/is-ci": "^3.0.0",
         "@types/mocha": "^10.0.1",
@@ -91,6 +92,7 @@
         "chai": "^4.3.7",
         "cpy-cli": "^4.2.0",
         "expose-gc": "^1.0.0",
+        "folder-hash": "^4.0.4",
         "is-ci": "^3.0.1",
         "mocha": "^10.2.0",
         "mocha-junit-reporter": "^2.2.0",
