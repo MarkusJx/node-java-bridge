@@ -630,11 +630,14 @@ export default class TypescriptDefinitionGenerator {
                     undefined,
                     'methods',
                     undefined,
-                    ts.factory.createTypeReferenceNode(
-                        interfaceName,
-                        undefined
-                    ),
-                    undefined
+                    ts.factory.createTypeReferenceNode(interfaceName)
+                ),
+                ts.factory.createParameterDeclaration(
+                    undefined,
+                    undefined,
+                    'opts',
+                    ts.factory.createToken(ts.SyntaxKind.QuestionToken),
+                    ts.factory.createTypeReferenceNode('InterfaceProxyOptions')
                 ),
             ],
             ts.factory.createTypeReferenceNode('JavaInterfaceProxy', [
@@ -652,6 +655,7 @@ export default class TypescriptDefinitionGenerator {
                                     true
                                 ),
                                 ts.factory.createIdentifier('methods'),
+                                ts.factory.createIdentifier('opts'),
                             ]
                         )
                     ),
@@ -667,6 +671,7 @@ export default class TypescriptDefinitionGenerator {
                 ` * All required methods in {@link ${simpleName}Interface} must be implemented.\n` +
                 ` *\n` +
                 ` * @param methods the methods to implement\n` +
+                ` * @param opts the proxy options\n` +
                 ` * @return the proxy\n `,
             true
         );
@@ -851,6 +856,11 @@ export default class TypescriptDefinitionGenerator {
                     false,
                     undefined,
                     ts.factory.createIdentifier('newProxy')
+                ),
+                ts.factory.createImportSpecifier(
+                    false,
+                    undefined,
+                    ts.factory.createIdentifier('InterfaceProxyOptions')
                 )
             );
         }
