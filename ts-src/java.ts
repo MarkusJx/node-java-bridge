@@ -728,6 +728,8 @@ export function getJavaInstance(): Java | null {
  */
 export class config {
     /**
+     * **Experimental Feature**
+     *
      * Set whether to run the event loop when an interface proxy is active.
      * This is disabled by default. Enabling this will cause the bridge
      * to run the event loop when an interface proxy either as direct
@@ -745,6 +747,8 @@ export class config {
     }
 
     /**
+     * **Experimental Feature**
+     *
      * Get whether to run the event loop when an interface proxy is active.
      */
     static get runEventLoopWhenInterfaceProxyIsActive(): boolean {
