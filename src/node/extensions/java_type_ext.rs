@@ -1,7 +1,7 @@
 use crate::node::helpers::js_to_java_object::{JsIntoJavaObject, JsToJavaClass};
-use crate::node::helpers::napi_error::MapToNapiError;
+use crate::node::helpers::napi_error::{MapToNapiError, NapiError};
+use crate::node::interface_proxy::java_interface_proxy::JavaInterfaceProxy;
 use crate::node::java_class_instance::OBJECT_PROPERTY;
-use crate::node::java_interface_proxy::JavaInterfaceProxy;
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_env::JavaEnv;
 use java_rs::java_type::{JavaType, Type};
@@ -80,8 +80,14 @@ impl JsTypeEq for JavaType {
                 } else if other.is_buffer()? {
                     self.is_byte_array()
                 } else if JavaInterfaceProxy::instance_of(env.clone(), &other)? {
-                    let proxy: JsObject = other.coerce_to_object()?.get_named_property("proxy")?;
-                    let obj = env.unwrap::<GlobalJavaObject>(&proxy)?;
+                    let proxy: JsUnknown = other.coerce_to_object()?.get_named_property("proxy")?;
+                    if proxy.get_type()? == ValueType::Null {
+                        return Err(
+                            NapiError::from("The proxy has already been destroyed").into_napi()
+                        );
+                    }
+
+                    let obj = env.unwrap::<GlobalJavaObject>(&proxy.coerce_to_object()?)?;
                     let j_env = obj.get_vm().attach_thread().map_napi_err()?;
                     let other_class = obj.get_class(&j_env).map_napi_err()?;
 
@@ -283,8 +289,16 @@ impl NapiToJava for JavaType {
 
                     let obj = value.coerce_to_object().map_err(err_fn)?;
                     if JavaInterfaceProxy::instance_of(node_env.clone(), &obj)? {
-                        let proxy: JsObject = obj.get_named_property("proxy")?;
-                        JavaObject::from(node_env.unwrap::<GlobalJavaObject>(&proxy)?.clone())
+                        let proxy: JsUnknown = obj.get_named_property("proxy")?;
+                        if proxy.get_type()? == ValueType::Null {
+                            return Err("The proxy has already been destroyed".into());
+                        }
+
+                        JavaObject::from(
+                            node_env
+                                .unwrap::<GlobalJavaObject>(&proxy.coerce_to_object()?)?
+                                .clone(),
+                        )
                     } else {
                         let js_obj: JsObject =
                             obj.get_named_property(OBJECT_PROPERTY).map_err(err_fn)?;

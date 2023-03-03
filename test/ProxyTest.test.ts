@@ -69,6 +69,17 @@ describe('ProxyTest', () => {
             expect(() => proxy!.reset()).to.throw();
         });
 
+        it('Use destroyed proxy', () => {
+            const proxy = java.newProxy('java.lang.Runnable', {
+                run: () => {},
+            });
+            proxy.reset();
+
+            expect(() => proxy.reset()).to.throw();
+            const Thread = java.importClass<typeof JThread>('java.lang.Thread');
+            expect(() => new Thread(proxy)).to.throw();
+        });
+
         after(function () {
             this.timeout(timeoutMs);
             proxy = null;
@@ -80,6 +91,10 @@ describe('ProxyTest', () => {
     describe('java.util.function.Function proxy', () => {
         const shouldSkip = semver.lt(javaVersion, '12.0.0');
         let proxy: JavaInterfaceProxy | null = null;
+
+        before(() => {
+            java.config.runEventLoopWhenInterfaceProxyIsActive = true;
+        });
 
         it('Create a new proxy', async function () {
             if (shouldSkip) this.skip();
@@ -164,6 +179,7 @@ describe('ProxyTest', () => {
             this.timeout(timeoutMs);
             proxy = null;
             global.gc!();
+            java.config.runEventLoopWhenInterfaceProxyIsActive = false;
         });
     });
 
@@ -210,6 +226,117 @@ describe('ProxyTest', () => {
             proxies.forEach((proxy) => proxy.reset());
             proxies.length = 0;
             global.gc!();
+        });
+    });
+
+    describe('Daemon proxies', () => {
+        const shouldSkip = semver.lt(javaVersion, '12.0.0');
+
+        it('Scheduled proxy', (done) => {
+            const proxy = java.newProxy(
+                'java.lang.Runnable',
+                {
+                    run: () => {
+                        done();
+                    },
+                },
+                {
+                    keepAsDaemon: true,
+                }
+            );
+
+            (async () => {
+                const TimeUnit = java.importClass(
+                    'java.util.concurrent.TimeUnit'
+                );
+                const ScheduledThreadPoolExecutor = java.importClass(
+                    'java.util.concurrent.ScheduledThreadPoolExecutor'
+                );
+                const executor =
+                    await ScheduledThreadPoolExecutor.newInstanceAsync(1);
+                await executor.schedule(proxy, 1, TimeUnit.SECONDS);
+                await executor.shutdown();
+                proxy.reset();
+
+                expect(() => proxy.reset()).to.throw();
+            })();
+        }).timeout(timeoutMs * 10);
+
+        it('Scheduled proxy (sync)', (done) => {
+            const proxy = java.newProxy(
+                'java.lang.Runnable',
+                {
+                    run: () => {
+                        done();
+                    },
+                },
+                {
+                    keepAsDaemon: true,
+                }
+            );
+
+            const TimeUnit = java.importClass('java.util.concurrent.TimeUnit');
+            const ScheduledThreadPoolExecutor = java.importClass(
+                'java.util.concurrent.ScheduledThreadPoolExecutor'
+            );
+            const executor = new ScheduledThreadPoolExecutor(1);
+            executor.scheduleSync(proxy, 1, TimeUnit.SECONDS);
+            executor.shutdownSync();
+            proxy.reset();
+
+            expect(() => proxy.reset()).to.throw();
+        }).timeout(timeoutMs * 10);
+
+        it('Basic proxy', async function () {
+            if (shouldSkip) this.skip();
+
+            let proxy = java.newProxy(
+                'java.util.function.Function',
+                {
+                    apply: (arg: string): string => {
+                        return arg.toUpperCase();
+                    },
+                },
+                {
+                    keepAsDaemon: true,
+                }
+            );
+
+            const JString =
+                java.importClass<typeof JavaString>('java.lang.String');
+            const str = new JString('hello');
+            expect(await str.transform(proxy)).to.equal('HELLO');
+            proxy.reset();
+        });
+
+        it('Force reset', async function () {
+            if (shouldSkip) this.skip();
+
+            let proxy = java.newProxy(
+                'java.util.function.Function',
+                {
+                    apply: (arg: string): string => {
+                        return arg.toUpperCase();
+                    },
+                },
+                {
+                    keepAsDaemon: true,
+                }
+            );
+
+            proxy.reset(true);
+            expect(() => proxy.reset()).to.throw();
+
+            const JString =
+                java.importClass<typeof JavaString>('java.lang.String');
+            const str = new JString('hello');
+            expect(() => str.transformSync(proxy)).to.throw();
+        });
+
+        after(function () {
+            this.timeout(timeoutMs);
+            global.gc!();
+            java.clearDaemonProxies();
         });
     });
 });

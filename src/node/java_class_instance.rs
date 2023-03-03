@@ -1,14 +1,15 @@
+use crate::node::config::Config;
 use crate::node::extensions::java_call_result_ext::ToNapiValue;
 use crate::node::extensions::property_with_data::{DefinePropertiesWithData, PropertyWithData};
 use crate::node::helpers::arg_convert::{call_context_to_java_args, call_results_to_args};
 use crate::node::helpers::napi_error::{MapToNapiError, NapiError};
 use crate::node::helpers::napi_ext::{load_napi_library, uv_run, uv_run_mode};
+use crate::node::interface_proxy::proxies::interface_proxy_exists;
 use crate::node::java::Java;
 use crate::node::java_class_field::{
     get_static_class_field, set_class_field, set_static_class_field,
 };
 use crate::node::java_class_proxy::JavaClassProxy;
-use crate::node::java_interface_proxy::JavaInterfaceProxy;
 use futures::future;
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_type::JavaType;
@@ -249,7 +250,9 @@ impl JavaClassInstance {
         let env = proxy.vm.attach_thread().map_napi_err()?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
 
-        let result = if JavaInterfaceProxy::interface_proxy_exists() {
+        let result = if Config::get().run_event_loop_when_interface_proxy_is_active
+            && interface_proxy_exists()
+        {
             // If the call context contains an interface proxy, we need to call the method
             // on a different thread as calling it on the same thread may cause a deadlock.
             // Additionally, we need to run the event loop to allow the javascript thread to
@@ -269,7 +272,7 @@ impl JavaClassInstance {
 
             while !handle.is_finished() {
                 unsafe {
-                    uv_run(ctx.env.get_uv_event_loop()?, uv_run_mode::UV_RUN_ONCE);
+                    uv_run(ctx.env.get_uv_event_loop()?, uv_run_mode::UV_RUN_NOWAIT);
                 }
 
                 thread::sleep(Duration::from_millis(10));
