@@ -5,12 +5,10 @@ env:
 
 on:
     push:
-    pull_request:
 
 jobs:
-    build_and_test:
-        name: ubuntu - node@18
-        runs-on: ubuntu-20.04
+    build-and-test:
+        runs-on: ubuntu-latest
 
         steps:
             - uses: actions/checkout@v3
@@ -28,48 +26,27 @@ jobs:
                   distribution: 'temurin'
                   java-version: '17'
 
-            - name: Install
-              uses: actions-rs/toolchain@v1
-              with:
-                  toolchain: nightly
-                  profile: minimal
-                  components: rust-src
-                  override: true
-
-            - name: Rust Cache
-              uses: Swatinem/rust-cache@v2.2.1
-
-            - name: Cache java definitions
-              uses: actions/cache@v3
-              with:
-                  path: test/javaDefinitions/**
-                  key: ${{ runner.os }}-javaDefinitions-${{ hashFiles('**/test/javaDefinitions/**') }}
-
             - name: Install dependencies
               run: npm ci
 
-            - name: Build tests
-              run: npm run build:debug
-              env:
-                  RUST_TARGET: x86_64-unknown-linux-gnu
-                  RUST_BACKTRACE: 1
-                  RUSTFLAGS: -Z sanitizer=address
-                  ASAN_OPTIONS: detect_leaks=0
+            - name: Build java
+              run: npm run build:java
 
-            - name: Unit tests with address sanitizer
-              run: |
-                  LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/9/libasan.so npm run generateTestTypes
-                  npm run build:tests
-                  LD_PRELOAD=/usr/lib/gcc/x86_64-linux-gnu/9/libasan.so npm run test:asan
-              env:
-                  RUST_TARGET: x86_64-unknown-linux-gnu
-                  RUST_BACKTRACE: 1
-                  RUSTFLAGS: -Z sanitizer=address
-                  ASAN_OPTIONS: detect_leaks=0
-                  FORCE_RUN_ALL_TESTS: true
-                  INCREASE_TIMEOUT: true
-
-            - name: Clear the cargo caches
-              run: |
-                  cargo install cargo-cache --no-default-features --features ci-autoclean
-                  cargo-cache
+            - name: Run tests with address sanitizer
+              uses: addnab/docker-run-action@v3
+              with:
+                  registry: gcr.io
+                  image: ghcr.io/markusjx/prebuilt-debug-jdk:17-bullseye
+                  options: |
+                      -v ${{ github.workspace }}:/app
+                      -e RUST_BACKTRACE=1 -e FORCE_RUN_ALL_TESTS=true
+                      -e INCREASE_TIMEOUT=true -e DEBUG: 'napi:*'
+                  run: |
+                      curl -fsSL https://deb.nodesource.com/setup_19.x | bash -
+                      apt-get install -y nodejs
+                      cargo update
+                      npm run build:napi:debug -- --target=x86_64-unknown-linux-gnu \
+                        --cargo-flags="-Zbuild-std"
+                      npm run build:ts
+                      npm run generateTestTypes
+                      npm run testOnly
