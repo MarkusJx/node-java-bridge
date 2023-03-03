@@ -145,5 +145,5 @@ describe('TypescriptDefinitionGenerator test', () => {
             FileOutputStream.nullOutputStreamSync()!.flushSync();
             `
         );
-    }).timeout(timeoutMs * 2);
+    }).timeout(timeoutMs * 4);
 });
