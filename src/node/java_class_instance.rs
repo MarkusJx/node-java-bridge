@@ -1,12 +1,14 @@
 use crate::node::extensions::java_call_result_ext::ToNapiValue;
 use crate::node::extensions::property_with_data::{DefinePropertiesWithData, PropertyWithData};
 use crate::node::helpers::arg_convert::{call_context_to_java_args, call_results_to_args};
-use crate::node::helpers::napi_error::MapToNapiError;
+use crate::node::helpers::napi_error::{MapToNapiError, NapiError};
+use crate::node::helpers::napi_ext::{load_napi_library, uv_run, uv_run_mode};
 use crate::node::java::Java;
 use crate::node::java_class_field::{
     get_static_class_field, set_class_field, set_static_class_field,
 };
 use crate::node::java_class_proxy::JavaClassProxy;
+use crate::node::java_interface_proxy::JavaInterfaceProxy;
 use futures::future;
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_type::JavaType;
@@ -18,6 +20,8 @@ use napi::{
 };
 use std::ops::Not;
 use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
 
 pub const CLASS_PROXY_PROPERTY: &str = "class.proxy";
 pub const OBJECT_PROPERTY: &str = "class.object";
@@ -244,9 +248,44 @@ impl JavaClassInstance {
 
         let env = proxy.vm.attach_thread().map_napi_err()?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
-        let args_ref = call_results_to_args(&args);
 
-        let result = method.call(&obj, args_ref.as_slice()).map_napi_err()?;
+        let result = if JavaInterfaceProxy::interface_proxy_exists() {
+            // If the call context contains an interface proxy, we need to call the method
+            // on a different thread as calling it on the same thread may cause a deadlock.
+            // Additionally, we need to run the event loop to allow the javascript thread to
+            // run the callback.
+            let cloned_obj = obj.clone();
+            let cloned_method = method.clone();
+
+            // Load the uv_run function from the uv library
+            load_napi_library();
+
+            let handle = thread::spawn(move || -> napi::Result<JavaCallResult> {
+                let args_ref = call_results_to_args(&args);
+                cloned_method
+                    .call(&cloned_obj, args_ref.as_slice())
+                    .map_napi_err()
+            });
+
+            while !handle.is_finished() {
+                unsafe {
+                    uv_run(ctx.env.get_uv_event_loop()?, uv_run_mode::UV_RUN_ONCE);
+                }
+
+                thread::sleep(Duration::from_millis(10));
+            }
+
+            handle
+                .join()
+                .map_err(|_| NapiError::from("Failed to join thread").into_napi())??
+        } else {
+            let env = proxy.vm.attach_thread().map_napi_err()?;
+            let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
+            let args_ref = call_results_to_args(&args);
+
+            method.call(&obj, args_ref.as_slice()).map_napi_err()?
+        };
+
         result.to_napi_value(&env, ctx.env).map_napi_err()
     }
 

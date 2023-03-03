@@ -18,6 +18,14 @@ declare class JThread extends JavaClass {
     public join(): Promise<void>;
 }
 
+declare class JavaString extends JavaClass {
+    public constructor(str: string);
+
+    public transformSync(proxy: JavaInterfaceProxy): string;
+
+    public transform(proxy: JavaInterfaceProxy): Promise<string>;
+}
+
 function getJavaVersion(): string {
     const version: string = importClass('java.lang.System')
         .getPropertySync('java.version')
@@ -82,9 +90,25 @@ describe('ProxyTest', () => {
                 },
             });
 
-            const JString = java.importClass('java.lang.String');
+            const JString =
+                java.importClass<typeof JavaString>('java.lang.String');
             const str = new JString('hello');
             expect(await str.transform(proxy)).to.equal('HELLO');
+        });
+
+        it('Proxy (sync)', function () {
+            if (shouldSkip) this.skip();
+
+            proxy = java.newProxy('java.util.function.Function', {
+                apply: (arg: string): string => {
+                    return arg.toUpperCase();
+                },
+            });
+
+            const JString =
+                java.importClass<typeof JavaString>('java.lang.String');
+            const str = new JString('hello');
+            expect(str.transformSync(proxy)).to.equal('HELLO');
         });
 
         it('Proxy with error', async function () {
@@ -95,11 +119,35 @@ describe('ProxyTest', () => {
                 },
             });
 
-            const JString = java.importClass('java.lang.String');
+            const JString =
+                java.importClass<typeof JavaString>('java.lang.String');
             const str = new JString('hello');
 
             try {
                 await str.transform(proxy);
+                assert.fail('Should have thrown');
+            } catch (e: any) {
+                expect(e.message).to.contain(
+                    'io.github.markusjx.bridge.JavascriptException: Error'
+                );
+            }
+        });
+
+        it('Proxy with error (sync)', function () {
+            if (shouldSkip) this.skip();
+
+            proxy = java.newProxy('java.util.function.Function', {
+                apply: (): string => {
+                    throw new Error('Error');
+                },
+            });
+
+            const JString =
+                java.importClass<typeof JavaString>('java.lang.String');
+            const str = new JString('hello');
+
+            try {
+                str.transformSync(proxy);
                 assert.fail('Should have thrown');
             } catch (e: any) {
                 expect(e.message).to.contain(
