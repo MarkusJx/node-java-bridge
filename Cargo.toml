@@ -1,20 +1,20 @@
 [package]
 edition = "2021"
 name = "java"
-version = "2.2.0"
+version = "2.2.3"
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-napi = { version = "2.10.1", default-features = false, features = ["napi6", "tokio_rt"] }
-napi-derive = "2.9.1"
-tokio = "1.22.0"
-futures = "0.3.25"
-java-locator = "0.1.2"
+napi = { version = "2.11.2", default-features = false, features = ["napi6", "tokio_rt"] }
+napi-derive = "2.11.1"
+tokio = "1.25.0"
+futures = "0.3.26"
+java-locator = "0.1.3"
 lazy_static = "1.4.0"
 rand = "0.8.5"
-glob = "0.3.0"
+glob = "0.3.1"
 java-rs = { git = "https://github.com/MarkusJx/java-rs" }
 # TODO: remove this once the PR is merged
 libloading = "0.7.4"

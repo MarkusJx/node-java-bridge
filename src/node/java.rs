@@ -1,7 +1,8 @@
 use crate::node::helpers::napi_error::{MapToNapiError, StrIntoNapiError};
+use crate::node::interface_proxy::interface_proxy_options::InterfaceProxyOptions;
+use crate::node::interface_proxy::java_interface_proxy::JavaInterfaceProxy;
 use crate::node::java_class_instance::{JavaClassInstance, CLASS_PROXY_PROPERTY, OBJECT_PROPERTY};
 use crate::node::java_class_proxy::JavaClassProxy;
-use crate::node::java_interface_proxy::JavaInterfaceProxy;
 use crate::node::java_options::JavaOptions;
 use crate::node::stdout_redirect::StdoutRedirect;
 use crate::node::util::util::{
@@ -196,8 +197,16 @@ impl Java {
             ts_arg_type = "Record<string, (err: null | Error, callback: (err: Error | null, data?: any | null) => void, ...args: any[]) => void>"
         )]
         methods: HashMap<String, JsFunction>,
+        options: Option<InterfaceProxyOptions>,
     ) -> napi::Result<JavaInterfaceProxy> {
-        JavaInterfaceProxy::new(self.root_vm.clone(), env, classname, methods).map_napi_err()
+        JavaInterfaceProxy::new(
+            self.root_vm.clone(),
+            env,
+            classname,
+            methods,
+            options.unwrap_or(InterfaceProxyOptions::default()),
+        )
+        .map_napi_err()
     }
 
     /// Check if `this` is instance of `other`

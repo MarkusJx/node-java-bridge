@@ -1,7 +1,15 @@
 use crate::node::extensions::java_call_result_ext::ToNapiValue;
 use crate::node::extensions::java_type_ext::NapiToJava;
 use crate::node::helpers::napi_error::{MapToNapiError, NapiError};
-use futures::channel::oneshot::{channel, Sender};
+use crate::node::interface_proxy::function_caller::FunctionCaller;
+use crate::node::interface_proxy::interface_call::InterfaceCall;
+use crate::node::interface_proxy::interface_proxy_options::InterfaceProxyOptions;
+use crate::node::interface_proxy::js_error::JsError;
+use crate::node::interface_proxy::proxies::{
+    find_methods_by_id, generate_proxy_id, get_daemon_proxies, get_proxies, remove_proxy,
+};
+use crate::node::interface_proxy::types::{JsCallResult, MethodsType};
+use futures::channel::oneshot::channel;
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_env::JavaEnv;
 use java_rs::java_type::JavaType;
@@ -15,23 +23,11 @@ use java_rs::objects::string::JavaString;
 use java_rs::objects::value::JavaLong;
 use java_rs::util::util::ResultType;
 use java_rs::{function, sys};
-use lazy_static::lazy_static;
-use napi::threadsafe_function::{
-    ThreadSafeCallContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
-};
+use napi::threadsafe_function::{ThreadSafeCallContext, ThreadsafeFunctionCallMode};
 use napi::{CallContext, Env, JsFunction, JsObject, JsString, JsUnknown};
-use rand::Rng;
 use std::collections::HashMap;
 use std::ptr;
-use std::sync::{Arc, Mutex, MutexGuard};
-
-type MethodsType = Arc<Mutex<HashMap<String, ThreadsafeFunction<InterfaceCall>>>>;
-type ProxiesType = HashMap<usize, MethodsType>;
-type JsCallResult = Result<Result<Option<GlobalJavaObject>, JsError>, String>;
-
-lazy_static! {
-    static ref PROXIES: Mutex<ProxiesType> = Mutex::new(HashMap::new());
-}
+use std::sync::{Arc, Mutex};
 
 #[no_mangle]
 #[allow(non_snake_case, dead_code)]
@@ -50,7 +46,7 @@ pub extern "system" fn Java_io_github_markusjx_bridge_JavaFunctionCaller_callNod
                 let env = unsafe { JavaEnv::from_raw(env) };
                 err.push(function!(), file!(), line!());
                 if err.throw(&env).is_err() {
-                    env.throw_error(err.message);
+                    env.throw_error(err.message());
                 }
 
                 ptr::null_mut()
@@ -82,15 +78,12 @@ unsafe fn call_node_function(
         .ok_or("Class.getName() returned null")?;
     let name = JavaString::try_from(java_name)?.to_string()?;
 
-    let proxies = PROXIES.lock().unwrap();
-    let methods = proxies
-        .get(&(id as _))
-        .ok_or(format!("No proxy with the id {} exists", id))?
-        .lock()
-        .unwrap();
+    let proxies = get_proxies();
+    let daemon_proxies = get_daemon_proxies();
+    let methods = find_methods_by_id(id as _, &proxies, &daemon_proxies)?;
     let method = methods
         .get(&name)
-        .ok_or(format!("No method with the name {} exists", name))?;
+        .ok_or(format!("No method with the name '{}' exists", name))?;
 
     let mut converted_args: Vec<JavaCallResult> = Vec::new();
     if args != ptr::null_mut() {
@@ -113,6 +106,7 @@ unsafe fn call_node_function(
     );
     drop(methods);
     drop(proxies);
+    drop(daemon_proxies);
 
     let res = futures::executor::block_on(rx)??;
     Ok(res.map(|o| o.map(|g| g.into_return_value()).unwrap_or(ptr::null_mut())))
@@ -152,7 +146,7 @@ fn js_callback(
         }
         .unwrap_or(vec![]);
 
-        JsError::_push(&mut stack, function!(), file!(), line!());
+        JsError::push_stack(&mut stack, function!(), file!(), line!());
         Ok(Err(JsError::new(message, stack)))
     } else {
         let env = vm.attach_thread()?;
@@ -167,92 +161,13 @@ fn js_callback(
     }
 }
 
-struct JsError {
-    message: String,
-    stack: Vec<String>,
-}
-
-impl JsError {
-    pub fn new(message: String, mut stack: Vec<String>) -> Self {
-        Self::_push(&mut stack, function!(), file!(), line!());
-        Self { message, stack }
-    }
-
-    pub fn push(&mut self, method: &str, file: &str, line: u32) {
-        Self::_push(&mut self.stack, method, file, line);
-    }
-
-    fn _push(stack: &mut Vec<String>, method: &str, file: &str, line: u32) {
-        stack.insert(0, format!("\tat {} ({}:{})", method, file, line));
-    }
-
-    fn throw(&self, env: &JavaEnv) -> ResultType<()> {
-        let utils = JavaClass::by_name("io/github/markusjx/bridge/Util", &env)?;
-        let exception_from_js_error = utils.get_static_object_method(
-            "exceptionFromJsError",
-            "(Ljava/lang/String;[Ljava/lang/String;)Ljava/lang/Exception;",
-        )?;
-
-        let mut stack = self.stack.clone();
-        Self::_push(&mut stack, function!(), file!(), line!());
-
-        let string_class = JavaClass::by_name("java/lang/String", &env)?;
-        let mut java_stack = JavaObjectArray::new(&string_class, stack.len() as _)?;
-
-        for i in 0..stack.len() {
-            java_stack.set(
-                i as _,
-                Some(JavaObject::from(JavaString::from_string(
-                    stack.get(i).unwrap().clone(),
-                    &env,
-                )?)),
-            )?;
-        }
-
-        let exception = exception_from_js_error
-            .call(&[
-                JavaString::from_string(self.message.clone(), &env)?.as_arg(),
-                java_stack.as_arg(),
-            ])?
-            .ok_or(
-                "io/github/markusjx/bridge/Util.exceptionFromJsError returned null".to_string(),
-            )?;
-        env.throw(JavaObject::from(exception));
-        Ok(())
-    }
-}
-
-struct InterfaceCall {
-    args: Vec<JavaCallResult>,
-    sender: Mutex<Option<Sender<JsCallResult>>>,
-}
-
-impl InterfaceCall {
-    pub fn new(args: Vec<JavaCallResult>, sender: Sender<JsCallResult>) -> Self {
-        InterfaceCall {
-            args,
-            sender: Mutex::new(Some(sender)),
-        }
-    }
-
-    pub fn set_result(&self, result: JsCallResult) -> ResultType<()> {
-        self.sender
-            .lock()
-            .unwrap()
-            .take()
-            .ok_or("The sender was already invoked".to_string())?
-            .send(result)
-            .map_err(|_| "Could not send result to sender".into())
-    }
-}
-
 #[napi]
 pub struct JavaInterfaceProxy {
     id: usize,
     methods: MethodsType,
     proxy_instance: Option<GlobalJavaObject>,
-    function_caller_instance: Option<GlobalJavaObject>,
-    vm: JavaVM,
+    function_caller_instance: FunctionCaller,
+    options: InterfaceProxyOptions,
 }
 
 #[napi]
@@ -262,11 +177,13 @@ impl JavaInterfaceProxy {
         env: Env,
         classname: String,
         methods: HashMap<String, JsFunction>,
+        options: InterfaceProxyOptions,
     ) -> ResultType<Self> {
         let j_env = vm.attach_thread()?;
 
-        let mut proxies = PROXIES.lock().unwrap();
-        let id = Self::generate_id(&proxies);
+        let mut proxies = get_proxies();
+        let daemon_proxies = get_daemon_proxies();
+        let id = generate_proxy_id(&proxies, &daemon_proxies);
 
         let string = JavaClass::by_name("java/lang/String", &j_env)?;
         let mut implemented_methods = JavaObjectArray::new(&string, methods.len())?;
@@ -347,71 +264,56 @@ impl JavaInterfaceProxy {
         Ok(Self {
             id,
             methods: converted_methods,
-            function_caller_instance: Some(global_function_caller_instance),
+            function_caller_instance: FunctionCaller::new(global_function_caller_instance),
             proxy_instance: Some(global_proxy_instance),
-            vm,
+            options,
         })
     }
 
-    fn generate_id(proxies: &MutexGuard<ProxiesType>) -> usize {
-        let mut rng = rand::thread_rng();
-        let mut id: usize = rng.gen();
-
-        while proxies.contains_key(&id) {
-            id = rng.gen();
-        }
-
-        id
-    }
-
     #[napi(getter)]
-    pub fn proxy(&self, env: Env) -> napi::Result<JsObject> {
-        let mut res = env.create_object()?;
-        env.wrap(&mut res, self.proxy_instance.as_ref().unwrap().clone())?;
+    pub fn proxy(&self, env: Env) -> napi::Result<Option<JsObject>> {
+        self.proxy_instance.as_ref().map_or(Ok(None), |proxy| {
+            let mut res = env.create_object()?;
+            env.wrap(&mut res, proxy.clone())?;
 
-        Ok(res)
+            Ok(Some(res))
+        })
     }
 
     #[napi]
-    pub fn reset(&mut self) -> napi::Result<()> {
+    pub fn reset(&mut self, force: Option<bool>) -> napi::Result<()> {
         let mut methods = self.methods.lock().unwrap();
-        if self.function_caller_instance.is_none() || self.proxy_instance.is_none() {
+        if self.function_caller_instance.is_dead() || self.proxy_instance.is_none() {
             return Err(NapiError::from("This instance is already destroyed").into());
         }
 
-        let env = self.vm.attach_thread().map_napi_err()?;
-        let java_class = env
-            .get_object_class(JavaObject::from(
-                self.function_caller_instance.as_ref().unwrap(),
-            ))
-            .map_napi_err()?;
-        let destruct = java_class
-            .get_void_method("destruct", "()V")
-            .map_napi_err()?;
-        destruct
-            .call(
-                JavaObject::from(self.function_caller_instance.as_ref().unwrap()),
-                &[],
-            )
-            .map_napi_err()?;
+        let keep_as_daemon =
+            self.options.keep_as_daemon.unwrap_or(false) && !force.unwrap_or(false);
+        if !keep_as_daemon {
+            self.function_caller_instance.destroy()?;
+        }
 
-        let mut proxies = PROXIES.lock().unwrap();
-        proxies.remove(&self.id);
+        let mut proxies = get_proxies();
+        let mut daemon_proxies = get_daemon_proxies();
+        remove_proxy(
+            self.id,
+            keep_as_daemon,
+            &mut proxies,
+            &mut daemon_proxies,
+            self.function_caller_instance.move_to(),
+        );
 
         self.proxy_instance.take();
-        self.function_caller_instance.take();
-        methods.clear();
+        if !keep_as_daemon {
+            methods.clear();
+        }
 
         Ok(())
-    }
-
-    pub fn interface_proxy_exists() -> bool {
-        !PROXIES.lock().unwrap().is_empty()
     }
 }
 
 impl Drop for JavaInterfaceProxy {
     fn drop(&mut self) {
-        self.reset().ok();
+        self.reset(Some(false)).ok();
     }
 }
