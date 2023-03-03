@@ -83,12 +83,6 @@ jobs:
               run: npm run testOnly
               timeout-minutes: 20
 
-            - run: ls
-            - run: ls
-              working-directory: test
-            - run: ls
-              working-directory: test/javaDefinitions
-
             - name: Create test summary
               uses: test-summary/action@dist
               if: always()
