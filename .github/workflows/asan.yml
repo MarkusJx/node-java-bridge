@@ -37,10 +37,7 @@ jobs:
               with:
                   registry: gcr.io
                   image: ghcr.io/markusjx/prebuilt-debug-jdk:17-bullseye
-                  options: |
-                      -v ${{ github.workspace }}:/app\
-                      -e RUST_BACKTRACE=1 -e FORCE_RUN_ALL_TESTS=true\
-                      -e INCREASE_TIMEOUT=true -e DEBUG='napi:*'
+                  options: -v ${{ github.workspace }}:/app
                   run: |
                       curl -fsSL https://deb.nodesource.com/setup_19.x | bash -
                       apt-get install -y nodejs
@@ -51,4 +48,8 @@ jobs:
                       echo $JAVA_HOME
 
                       LD_PRELOAD=$(clang -print-file-name=libclang_rt.asan-x86_64.so)
+                      RUST_BACKTRACE=1
+                      FORCE_RUN_ALL_TESTS=true
+                      INCREASE_TIMEOUT=true
+                      DEBUG='napi:*'
                       npm run testOnly
