@@ -40,7 +40,7 @@ jobs:
                   options: |
                       -v ${{ github.workspace }}:/app\
                       -e RUST_BACKTRACE=1 -e FORCE_RUN_ALL_TESTS=true\
-                      -e INCREASE_TIMEOUT=true -e DEBUG: 'napi:*'
+                      -e INCREASE_TIMEOUT=true -e DEBUG='napi:*'
                   run: |
                       curl -fsSL https://deb.nodesource.com/setup_19.x | bash -
                       apt-get install -y nodejs
@@ -49,5 +49,6 @@ jobs:
                         --cargo-flags="-Zbuild-std"
                       npm run build:ts
                       echo $JAVA_HOME
+
                       LD_PRELOAD=$(clang -print-file-name=libclang_rt.asan-x86_64.so)
                       npm run testOnly
