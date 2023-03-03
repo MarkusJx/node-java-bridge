@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import { ClassTool, shouldIncreaseTimeout } from './testUtil';
 import path from 'path';
 
+const shouldSkip = process.env.SKIP_CLASS_TEST === 'true';
 const timeout = shouldIncreaseTimeout ? 60e3 : 20e3;
 let classTool: ClassTool | null = null;
 
@@ -34,7 +35,9 @@ function createJarWithBasicClass(
     classTool!.createJar(jarName).addFile(fileName, fileName).close();
 }
 
-describe('ClassTest', () => {
+describe('ClassTest', function () {
+    if (shouldSkip) return;
+
     before(function () {
         this.timeout(timeout);
         if (!classTool) classTool = new ClassTool();
