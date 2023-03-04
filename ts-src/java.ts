@@ -659,6 +659,26 @@ type InternalProxyRecord = Parameters<
  * If that is not an option for you, you can manually keep the proxy alive
  * by setting the {@link InterfaceProxyOptions.keepAsDaemon} option to true.
  *
+ * ```ts
+ * const proxy = newProxy('java.lang.Runnable', {
+ *    run: (): void => {
+ *      console.log('Hello World!');
+ *    }
+ * }, {
+ *    keepAsDaemon: true
+ * });
+ *
+ * const TimeUnit = java.importClass('java.util.concurrent.TimeUnit');
+ * const ScheduledThreadPoolExecutor = java.importClass(
+ *     'java.util.concurrent.ScheduledThreadPoolExecutor'
+ * );
+ * const executor = new ScheduledThreadPoolExecutor(1);
+ *
+ * // 'proxy' will eventually be garbage collected,
+ * // but it will be kept alive due to this option.
+ * executor.scheduleAtFixedRateSync(proxy, 0, 1, TimeUnit.SECONDS);
+ * ```
+ *
  * This will keep the proxy alive internally, thus the instance can be moved
  * out of scope. However, this will also keep the JVM alive, so you should
  * only use this if you are sure that you want to keep the JVM alive.
@@ -728,6 +748,8 @@ export function getJavaInstance(): Java | null {
  */
 export class config {
     /**
+     * **Experimental Feature**
+     *
      * Set whether to run the event loop when an interface proxy is active.
      * This is disabled by default. Enabling this will cause the bridge
      * to run the event loop when an interface proxy either as direct
@@ -745,6 +767,8 @@ export class config {
     }
 
     /**
+     * **Experimental Feature**
+     *
      * Get whether to run the event loop when an interface proxy is active.
      */
     static get runEventLoopWhenInterfaceProxyIsActive(): boolean {
