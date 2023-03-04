@@ -517,7 +517,13 @@ export namespace stdout {
  * ## See also
  * * {@link newProxy}
  */
-export interface JavaInterfaceProxy {
+export interface JavaInterfaceProxy<T extends ProxyRecord<T> = AnyProxyRecord> {
+    /**
+     * A dummy property to make sure the type is correct.
+     * This property will never be set.
+     */
+    _dummy?: T;
+
     /**
      * Destroy the proxy class.
      * After this call any call to any method defined by the
@@ -545,6 +551,9 @@ export type ProxyMethod = (...args: any[]) => any;
 type InternalProxyRecord = Parameters<
     typeof Java.prototype.createInterfaceProxy
 >[1];
+
+type ProxyRecord<T> = Partial<Record<keyof T, ProxyMethod>>;
+type AnyProxyRecord = Record<string, ProxyMethod>;
 
 /**
  * Create a new java interface proxy.
@@ -697,11 +706,11 @@ type InternalProxyRecord = Parameters<
  * @param opts the options to use
  * @returns a proxy class to pass back to the java process
  */
-export function newProxy(
+export function newProxy<T extends ProxyRecord<T> = AnyProxyRecord>(
     interfaceName: string,
-    methods: Record<string, ProxyMethod>,
+    methods: T,
     opts?: InterfaceProxyOptions
-): JavaInterfaceProxy {
+): JavaInterfaceProxy<T> {
     ensureJvm();
     const proxyMethods: InternalProxyRecord = Object.create(null);
 
@@ -716,7 +725,7 @@ export function newProxy(
             }
 
             try {
-                const res = method(...args);
+                const res = (method as ProxyMethod)(...args);
                 callback(null, res);
             } catch (e: any) {
                 if (e instanceof Error) {
@@ -732,7 +741,7 @@ export function newProxy(
         interfaceName,
         proxyMethods,
         opts
-    ) as JavaInterfaceProxy;
+    ) as JavaInterfaceProxy<T>;
 }
 
 /**
