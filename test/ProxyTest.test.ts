@@ -29,7 +29,8 @@ declare class JavaString extends JavaClass {
 function getJavaVersion(): string {
     const version: string = importClass('java.lang.System')
         .getPropertySync('java.version')
-        .split('_')[0];
+        .split('_')[0]
+        .replace(/^(\d+)-internal$/gm, '$1.0.0');
 
     const arr = version.split('.');
     arr.length = Math.min(arr.length, 3);

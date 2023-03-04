@@ -203,3 +203,4 @@ Dockerfile
 test/javaDefinitions/**
 /testResults.xml
 test/testUtil.js
+testOut/

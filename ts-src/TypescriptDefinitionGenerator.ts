@@ -49,6 +49,9 @@ declare class TypeClass extends JavaClass {
     public getTypeName(): Promise<string>;
 }
 
+/**
+ * @ignore
+ */
 declare class DeclaredMethodClass extends JavaClass {
     public getModifiers(): Promise<number>;
     public getName(): Promise<string>;
@@ -57,11 +60,17 @@ declare class DeclaredMethodClass extends JavaClass {
     public isDefault(): Promise<boolean>;
 }
 
+/**
+ * @ignore
+ */
 declare class DeclaredConstructorClass extends JavaClass {
     public getModifiers(): Promise<number>;
     public getParameterTypes(): Promise<TypeClass[]>;
 }
 
+/**
+ * @ignore
+ */
 declare class ClassClass extends JavaClass {
     public getMethods(): Promise<DeclaredMethodClass[]>;
     public getDeclaredConstructors(): Promise<DeclaredConstructorClass[]>;
@@ -71,6 +80,9 @@ declare class ClassClass extends JavaClass {
     public isInterfaceSync(): boolean;
 }
 
+/**
+ * @ignore
+ */
 declare class FieldClass extends JavaClass {
     public getModifiers(): Promise<number>;
     public getName(): Promise<string>;

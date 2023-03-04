@@ -1,0 +1,43 @@
+name: Address Sanitizer
+
+on:
+    push:
+
+jobs:
+    build-and-test:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: Setup node
+              uses: actions/setup-node@v3.6.0
+              with:
+                  node-version: 18
+                  check-latest: true
+                  cache: 'npm'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run tests with address sanitizer
+              uses: addnab/docker-run-action@v3
+              with:
+                  registry: gcr.io
+                  image: ghcr.io/markusjx/prebuilt-debug-jdk:17-bullseye
+                  options: -v ${{ github.workspace }}:/app
+                  run: |
+                      curl -fsSL https://deb.nodesource.com/setup_18.x | bash - >> /dev/null
+                      apt-get install -yqq nodejs
+                      cargo update
+                      npm run build:napi:debug -- --target=x86_64-unknown-linux-gnu \
+                        --cargo-flags="-Zbuild-std"
+                      npm run postbuild
+
+                      export LD_PRELOAD=$(clang -print-file-name=libclang_rt.asan-x86_64.so)
+                      export RUST_BACKTRACE=1
+                      export FORCE_RUN_ALL_TESTS=true
+                      export INCREASE_TIMEOUT=true
+                      export SKIP_CLASS_TEST=true
+                      export DEBUG='napi:*'
+                      npm run testOnly
