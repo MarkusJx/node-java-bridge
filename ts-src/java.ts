@@ -552,8 +552,8 @@ type InternalProxyRecord = Parameters<
     typeof Java.prototype.createInterfaceProxy
 >[1];
 
-type ProxyRecord<T> = Partial<Record<keyof T, ProxyMethod>>;
-type AnyProxyRecord = Record<string, ProxyMethod>;
+export type ProxyRecord<T> = Partial<Record<keyof T, ProxyMethod>>;
+export type AnyProxyRecord = Record<string, ProxyMethod>;
 
 /**
  * Create a new java interface proxy.
@@ -666,7 +666,7 @@ type AnyProxyRecord = Record<string, ProxyMethod>;
  * ### Keeping the proxy alive
  * If you want to keep the proxy alive, you must keep this instance in scope.
  * If that is not an option for you, you can manually keep the proxy alive
- * by setting the {@link InterfaceProxyOptions.keepAsDaemon} option to true.
+ * by setting the {@link InterfaceProxyOptions}.keepAsDaemon option to true.
  *
  * ```ts
  * const proxy = newProxy('java.lang.Runnable', {
@@ -769,6 +769,7 @@ export class config {
      *
      * **Note:** Enabling this may cause the application to crash. Use with caution.
      *
+     * @experimental
      * @param value whether to run the event loop when an interface proxy is active
      */
     static set runEventLoopWhenInterfaceProxyIsActive(value: boolean) {
@@ -779,6 +780,7 @@ export class config {
      * **Experimental Feature**
      *
      * Get whether to run the event loop when an interface proxy is active.
+     * @experimental
      */
     static get runEventLoopWhenInterfaceProxyIsActive(): boolean {
         return JavaConfig.getRunEventLoopWhenInterfaceProxyIsActive();
