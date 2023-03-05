@@ -22,13 +22,24 @@ jobs:
                   distribution: 'temurin'
                   java-version: '17'
 
+            - name: Rust Cache
+              uses: Swatinem/rust-cache@v2.2.1
+            - name: Cache java definitions
+              uses: actions/cache@v3
+              with:
+                  path: '**/test/javaDefinitions'
+                  key: ${{runner.os}}-javaDefinitions
+
             - name: Install dependencies
               run: npm ci
+            - name: Build
+              run: npm run build
             - name: Generate test types
+              run: npm run generateTestTypes
+            - name: Remove target and dist directories
               run: |
-                  npm run build
-                  npm run generateTestTypes
-                  rm -rf dist target
+                  rm -rf dist
+                  mv target target.bak
 
             - name: Run tests with address sanitizer
               uses: addnab/docker-run-action@v3
@@ -41,3 +52,14 @@ jobs:
                         --cargo-flags="-Zbuild-std"
                       npm run postbuild
                       npm run testOnly
+
+            - name: Create test summary
+              uses: test-summary/action@dist
+              if: always()
+              with:
+                  show: all
+                  paths: testResults.xml
+            - name: Move target back
+              run: |
+                  rm -rf target
+                  mv target.bak target
