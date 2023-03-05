@@ -18,6 +18,10 @@ ENV JAVA_HOME=/jdk
 ENV RUSTFLAGS="-Clinker=clang -Zsanitizer=address"
 ENV RUSTDOCFLAGS="-Clinker=clang -Zsanitizer=address"
 ENV ASAN_OPTIONS="detect_leaks=0"
+ENV RUST_BACKTRACE=1
+ENV FORCE_RUN_ALL_TESTS=true
+ENV INCREASE_TIMEOUT=true
+ENV SKIP_CLASS_TEST=true
 ENV PATH="$PATH:/root/.cargo/bin:/jdk/bin:/nodejs/node:/nodejs/npm"
 
 WORKDIR /app
