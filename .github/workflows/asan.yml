@@ -51,7 +51,7 @@ jobs:
                       npm run build:napi:debug -- --target=x86_64-unknown-linux-gnu \
                         --cargo-flags="-Zbuild-std"
                       npm run postbuild
-                      npm run testOnly
+                      npm run mocha -- -- --timeout 10000
 
             - name: Create test summary
               uses: test-summary/action@dist
