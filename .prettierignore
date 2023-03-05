@@ -319,3 +319,4 @@ docs/
 test/javaDefinitions/**
 /test/system_test/javaDefinitions/
 testOut/
+test/Dockerfile-test-template.hbs
