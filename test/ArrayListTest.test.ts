@@ -3,7 +3,7 @@ import { it } from 'mocha';
 import { expect } from 'chai';
 import { shouldIncreaseTimeout } from './testUtil';
 
-const timeout = shouldIncreaseTimeout ? 10e3 : 2e3;
+const timeout = shouldIncreaseTimeout ? 20e3 : 2e3;
 
 declare class ListClass<T extends JavaType> extends JavaClass {
     containsSync(element: T): boolean;
