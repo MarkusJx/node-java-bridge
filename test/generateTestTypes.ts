@@ -5,6 +5,8 @@ import type { Ora } from 'ora';
 import isCi from 'is-ci';
 import type { ChalkInstance } from 'chalk';
 import { hashElement } from 'folder-hash';
+import { glob as _glob } from 'glob';
+import { promisify } from 'util';
 
 const isSystemTest = process.argv.includes('--system-test');
 
@@ -130,8 +132,37 @@ async function run() {
     spinner?.succeed('Generated Java definitions');
 }
 
-run().catch((err) => {
-    spinner?.fail('Failed to convert classes');
-    console.error(err);
-    process.exit(1);
-});
+async function updateImports(): Promise<void> {
+    console.log('Updating imports');
+
+    const glob = promisify(_glob);
+    await Promise.all(
+        (
+            await glob('**/*.ts', { cwd: outDir })
+        )
+            .map((file) => path.join(outDir, file))
+            .map(async (file) => {
+                const contents = await fs.promises.readFile(file, 'utf8');
+                await fs.promises.writeFile(
+                    file,
+                    contents.replaceAll(
+                        'from "java-bridge";',
+                        `from ${JSON.stringify(path.join(__dirname, '..'))};`
+                    )
+                );
+            })
+    );
+}
+
+if (process.argv.includes('--update-imports')) {
+    updateImports().catch((err) => {
+        console.error(err);
+        process.exit(1);
+    });
+} else {
+    run().catch((err) => {
+        spinner?.fail('Failed to convert classes');
+        console.error(err);
+        process.exit(1);
+    });
+}

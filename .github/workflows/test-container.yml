@@ -38,7 +38,6 @@ jobs:
             - name: Log into registry
               run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
             - name: Push latest image
-              if: ${{github.event.inputs.set-latest == 'true'}}
               run: |
                   IMAGE_ID=$REGISTRY/${{ github.repository }}
                   IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')/$IMAGE_NAME

@@ -8,36 +8,62 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - uses: actions/checkout@v3
-
+            - name: Checkout
+              uses: actions/checkout@v3
             - name: Setup node
               uses: actions/setup-node@v3.6.0
               with:
                   node-version: 18
                   check-latest: true
                   cache: 'npm'
+            - name: Setup java 17
+              uses: actions/setup-java@v3
+              with:
+                  distribution: 'temurin'
+                  java-version: '17'
+
+            - name: Rust Cache
+              uses: Swatinem/rust-cache@v2.2.1
+            - name: Cache java definitions
+              uses: actions/cache@v3
+              with:
+                  path: '**/test/javaDefinitions'
+                  key: ${{runner.os}}-javaDefinitions
 
             - name: Install dependencies
               run: npm ci
+            - name: Build
+              run: npm run build
+            - name: Generate test types
+              run: npm run generateTestTypes -- --system-test
+            - name: Remove target and dist directories
+              run: |
+                  rm -rf dist
+                  mv target target.bak
+                  cp -r test/javaDefinitions javaDefinitions.bak
 
             - name: Run tests with address sanitizer
               uses: addnab/docker-run-action@v3
               with:
                   registry: gcr.io
-                  image: ghcr.io/markusjx/prebuilt-debug-jdk:17-bullseye
+                  image: ghcr.io/markusjx/node-java-bridge/java-bridge-asan-testcontainer:latest
                   options: -v ${{ github.workspace }}:/app
                   run: |
-                      curl -fsSL https://deb.nodesource.com/setup_18.x | bash - >> /dev/null
-                      apt-get install -yqq nodejs
-                      cargo update
                       npm run build:napi:debug -- --target=x86_64-unknown-linux-gnu \
                         --cargo-flags="-Zbuild-std"
-                      npm run postbuild
+                      npm run build:ts
+                      npm run generateTestTypes -- --update-imports
+                      npm run mocha -- --timeout 10000
 
-                      export LD_PRELOAD=$(clang -print-file-name=libclang_rt.asan-x86_64.so)
-                      export RUST_BACKTRACE=1
-                      export FORCE_RUN_ALL_TESTS=true
-                      export INCREASE_TIMEOUT=true
-                      export SKIP_CLASS_TEST=true
-                      export DEBUG='napi:*'
-                      npm run testOnly
+            - name: Create test summary
+              uses: test-summary/action@dist
+              if: always()
+              with:
+                  show: all
+                  paths: testResults.xml
+            - name: Move target back
+              run: |
+                  sudo rm -rf target
+                  mv target.bak target
+                  sudo rm -rf test/javaDefinitions
+                  mv javaDefinitions.bak test/javaDefinitions
