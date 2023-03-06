@@ -35,7 +35,7 @@ jobs:
             - name: Build
               run: npm run build
             - name: Generate test types
-              run: npm run generateTestTypes -- -- --system-test
+              run: npm run generateTestTypes -- --system-test
             - name: Remove target and dist directories
               run: |
                   rm -rf dist
@@ -52,8 +52,8 @@ jobs:
                       npm run build:napi:debug -- --target=x86_64-unknown-linux-gnu \
                         --cargo-flags="-Zbuild-std"
                       npm run build:ts
-                      npm run generateTestTypes -- -- --update-imports
-                      npm run mocha -- -- --timeout 10000
+                      npm run generateTestTypes -- --update-imports
+                      npm run mocha -- --timeout 10000
 
             - name: Create test summary
               uses: test-summary/action@dist
@@ -63,7 +63,7 @@ jobs:
                   paths: testResults.xml
             - name: Move target back
               run: |
-                  rm -rf target
+                  sudo rm -rf target
                   mv target.bak target
-                  rm -rf test/javaDefinitions
+                  sudo rm -rf test/javaDefinitions
                   mv javaDefinitions.bak test/javaDefinitions
