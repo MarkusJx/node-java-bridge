@@ -340,7 +340,7 @@ export default class TypescriptDefinitionGenerator {
                     isStatic: true,
                     isDefault: false,
                 },
-                'newInstance',
+                'newInstanceAsync',
                 i,
                 false,
                 true
