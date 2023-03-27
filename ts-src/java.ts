@@ -724,6 +724,18 @@ export function newProxy<T extends ProxyRecord<T> = AnyProxyRecord>(
                 throw err;
             }
 
+            if (method.constructor.name === 'AsyncFunction') {
+              return (method as ProxyMethod)(...args)
+                  .then( (res: unknown) => callback(null, res))
+                  .catch( (e: unknown) => {
+                      if (e instanceof Error) {
+                          callback(e);
+                      } else {
+                          callback(new Error(String(e)));
+                      }
+                  });
+            }            
+            
             try {
                 const res = (method as ProxyMethod)(...args);
                 callback(null, res);
