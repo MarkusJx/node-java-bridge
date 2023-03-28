@@ -726,12 +726,24 @@ export function newProxy<T extends ProxyRecord<T> = AnyProxyRecord>(
 
             try {
                 const res = (method as ProxyMethod)(...args);
-                callback(null, res);
-            } catch (e: any) {
+                if (res instanceof Promise) {
+                    res.then((res: unknown) => callback(null, res)).catch(
+                        (e: unknown) => {
+                            if (e instanceof Error) {
+                                callback(e);
+                            } else {
+                                callback(new Error(String(e)));
+                            }
+                        }
+                    );
+                } else {
+                    callback(null, res);
+                }
+            } catch (e: unknown) {
                 if (e instanceof Error) {
                     callback(e);
                 } else {
-                    callback(new Error(e.toString()));
+                    callback(new Error(String(e)));
                 }
             }
         };

@@ -172,6 +172,75 @@ describe('ProxyTest', () => {
             }
         });
 
+        it('Proxy with async method', async function () {
+            if (shouldSkip) this.skip();
+
+            proxy = java.newProxy('java.util.function.Function', {
+                apply: (arg: string): Promise<string> => {
+                    return new Promise((resolve) => {
+                        setTimeout(() => {
+                            resolve(arg.toUpperCase());
+                        }, 20);
+                    });
+                },
+            });
+
+            const JString =
+                java.importClass<typeof JavaString>('java.lang.String');
+            const str = new JString('hello');
+            expect(await str.transform(proxy)).to.equal('HELLO');
+        });
+
+        it('Proxy with async error', async function () {
+            if (shouldSkip) this.skip();
+
+            proxy = java.newProxy('java.util.function.Function', {
+                apply: (): Promise<never> => {
+                    return new Promise((_, reject) => {
+                        setTimeout(() => {
+                            reject(new Error('Error'));
+                        }, 20);
+                    });
+                },
+            });
+
+            const JString =
+                java.importClass<typeof JavaString>('java.lang.String');
+            const str = new JString('hello');
+
+            try {
+                await str.transform(proxy);
+                assert.fail('Should have thrown');
+            } catch (e: any) {
+                expect(e.message).to.contain(
+                    'io.github.markusjx.bridge.JavascriptException: Error'
+                );
+            }
+        });
+
+        it('Proxy with async method throwing error', async function () {
+            if (shouldSkip) this.skip();
+
+            proxy = java.newProxy('java.util.function.Function', {
+                apply: async (): Promise<never> => {
+                    throw new Error('Error');
+                },
+            });
+
+            const JString =
+                java.importClass<typeof JavaString>('java.lang.String');
+            const str = new JString('hello');
+
+            try {
+                await str.transform(proxy);
+                assert.fail('Should have thrown');
+            } catch (e: any) {
+                expect(e.message).to.contain(
+                    'io.github.markusjx.bridge.JavascriptException: Error'
+                );
+            }
+        });
+
         afterEach(() => {
             proxy?.reset();
         });
