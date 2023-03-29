@@ -2,7 +2,7 @@
     "name": "java-bridge",
     "version": "2.2.3",
     "main": "dist/index.prod.min.js",
-    "types": "dist/ts-src/index.d.ts",
+    "types": "dist/index.d.ts",
     "description": "A bridge between Node.js and Java APIs",
     "repository": {
         "type": "git",
@@ -57,7 +57,6 @@
         "prepublishOnly": "napi prepublish -t npm",
         "test": "npm run testOnly",
         "testOnly": "npm run mocha",
-        "pretestOnly": "npm run generateTestTypes",
         "mocha": "mocha -r ts-node/register test/*.test.ts --reporter mocha-multi-reporters --reporter-options configFile=mocha-reporter-config.json",
         "pretest": "npm run build",
         "version": "napi version",
@@ -66,8 +65,7 @@
         "prebuild:debug": "rimraf dist",
         "benchmark": "ts-node -P test/tsconfig.json test/benchmark/benchmark.ts",
         "prebenchmark": "npm run build",
-        "docs": "typedoc --out docs ts-src/index.ts",
-        "generateTestTypes": "ts-node -P test/tsconfig.json test/generateTestTypes.ts"
+        "docs": "typedoc --out docs ts-src/index.ts"
     },
     "dependencies": {
         "chalk": "^5.2.0",
