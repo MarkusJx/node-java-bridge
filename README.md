@@ -15,6 +15,8 @@ loads the jvm native library dynamically when the program first starts up.
 
 The full documentation of this package is available [here](https://markusjx.github.io/node-java-bridge/).
 
+The bindings to java are located in a separate package, [java-rs](https://github.com/MarkusJx/java-rs).
+
 **NOTE: As of version `2.1.0`, this package has been renamed from `@markusjx/java` to `java-bridge`.**
 
 ## Installation
