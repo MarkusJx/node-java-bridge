@@ -283,5 +283,5 @@ const guard = stdout.enableRedirect(
 ## Command line interface
 
 This module also provides a command line interface that allows you to generate typescript definitions for your java classes.
-The command line interface is called `java-bridge-cli` and can be installed using `npm install -g java-bridge-cli`.
+The command line interface is called `java-ts-definition-generator` and can be installed using `npm install -g java-ts-definition-generator`.
 The full documentation can be found [here](https://github.com/MarkusJx/java-ts-definition-generator).
