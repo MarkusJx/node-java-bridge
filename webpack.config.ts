@@ -69,7 +69,4 @@ const config = (
 
 module.exports = [
     config('./ts-src/index.ts', 'production', 'index.prod.min.js'),
-    config('./ts-src/scripts/cli.ts', 'production', 'java-ts-gen.js', {
-        banner: '#!/usr/bin/env node',
-    }),
 ];

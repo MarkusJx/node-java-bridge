@@ -27,23 +27,15 @@ jobs:
 
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.2.1
-            - name: Cache java definitions
-              uses: actions/cache@v3
-              with:
-                  path: '**/test/javaDefinitions'
-                  key: ${{runner.os}}-javaDefinitions
 
             - name: Install dependencies
               run: npm ci
             - name: Build
               run: npm run build
-            - name: Generate test types
-              run: npm run generateTestTypes -- --system-test
             - name: Remove target and dist directories
               run: |
                   rm -rf dist
                   mv target target.bak
-                  cp -r test/javaDefinitions javaDefinitions.bak
 
             - name: Run tests with address sanitizer
               uses: addnab/docker-run-action@v3
@@ -55,7 +47,6 @@ jobs:
                       npm run build:napi:debug -- --target=x86_64-unknown-linux-gnu \
                         --cargo-flags="-Zbuild-std"
                       npm run build:ts
-                      npm run generateTestTypes -- --update-imports
                       npm run mocha -- --timeout 10000
 
             - name: Create test summary
@@ -69,4 +60,3 @@ jobs:
                   sudo rm -rf target
                   mv target.bak target
                   sudo rm -rf test/javaDefinitions
-                  mv javaDefinitions.bak test/javaDefinitions

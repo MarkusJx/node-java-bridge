@@ -2,31 +2,35 @@ import isCi from 'is-ci';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { setClassLoader, getClassLoader } from '../.';
-import ToolProvider from './javaDefinitions/javax/tools/ToolProvider';
-import URLClassLoader from './javaDefinitions/java/net/URLClassLoader';
-import ClassLoader from './javaDefinitions/java/lang/ClassLoader';
-import File from './javaDefinitions/java/io/File';
-import Manifest from './javaDefinitions/java/util/jar/Manifest';
-import FileOutputStream from './javaDefinitions/java/io/FileOutputStream';
-import JarOutputStream from './javaDefinitions/java/util/jar/JarOutputStream';
-import Attributes$Name from './javaDefinitions/java/util/jar/Attributes$Name';
-import JarEntry from './javaDefinitions/java/util/jar/JarEntry';
-import FileInputStream from './javaDefinitions/java/io/FileInputStream';
-import System from './javaDefinitions/java/lang/System';
+import {
+    setClassLoader,
+    getClassLoader,
+    importClass,
+    UnknownJavaClass,
+} from '../.';
+
+const ToolProvider = importClass('javax.tools.ToolProvider');
+const URLClassLoader = importClass('java.net.URLClassLoader');
+const File = importClass('java.io.File');
+const Manifest = importClass('java.util.jar.Manifest');
+const FileOutputStream = importClass('java.io.FileOutputStream');
+const JarOutputStream = importClass('java.util.jar.JarOutputStream');
+const Attributes$Name = importClass('java.util.jar.Attributes$Name');
+const JarEntry = importClass('java.util.jar.JarEntry');
+const FileInputStream = importClass('java.io.FileInputStream');
+const System = importClass('java.lang.System');
 
 export const shouldIncreaseTimeout =
     isCi &&
     (process.arch === 'arm64' ||
         process.arch === 'arm' ||
         process.env.INCREASE_TIMEOUT === 'true');
-export const forceRunAllTests = process.env.FORCE_RUN_ALL_TESTS === 'true';
 
 console.log('Process arch:', process.arch);
 console.log('Process platform:', process.platform);
 
 export class JarTool {
-    private readonly outputStream: JarOutputStream;
+    private readonly outputStream: UnknownJavaClass;
 
     constructor(private readonly rootDir: string, outFile: string) {
         const manifest = new Manifest();
@@ -111,7 +115,7 @@ export class ClassTool {
         this.writeClass(code, className, classpath, true);
         const root = new File(path.join(this.outDir, 'generated'));
 
-        const prevClassLoader = getClassLoader() as ClassLoader;
+        const prevClassLoader = getClassLoader();
         const classLoader = URLClassLoader.newInstanceSync(
             [root.toURISync()!.toURLSync()],
             prevClassLoader

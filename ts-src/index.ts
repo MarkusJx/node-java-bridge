@@ -26,11 +26,3 @@ import * as java from './java';
 export default java;
 export { getJavaLibPath, InterfaceProxyOptions } from '../native';
 export { getJavaVersion, getJavaVersionSync } from './util';
-import TypescriptDefinitionGenerator from './TypescriptDefinitionGenerator';
-export { TypescriptDefinitionGenerator };
-export { TypescriptBulkDefinitionGenerator } from './TypescriptBulkDefinitionGenerator';
-export {
-    ModuleDeclaration,
-    MethodDeclaration,
-    ProgressCallback,
-} from './TypescriptDefinitionGenerator';

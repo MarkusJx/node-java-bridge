@@ -15,6 +15,8 @@ loads the jvm native library dynamically when the program first starts up.
 
 The full documentation of this package is available [here](https://markusjx.github.io/node-java-bridge/).
 
+The bindings to java are located in a separate package, [java-rs](https://github.com/MarkusJx/java-rs).
+
 **NOTE: As of version `2.1.0`, this package has been renamed from `@markusjx/java` to `java-bridge`.**
 
 ## Installation
@@ -282,69 +284,6 @@ const guard = stdout.enableRedirect(
 
 ## Command line interface
 
-This module also ships with a command line interface called `java-ts-gen` for creating typescript definitions for Java classes.
-The command line interface will create typescript definitions for all specified classes and their dependencies.
-
-### Installation
-
-```bash
-npm install -g java-bridge
-```
-
-### Usage
-
-```
-java-ts-gen <output> <classnames..>
-
-Positionals:
-  classnames  The fully qualified class name(s) to convert              [string]
-  output      The output file                                           [string]
-
-Options:
-  --help             Show help                                         [boolean]
-  --version          Show version number                               [boolean]
-  --classpath, --cp  The classpath to use                               [string]
-```
-
-### Notes
-
--   The classpath argument can be supplied multiple times to add multiple jars to the classpath
--   Multiple class names can be supplied to generate definitions for multiple classes
--   The generated typescript files will automatically import all classes once the module is loaded.
-
-### Examples
-
-#### Generate definitions for a single class
-
-Generate definitions for the `java.lang.String` class and all its referenced classes and save them to `./project`:
-
-```bash
-java-ts-gen ./project java.lang.String
-```
-
-This will create a directory called `java` containing the definitions for the `java.lang.String` class and all its
-dependencies all inside subdirectories. The `java.lang.String` class will be saved to `./project/java/lang/String.ts`.
-Thus, the folder structure of `project` will look something like this:
-
-```
-.
-├── ...
-├── java
-│   ├── lang
-│   │   ├── String.ts
-│   │   ├── Object.ts
-│   │   └── ...
-│   ├── util
-│   │   └── ...
-│   └── ...
-└── ...
-```
-
-#### Generate definitions for multiple classes
-
-Generate definitions for the `java.lang.String` and `java.util.ArrayList` classes and all of their dependencies
-and save them to `./project`:
-
-```bash
-java-ts-gen ./project java.lang.String java.util.ArrayList
-```
+This module also provides a command line interface that allows you to generate typescript definitions for your java classes.
+The command line interface is called `java-ts-definition-generator` and can be installed using `npm install -g java-ts-definition-generator`.
+The full documentation can be found [here](https://github.com/MarkusJx/java-ts-definition-generator).
