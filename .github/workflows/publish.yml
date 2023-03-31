@@ -93,7 +93,7 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event.inputs.dry-run != 'true'
         steps:
             - name: Checkout
-              uses: actions/checkout@v2.7.0
+              uses: actions/checkout@v3
             - name: Get version
               id: version
               run: echo "version=$(node -p 'require(`./package.json`).version')" >> $GITHUB_ENV
