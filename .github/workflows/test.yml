@@ -118,12 +118,10 @@ jobs:
                   distribution: 'temurin'
                   java-version: '17'
             - name: Install rust toolchain
-              uses: actions-rs/toolchain@v1
+              uses: dtolnay/rust-toolchain@stable
               with:
                   toolchain: stable
-                  profile: minimal
-                  override: true
-                  target: aarch64-unknown-linux-gnu
+                  targets: aarch64-unknown-linux-gnu
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.2.1
             - name: Install cross compile toolchain
