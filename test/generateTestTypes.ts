@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { TypescriptBulkDefinitionGenerator, importClass } from '../.';
 import path from 'path';
 import fs from 'fs';

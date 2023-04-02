@@ -23,6 +23,7 @@ use std::ops::Not;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+use crate::node::extensions::java_type_ext::NapiToJava;
 
 pub const CLASS_PROXY_PROPERTY: &str = "class.proxy";
 pub const OBJECT_PROPERTY: &str = "class.object";
@@ -149,17 +150,53 @@ impl JavaClassInstance {
             )?;
         }
 
-        this.define_properties_with_data(
-            env,
+        this.define_properties(
             (&proxy.fields)
                 .into_iter()
-                .map(|(name, field)| {
-                    Ok(PropertyWithData::new(name.clone(), name.clone())?
+                .map(|(name, field)| -> napi::Result<Property> {
+                    /*Ok(PropertyWithData::new(name.clone(), name.clone())?
                         .with_attributes(PropertyAttributes::Enumerable)
                         .with_getter_and_setter(
                             Some(crate::node::java_class_field::get_class_field),
                             field.is_final().not().then(|| set_class_field as Callback),
-                        ))
+                        ))*/
+                    let name = name.clone();
+                    let name_cpy = name.clone();
+                    let mut property = Property::new(name.clone().as_str())?
+                        .with_property_attributes(PropertyAttributes::Enumerable)
+                        .with_getter_closure(move |env, this| {
+                            let proxy_obj: JsObject = this.get_named_property(CLASS_PROXY_PROPERTY)?;
+                            let instance_obj: JsObject = this.get_named_property(OBJECT_PROPERTY)?;
+                            let proxy: &Arc<JavaClassProxy> = env.unwrap(&proxy_obj)?;
+                            let obj: &GlobalJavaObject = env.unwrap(&instance_obj)?;
+
+                            let field = proxy.get_field_by_name(name.clone().as_str()).map_napi_err()?;
+
+                            let res = field.get(obj).map_napi_err()?;
+                            let j_env = proxy.vm.attach_thread().map_napi_err()?;
+                            res.to_napi_value(&j_env, &env).map_napi_err()
+                        });
+
+                    if field.is_final() {
+                        property = property.with_setter_closure(move |env, this, value| {
+                            let proxy_obj: JsObject = this.get_named_property(CLASS_PROXY_PROPERTY)?;
+                            let instance_obj: JsObject = this.get_named_property(OBJECT_PROPERTY)?;
+                            let proxy: &Arc<JavaClassProxy> = env.unwrap(&proxy_obj)?;
+                            let obj: &GlobalJavaObject = env.unwrap(&instance_obj)?;
+
+                            let field = proxy.get_field_by_name(name_cpy.as_str()).map_napi_err()?;
+
+                            let field_type = field.get_type();
+                            let j_env = proxy.vm.attach_thread().map_napi_err()?;
+                            let val = field_type
+                                .convert_to_java_value(&j_env, &env, value)
+                                .map_napi_err()?;
+
+                            field.set(obj, val).map_napi_err()
+                        });
+                    }
+
+                    Ok(property)
                 })
                 .collect::<napi::Result<Vec<_>>>()?
                 .as_ref(),
