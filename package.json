@@ -1,6 +1,6 @@
 {
     "name": "java-bridge",
-    "version": "2.3.0-beta.4",
+    "version": "2.3.0-beta.5",
     "main": "dist/index.prod.min.js",
     "types": "dist/index.d.ts",
     "description": "A bridge between Node.js and Java APIs",
@@ -28,9 +28,6 @@
                 "aarch64-unknown-linux-gnu"
             ]
         }
-    },
-    "bin": {
-        "java-ts-gen": "./dist/java-ts-gen.js"
     },
     "license": "MIT",
     "prettier": {
