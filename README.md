@@ -55,6 +55,10 @@ npm run build
 | Windows          | ✅   | ✅  | -   | -     |
 | macOS            | -    | ✅  | -   | ✅    |
 
+Supported linux distros
+* Ubuntu `>= 20.04`
+* Debian `>= bullseye`
+
 ## Usage
 
 ### Example: Hello world from Java
