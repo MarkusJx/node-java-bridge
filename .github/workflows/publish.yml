@@ -73,7 +73,7 @@ jobs:
               shell: bash
             - name: NPM Publish Binary
               uses: JS-DevTools/npm-publish@v1
-              if: ${{ matrix.os != 'ubuntu-latest' }}
+              if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
               with:
                   access: public
                   token: ${{ secrets.NPM_TOKEN }}
