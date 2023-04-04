@@ -14,7 +14,7 @@ jobs:
         strategy:
             matrix:
                 include:
-                    - os: ubuntu-latest
+                    - os: ubuntu-20.04
                       target: x86_64-unknown-linux-gnu
                       package: linux-x64-gnu
                     - os: ubuntu-20.04
