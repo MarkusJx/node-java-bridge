@@ -56,8 +56,9 @@ npm run build
 | macOS            | -    | ✅  | -   | ✅    |
 
 Supported linux distros
-* Ubuntu `>= 20.04`
-* Debian `>= bullseye`
+
+-   Ubuntu `>= 20.04`
+-   Debian `>= bullseye`
 
 ## Usage
 
