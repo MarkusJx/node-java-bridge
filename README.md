@@ -55,10 +55,12 @@ npm run build
 | Windows          | ✅   | ✅  | -   | -     |
 | macOS            | -    | ✅  | -   | ✅    |
 
-Supported linux distros
+### Known working linux distros
 
--   Ubuntu `>= 20.04`
--   Debian `>= bullseye`
+| Distro |    Version    |
+| :----: | :-----------: |
+| Ubuntu |  `>= 20.04`   |
+| Debian | `>= bullseye` |
 
 ## Usage
 
