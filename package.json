@@ -72,7 +72,6 @@
         "@napi-rs/cli": "^2.15.2",
         "@types/chai": "^4.3.4",
         "@types/folder-hash": "^4.0.2",
-        "@types/glob": "^8.1.0",
         "@types/is-ci": "^3.0.0",
         "@types/mocha": "^10.0.1",
         "@types/node": "^18.15.11",
