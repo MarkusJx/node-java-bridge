@@ -1,6 +1,6 @@
 {
     "name": "java-bridge",
-    "version": "2.3.0-beta.7",
+    "version": "2.3.0",
     "main": "dist/index.prod.min.js",
     "types": "dist/index.d.ts",
     "description": "A bridge between Node.js and Java APIs",
@@ -66,13 +66,12 @@
         "docs": "typedoc --out docs ts-src/index.ts"
     },
     "dependencies": {
-        "glob": "^9.3.2"
+        "glob": "^10.0.0"
     },
     "devDependencies": {
         "@napi-rs/cli": "^2.15.2",
         "@types/chai": "^4.3.4",
         "@types/folder-hash": "^4.0.2",
-        "@types/glob": "^8.1.0",
         "@types/is-ci": "^3.0.0",
         "@types/mocha": "^10.0.1",
         "@types/node": "^18.15.11",
@@ -91,16 +90,16 @@
         "nanobench": "^3.0.0",
         "node-loader": "^2.0.0",
         "prettier": "^2.8.7",
-        "rimraf": "^4.4.1",
+        "rimraf": "^5.0.0",
         "run-script-os": "^1.1.6",
-        "semver": "^7.3.8",
+        "semver": "^7.4.0",
         "string-replace-loader": "^3.1.0",
         "ts-loader": "^9.4.2",
         "ts-node": "^10.9.1",
         "tslib": "^2.5.0",
-        "typedoc": "^0.23.28",
-        "typescript": "^5.0.2",
-        "webpack": "^5.77.0",
+        "typedoc": "^0.24.1",
+        "typescript": "^5.0.4",
+        "webpack": "^5.79.0",
         "webpack-cli": "^5.0.1",
         "webpack-node-externals": "^3.0.0",
         "which": "^3.0.0"

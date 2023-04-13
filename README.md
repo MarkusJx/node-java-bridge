@@ -25,6 +25,12 @@ The bindings to java are located in a separate package, [java-rs](https://github
 npm i java-bridge
 ```
 
+## Command line interface
+
+This module also provides a command line interface that allows you to generate typescript definitions for your java classes.
+The command line interface is called `java-ts-definition-generator` and can be installed using `npm install -g java-ts-definition-generator`.
+The full documentation can be found [here](https://github.com/MarkusJx/java-ts-definition-generator).
+
 ## Build instructions
 
 _This is only required for development purposes. When installing the package using `npm i`, you can skip this._
@@ -288,9 +294,3 @@ const guard = stdout.enableRedirect(
 13. `char` or `java.lang.Character` values will be converted to `string`
 14. Java arrays will be converted to javascript arrays, applying the rules mentioned above except
 15. Byte arrays will be converted to `Buffer` and vice-versa
-
-## Command line interface
-
-This module also provides a command line interface that allows you to generate typescript definitions for your java classes.
-The command line interface is called `java-ts-definition-generator` and can be installed using `npm install -g java-ts-definition-generator`.
-The full documentation can be found [here](https://github.com/MarkusJx/java-ts-definition-generator).

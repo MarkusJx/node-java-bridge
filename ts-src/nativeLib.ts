@@ -1,6 +1,6 @@
 import path from 'path';
 import fs, { readFileSync } from 'fs';
-import glob from 'glob';
+import { globSync } from 'glob';
 
 const { platform, arch } = process;
 
@@ -99,7 +99,7 @@ export function getJavaLibPath(isPackagedElectron: boolean): string {
     if (isPackagedElectron)
         dir = dir.replace(APP_ASAR_REGEX, APP_ASAR_UNPACKED);
 
-    const files = glob.sync('*.jar', { cwd: dir });
+    const files = globSync('*.jar', { cwd: dir });
     if (files.length === 0) {
         throw new Error(`No java lib found in ${dir}`);
     } else {

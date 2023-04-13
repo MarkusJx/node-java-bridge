@@ -3,7 +3,6 @@ pub mod extensions;
 pub mod helpers;
 mod interface_proxy;
 mod java;
-mod java_class_field;
 mod java_class_instance;
 mod java_class_proxy;
 mod java_config;
