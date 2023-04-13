@@ -1,6 +1,6 @@
 {
     "name": "java-bridge",
-    "version": "2.2.3",
+    "version": "2.3.0-beta.7",
     "main": "dist/index.prod.min.js",
     "types": "dist/index.d.ts",
     "description": "A bridge between Node.js and Java APIs",
@@ -17,7 +17,8 @@
         "dist/*.js",
         "dist/*.map",
         "dist/**/*.d.ts",
-        "java-src/build/libs/*.jar"
+        "java-src/build/libs/*.jar",
+        "native.d.ts"
     ],
     "napi": {
         "name": "java",
@@ -28,9 +29,6 @@
                 "aarch64-unknown-linux-gnu"
             ]
         }
-    },
-    "bin": {
-        "java-ts-gen": "./dist/java-ts-gen.js"
     },
     "license": "MIT",
     "prettier": {
