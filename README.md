@@ -56,10 +56,17 @@ npm run build
 > _✅ = Pre-compiled binaries are available_<br> _`-` = Pre-compiled binaries are not available_
 
 | Operating System | i686 | x64 | arm | arm64 |
-| ---------------- | ---- | --- | --- | ----- |
-| Linux            | -    | ✅  | -   | ✅    |
-| Windows          | ✅   | ✅  | -   | -     |
-| macOS            | -    | ✅  | -   | ✅    |
+| ---------------- | :--: | :-: | :-: | :---: |
+| Linux            |  -   | ✅  |  -  |  ✅   |
+| Windows          |  ✅  | ✅  |  -  |   -   |
+| macOS            |  -   | ✅  |  -  |  ✅   |
+
+### Known working linux distros
+
+| Distro |    Version    |
+| :----: | :-----------: |
+| Ubuntu |  `>= 20.04`   |
+| Debian | `>= bullseye` |
 
 ## Usage
 
