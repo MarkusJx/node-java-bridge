@@ -25,6 +25,8 @@ The bindings to java are located in a separate package, [java-rs](https://github
 npm i java-bridge
 ```
 
+_Note: In order to use this package on windows, you'll need to install the [Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/en-gb/download/details.aspx?id=48145)._
+
 ## Command line interface
 
 This module also provides a command line interface that allows you to generate typescript definitions for your java classes.
