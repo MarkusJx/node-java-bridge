@@ -2,6 +2,7 @@
 
 mod java;
 mod node;
+mod logging;
 #[cfg(test)]
 mod tests;
 

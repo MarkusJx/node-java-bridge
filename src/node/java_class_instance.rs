@@ -23,7 +23,7 @@ use std::time::Duration;
 pub const CLASS_PROXY_PROPERTY: &str = "class.proxy";
 pub const OBJECT_PROPERTY: &str = "class.object";
 
-pub struct JavaClassInstance {}
+pub struct JavaClassInstance;
 
 impl JavaClassInstance {
     pub fn create_class_instance(

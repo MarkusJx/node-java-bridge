@@ -24,5 +24,10 @@ export type { internal };
 export * from './java';
 import * as java from './java';
 export default java;
-export { getJavaLibPath, InterfaceProxyOptions } from '../native';
+export {
+    getJavaLibPath,
+    InterfaceProxyOptions,
+    initLogger,
+    resetLogCallbacks,
+} from '../native';
 export { getJavaVersion, getJavaVersionSync } from './util';

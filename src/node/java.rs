@@ -1,3 +1,5 @@
+use crate::debug;
+use crate::node::class_cache::ClassCache;
 use crate::node::helpers::napi_error::{MapToNapiError, StrIntoNapiError};
 use crate::node::interface_proxy::interface_proxy_options::InterfaceProxyOptions;
 use crate::node::interface_proxy::java_interface_proxy::JavaInterfaceProxy;
@@ -5,9 +7,8 @@ use crate::node::java_class_instance::{JavaClassInstance, CLASS_PROXY_PROPERTY, 
 use crate::node::java_class_proxy::JavaClassProxy;
 use crate::node::java_options::JavaOptions;
 use crate::node::stdout_redirect::StdoutRedirect;
-use crate::node::util::util::{
-    list_files, parse_array_or_string, parse_classpath_args, ResultType,
-};
+use crate::node::util::util::{list_files, parse_array_or_string, parse_classpath_args};
+use app_state::{AppStateTrait, MutAppState};
 use futures::future;
 use java_rs::java_env::JavaEnv;
 use java_rs::java_vm::JavaVM;
@@ -16,27 +17,9 @@ use java_rs::objects::class::JavaClass;
 use java_rs::objects::java_object::JavaObject;
 use java_rs::objects::object::GlobalJavaObject;
 use java_rs::objects::string::JavaString;
-use lazy_static::lazy_static;
 use napi::{Env, JsFunction, JsObject, JsUnknown, ValueType};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-
-lazy_static! {
-    pub static ref CACHED_CLASSES: Mutex<HashMap<String, Arc<JavaClassProxy>>> =
-        Mutex::new(HashMap::new());
-}
-
-pub fn get_class_proxy(vm: &JavaVM, class_name: String) -> ResultType<Arc<JavaClassProxy>> {
-    let mut cached_classes = CACHED_CLASSES.lock().unwrap();
-    if cached_classes.contains_key(class_name.as_str()) {
-        Ok(cached_classes.get(class_name.as_str()).unwrap().clone())
-    } else {
-        let proxy = Arc::new(JavaClassProxy::new(vm.clone(), class_name.clone())?);
-        cached_classes.insert(class_name, proxy.clone());
-
-        Ok(proxy)
-    }
-}
+use std::sync::Arc;
 
 /// The main java class.
 /// This should only be created once per process.
@@ -67,6 +50,8 @@ impl Java {
         let mut args = opts.unwrap_or(vec![]);
         let mut loaded_jars = vec![];
 
+        debug!("Loading JVM version {}", ver);
+
         if let Some(cp) = java_options.as_ref().and_then(|o| o.classpath.as_ref()) {
             let cp = list_files(
                 cp.clone(),
@@ -80,6 +65,8 @@ impl Java {
             let parsed = parse_classpath_args(&cp, &mut args);
             args.push(parsed);
         }
+
+        debug!("Parsed classpath args: {:?}", args);
         let root_vm = JavaVM::new(&ver, lib_path, &args).map_napi_err()?;
 
         let env = root_vm.attach_thread().map_napi_err()?;
@@ -109,7 +96,10 @@ impl Java {
     /// The imported class will be cached for future use.
     #[napi(ts_return_type = "object")]
     pub fn import_class(&mut self, env: Env, class_name: String) -> napi::Result<JsFunction> {
-        let proxy = get_class_proxy(&self.root_vm, class_name).map_napi_err()?;
+        let proxy = MutAppState::<ClassCache>::get_or_insert_default()
+            .get_mut()
+            .get_class_proxy(&self.root_vm, class_name)
+            .map_napi_err()?;
         JavaClassInstance::create_class_instance(&env, proxy)
     }
 
@@ -123,7 +113,12 @@ impl Java {
         class_name: String,
     ) -> napi::Result<JsObject> {
         env.execute_tokio_future(
-            future::lazy(|_| get_class_proxy(&self.root_vm, class_name).map_napi_err()),
+            future::lazy(|_| {
+                MutAppState::<ClassCache>::get_or_insert_default()
+                    .get_mut()
+                    .get_class_proxy(&self.root_vm, class_name)
+                    .map_napi_err()
+            }),
             |&mut env, proxy| JavaClassInstance::create_class_instance(&env, proxy),
         )
     }
@@ -223,8 +218,10 @@ impl Java {
 
     #[napi(getter, ts_return_type = "object")]
     pub fn get_class_loader(&self, env: Env) -> napi::Result<JsUnknown> {
-        let proxy =
-            get_class_proxy(&self.root_vm, "java.net.URLClassLoader".into()).map_napi_err()?;
+        let proxy = MutAppState::<ClassCache>::get_or_insert_default()
+            .get_mut()
+            .get_class_proxy(&self.root_vm, "java.net.URLClassLoader".into())
+            .map_napi_err()?;
         let j_env = self.root_vm.attach_thread().map_napi_err()?;
         JavaClassInstance::from_existing(proxy, &env, j_env.get_class_loader().map_napi_err()?)
     }

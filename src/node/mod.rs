@@ -1,3 +1,4 @@
+mod class_cache;
 mod config;
 pub mod extensions;
 pub mod helpers;

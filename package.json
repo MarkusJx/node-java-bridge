@@ -43,6 +43,7 @@
     },
     "scripts": {
         "artifacts": "napi artifacts",
+        "build:all": "npm run build:napi -- --features all && npm run postbuild",
         "build": "npm run build:napi",
         "build:debug": "npm run build:napi:debug && npm run build:ts && npm run build:java",
         "postbuild": "npm run build:ts && npm run build:java",

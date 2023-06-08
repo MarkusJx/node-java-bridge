@@ -3,6 +3,7 @@ import {
     Java,
     JavaOptions,
     JavaConfig,
+    setLogCallbacks as nativeSetLogCallbacks,
 } from '../native';
 import {
     JavaClass,
@@ -797,4 +798,29 @@ export class config {
     static get runEventLoopWhenInterfaceProxyIsActive(): boolean {
         return JavaConfig.getRunEventLoopWhenInterfaceProxyIsActive();
     }
+}
+
+export type LogCallback = ((data: string) => void) | null;
+
+export function setLogger(out?: LogCallback, error?: LogCallback): void {
+    nativeSetLogCallbacks(
+        !!out
+            ? (err, data) => {
+                  if (err) {
+                      throw err;
+                  }
+
+                  out(data ?? '');
+              }
+            : null,
+        error
+            ? (err, data) => {
+                  if (err) {
+                      throw err;
+                  }
+
+                  error(data ?? '');
+              }
+            : null
+    );
 }
