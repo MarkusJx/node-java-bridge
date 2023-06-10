@@ -3,7 +3,7 @@ import {
     Java,
     JavaOptions,
     JavaConfig,
-    setLogCallbacks as nativeSetLogCallbacks,
+    setLogCallbacksInternal,
 } from '../native';
 import {
     JavaClass,
@@ -802,25 +802,21 @@ export class config {
 
 export type LogCallback = ((data: string) => void) | null;
 
-export function setLogger(out?: LogCallback, error?: LogCallback): void {
-    nativeSetLogCallbacks(
-        !!out
-            ? (err, data) => {
+/**
+ * @inheritDoc internal.setLogCallbacksInternal
+ */
+export function setLogCallbacks(out?: LogCallback, error?: LogCallback): void {
+    const convertFunc = (func?: LogCallback) =>
+        !!func
+            ? (err?: object | null, data?: string | null) => {
                   if (err) {
+                      // Err is always null
                       throw err;
                   }
 
-                  out(data ?? '');
+                  func(data ?? '');
               }
-            : null,
-        error
-            ? (err, data) => {
-                  if (err) {
-                      throw err;
-                  }
+            : null;
 
-                  error(data ?? '');
-              }
-            : null
-    );
+    setLogCallbacksInternal(convertFunc(out), convertFunc(error));
 }

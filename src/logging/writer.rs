@@ -6,6 +6,7 @@ use napi::Status;
 use std::fmt::{Debug, Formatter};
 use std::io;
 use std::io::ErrorKind;
+use std::ops::Not;
 
 pub type LogFn = ThreadsafeFunction<String>;
 
@@ -106,20 +107,18 @@ impl<'a> NodeWriter<'a> {
     }
 
     fn convert(data: &mut Vec<u8>) -> Option<napi::Result<String>> {
-        if data.is_empty() {
-            None
-        } else {
-            let out = String::from_utf8(data.to_vec()).map_napi_err().map(|s| {
-                if s.ends_with('\n') {
-                    s[0..s.len() - 1].to_string()
-                } else {
-                    s
-                }
-            });
-
-            data.clear();
-            Some(out)
-        }
+        data.is_empty().not().then(|| {
+            String::from_utf8(
+                data.drain(
+                    0..data[data.len() - 1]
+                        .eq(&b'\n')
+                        .then(|| data.len() - 1)
+                        .unwrap_or(data.len()),
+                )
+                .collect(),
+            )
+            .map_napi_err()
+        })
     }
 
     fn check_status(status: Status) -> io::Result<()> {

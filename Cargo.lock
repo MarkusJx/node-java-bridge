@@ -387,7 +387,7 @@ dependencies = [
  "java-locator",
  "java-rs",
  "lazy_static",
- "libloading 0.7.4",
+ "libloading 0.8.0",
  "log",
  "log4rs",
  "napi",
