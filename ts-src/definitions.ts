@@ -99,6 +99,16 @@ export type Constructor<T> = { new (): T };
  * This does not allow for any methods to be called if not
  * defined in the class definition.
  *
+ * This is also just a definition for creating typescript
+ * definitions for java classes. This does not actually
+ * create a java class.
+ *
+ * If you want to create a java class inside of typescript,
+ * take a look at this
+ * [test helper](https://github.com/MarkusJx/node-java-bridge/blob/main/test/testUtil.ts#L65).
+ * For implementing interfaces, take a look at the
+ * {@link newProxy} function.
+ *
  * ## Example
  * ```ts
  * import { importClass } from 'java-bridge';

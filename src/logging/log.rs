@@ -17,7 +17,7 @@ use crate::node::helpers::napi_error::MapToNapiError;
 /// will write to provided Node.js callbacks.
 ///
 /// The `node` appender accepts the default log4rs encoder argument.
-/// The log callbacks can be set using the {@link setLogCallbacks} function.
+/// The log callbacks can be set using the {@link logging.setLogCallbacks} function.
 ///
 /// ## Example configuration (json)
 /// ```json
@@ -78,6 +78,19 @@ fn create_threadsafe_fn(
 /// to the other callback. If both callbacks are not set, the `node`
 /// appender will be disabled.
 ///
+/// **Note:** The callbacks must not throw any exceptions.
+/// If an exception is thrown, the process will exit.
+///
+/// ## Example
+/// ```ts
+/// import { logging } from 'java-bridge';
+///
+/// logging.setLogCallbacks(
+///   (out) => console.log(out),
+///   (err) => console.error(err)
+/// );
+/// ```
+///
 /// @param out The callback for the stdout log level.
 /// @param err The callback for the stderr log level.
 pub fn set_log_callbacks_internal(
@@ -105,7 +118,7 @@ pub fn set_log_callbacks_internal(
 /// Reset the log callbacks for the `node` log appender.
 /// This will disable the `node` appender.
 /// The default log4rs appenders will still be available.
-/// Call {@link setLogCallbacks} to enable the `node` appender again.
+/// Call {@link logging.setLogCallbacks} to enable the `node` appender again.
 pub fn reset_log_callbacks() -> napi::Result<()> {
     debug!("Resetting log callbacks");
     Ok(NodeWriter::set_callbacks(None, None))

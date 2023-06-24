@@ -3,7 +3,6 @@ import {
     Java,
     JavaOptions,
     JavaConfig,
-    setLogCallbacksInternal,
 } from '../native';
 import {
     JavaClass,
@@ -14,6 +13,7 @@ import {
 } from './definitions';
 import { getJavaLibPath, getNativeLibPath } from './nativeLib';
 export { clearDaemonProxies } from '../native';
+export * from './logging';
 
 /**
  * The static java instance
@@ -174,10 +174,10 @@ export function setClassLoader(classLoader: UnknownJavaClass): void {
  *
  * ### Import ``java.util.ArrayList`` with types
  * ```ts
- * import { importClass, JavaClassInstance, JavaType } from 'java-bridge';
+ * import { importClass, JavaClass, JavaType } from 'java-bridge';
  *
  * // Definitions for class java.util.List
- * declare class List <T extends JavaType> extends JavaClassInstance {
+ * declare class List<T extends JavaType> extends JavaClass {
  *     size(): Promise<number>;
  *     sizeSync(): number;
  *     add(e: T): Promise<void>;
@@ -553,7 +553,15 @@ type InternalProxyRecord = Parameters<
     typeof Java.prototype.createInterfaceProxy
 >[1];
 
+/**
+ * A record of methods to implement.
+ * Useful for creating a proxy for a specific interface.
+ */
 export type ProxyRecord<T> = Partial<Record<keyof T, ProxyMethod>>;
+
+/**
+ * A generic proxy record.
+ */
 export type AnyProxyRecord = Record<string, ProxyMethod>;
 
 /**
@@ -722,6 +730,8 @@ export function newProxy<T extends ProxyRecord<T> = AnyProxyRecord>(
             ...args: any[]
         ): void => {
             if (err) {
+                // This is extremely unlikely to happen.
+                // Probably out of memory or something.
                 throw err;
             }
 
@@ -798,25 +808,4 @@ export class config {
     static get runEventLoopWhenInterfaceProxyIsActive(): boolean {
         return JavaConfig.getRunEventLoopWhenInterfaceProxyIsActive();
     }
-}
-
-export type LogCallback = ((data: string) => void) | null;
-
-/**
- * @inheritDoc internal.setLogCallbacksInternal
- */
-export function setLogCallbacks(out?: LogCallback, error?: LogCallback): void {
-    const convertFunc = (func?: LogCallback) =>
-        !!func
-            ? (err?: object | null, data?: string | null) => {
-                  if (err) {
-                      // Err is always null
-                      throw err;
-                  }
-
-                  func(data ?? '');
-              }
-            : null;
-
-    setLogCallbacksInternal(convertFunc(out), convertFunc(error));
 }

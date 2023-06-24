@@ -275,6 +275,23 @@ const guard = stdout.enableRedirect(
 );
 ```
 
+## Logging
+
+If you want to enable logging for this module, you need to re-compile the module
+with the `log` feature. Please install the dependencies listed in the
+[build section](#build-instructions) and run `npm run build:all` to build the module with
+all features enabled.
+
+Logged events include:
+
+-   Class loading
+-   Method calls
+-   Class instance creation
+-   Method and class lookup
+
+For further information on how to use the logging feature, please take a look at the
+[logging module documentation](https://markusjx.github.io/node-java-bridge/modules/logging.html).
+
 ## Value conversion rules
 
 1. Any basic value such as `string`, `number`, `boolean` or `BigInt` may be passed to methods accepting matching

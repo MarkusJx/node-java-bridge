@@ -411,7 +411,7 @@ dependencies = [
 [[package]]
 name = "java-rs"
 version = "0.1.0"
-source = "git+https://github.com/MarkusJx/java-rs#e77c48e6aed4026ffb513d6c7a4b655dd2fe3e3a"
+source = "git+https://github.com/MarkusJx/java-rs#38216f235883b39a70d8d43cd8ecbe03b4091fbe"
 dependencies = [
  "bindgen",
  "build-target",
