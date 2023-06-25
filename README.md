@@ -289,6 +289,9 @@ Logged events include:
 -   Class instance creation
 -   Method and class lookup
 
+**Note:** Logging affects the performance of the module. Thus, it is recommended
+to only enable logging when debugging.
+
 For further information on how to use the logging feature, please take a look at the
 [logging module documentation](https://markusjx.github.io/node-java-bridge/modules/logging.html).
 

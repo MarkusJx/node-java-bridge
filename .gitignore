@@ -204,3 +204,4 @@ test/javaDefinitions/**
 /testResults.xml
 test/testUtil.js
 testOut/
+log4rs.json

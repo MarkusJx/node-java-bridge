@@ -123,3 +123,10 @@ pub fn reset_log_callbacks() -> napi::Result<()> {
     debug!("Resetting log callbacks");
     Ok(NodeWriter::set_callbacks(None, None))
 }
+
+#[napi]
+/// Whether logging is supported.
+/// Logging is disabled by default.
+/// This constant is currently set to `true`
+/// as logging is supported in this build.
+pub const LOGGING_SUPPORTED: bool = true;

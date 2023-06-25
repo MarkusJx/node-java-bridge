@@ -39,3 +39,10 @@ pub fn init_logger(_path: String) {
 pub fn reset_log_callbacks() {
     warn_disabled()
 }
+
+#[napi]
+/// Whether logging is supported.
+/// Logging is disabled by default.
+/// This constant currently is set to `false`
+/// as logging is not supported in this build.
+pub const LOGGING_SUPPORTED: bool = false;

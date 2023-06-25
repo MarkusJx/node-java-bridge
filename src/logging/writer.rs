@@ -80,12 +80,9 @@ impl<'a> NodeWriter<'a> {
         writer_type: WriterType,
         writers: &'b MutAppStateLock<NodeWriterData>,
     ) -> Option<&'b LogFn> {
-        if writer_type == WriterType::Out {
-            writers.out.as_ref().or(writers.err.as_ref())
-        } else if writer_type == WriterType::Err {
-            writers.err.as_ref().or(writers.out.as_ref())
-        } else {
-            None
+        match writer_type {
+            WriterType::Out => writers.out.as_ref().or(writers.err.as_ref()),
+            WriterType::Err => writers.err.as_ref().or(writers.out.as_ref()),
         }
     }
 

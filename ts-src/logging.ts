@@ -2,6 +2,7 @@ import {
     setLogCallbacksInternal,
     initLogger as initLoggerInternal,
     resetLogCallbacks as resetLogCallbacksInternal,
+    LOGGING_SUPPORTED as LOGGING_SUPPORTED_INTERNAL,
 } from '../native';
 
 /**
@@ -15,7 +16,9 @@ import {
  * the jsdoc comments of all methods in this namespace will start with
  * "This method is not supported in this build" if the native library
  * has been compiled without the `log` feature. Otherwise, the usual
- * jsdoc comments will be present.
+ * jsdoc comments will be present. Also, the {@link logging.LOGGING_SUPPORTED}
+ * constant can be used to check if the native library was compiled with
+ * the `log` feature.
  *
  * ## Example
  * ```ts
@@ -81,4 +84,9 @@ export namespace logging {
     export function resetLogCallbacks(): void {
         return resetLogCallbacksInternal();
     }
+
+    /**
+     * @inheritDoc internal.LOGGING_SUPPORTED
+     */
+    export const LOGGING_SUPPORTED = LOGGING_SUPPORTED_INTERNAL;
 }
