@@ -13,8 +13,8 @@ use java_rs::java_type::JavaType;
 use java_rs::objects::class::GlobalJavaClass;
 use java_rs::objects::object::GlobalJavaObject;
 use napi::{
-    CallContext, Env, JsBoolean, JsFunction, JsObject, JsUnknown, Property, PropertyAttributes,
-    Status,
+    CallContext, Callback, Env, JsBoolean, JsFunction, JsObject, JsUnknown, Property,
+    PropertyAttributes, Status,
 };
 use std::sync::Arc;
 use std::thread;
@@ -34,17 +34,17 @@ impl JavaClassInstance {
         env.wrap(&mut proxy_obj, proxy.clone())?;
 
         let mut constructor = env
-            .define_class("JavaClass", constructor, &[])?
+            .define_class("JavaClass", constructor as Callback, &[])?
             .coerce_to_object()?;
 
         constructor.set_named_property(CLASS_PROXY_PROPERTY, proxy_obj)?;
         constructor.set_named_property(
             "newInstanceAsync",
-            env.create_function("newInstanceAsync", new_instance)?,
+            env.create_function("newInstanceAsync", new_instance as Callback)?,
         )?;
 
         constructor.define_properties(&[Property::new("class")?
-            .with_getter(get_class_field)
+            .with_getter(get_class_field as Callback)
             .with_property_attributes(PropertyAttributes::Enumerable)])?;
 
         for method in &proxy.static_methods {
