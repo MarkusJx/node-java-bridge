@@ -16,7 +16,7 @@ napi = { version = "2.13.2", default-features = false, features = [
     "tokio_rt"
 ] }
 napi-derive = "2.13.0"
-tokio = "1.28.2"
+tokio = "1.29.1"
 futures = "0.3.28"
 java-locator = "0.1.5"
 lazy_static = "1.4.0"
