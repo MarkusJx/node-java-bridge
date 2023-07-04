@@ -428,7 +428,7 @@ dependencies = [
  "log4rs",
  "napi",
  "napi-build",
- "napi-derive 2.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "napi-derive",
  "rand",
  "serde",
  "tokio",
@@ -587,10 +587,12 @@ dependencies = [
 [[package]]
 name = "napi"
 version = "2.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ede2d12cd6fce44da537a4be1f5510c73be2506c2e32dfaaafd1f36968f3a0e"
 dependencies = [
  "bitflags 2.0.2",
  "ctor",
- "napi-derive 2.13.0",
+ "napi-derive",
  "napi-sys",
  "once_cell",
  "tokio",
@@ -605,34 +607,12 @@ checksum = "882a73d9ef23e8dc2ebbffb6a6ae2ef467c0f18ac10711e4cc59c5485d41df0e"
 [[package]]
 name = "napi-derive"
 version = "2.13.0"
-dependencies = [
- "cfg-if",
- "convert_case",
- "napi-derive-backend 1.0.52",
- "proc-macro2",
- "quote",
- "syn 1.0.103",
-]
-
-[[package]]
-name = "napi-derive"
-version = "2.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da1c6a8fa84d549aa8708fcd062372bf8ec6e849de39016ab921067d21bde367"
 dependencies = [
  "cfg-if",
  "convert_case",
- "napi-derive-backend 1.0.52 (registry+https://github.com/rust-lang/crates.io-index)",
- "proc-macro2",
- "quote",
- "syn 1.0.103",
-]
-
-[[package]]
-name = "napi-derive-backend"
-version = "1.0.52"
-dependencies = [
- "convert_case",
+ "napi-derive-backend",
  "proc-macro2",
  "quote",
  "syn 1.0.103",
@@ -656,8 +636,10 @@ dependencies = [
 [[package]]
 name = "napi-sys"
 version = "2.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "166b5ef52a3ab5575047a9fe8d4a030cdd0f63c96f071cd6907674453b07bae3"
 dependencies = [
- "libloading 0.8.0",
+ "libloading 0.7.4",
 ]
 
 [[package]]
