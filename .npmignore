@@ -1,5 +1,5 @@
 target
-Cargo.lock
+crates/java-bridge/Cargo.lock
 .cargo
 .github
 npm/
