@@ -4,6 +4,7 @@ members = [
     "./crates/java-bridge",
     "./crates/java-rs"
 ]
+default-members = ["./crates/java-bridge"]
 
 [profile.release]
 lto = true
