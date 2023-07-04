@@ -8,6 +8,20 @@ on:
     workflow_dispatch:
 
 jobs:
+    test-cargo:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v3
+            - uses: addnab/docker-run-action@v3
+              with:
+                  registry: gcr.io
+                  image: ghcr.io/markusjx/node-java-bridge/java-bridge-asan-testcontainer:latest
+                  options: -v ${{ github.workspace }}:/app
+                  run: |
+                      cargo update
+                      cargo test --all-features -Zbuild-std --target=x86_64-unknown-linux-gnu
+
     build-and-test:
         runs-on: ubuntu-latest
 

@@ -1,0 +1,20 @@
+[package]
+name = "java-rs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+libloading = "0.8"
+lazy_static = "1.4.0"
+java-locator = "0.1.5"
+regex = { version = "1", optional = true }
+log = { version = "0.4", optional = true }
+
+[build-dependencies]
+bindgen = "0.66.1"
+java-locator = "0.1.5"
+build-target = "0.4.0"
+
+[features]
+type_check = ["dep:regex"]
+log = ["dep:log", "type_check"]
