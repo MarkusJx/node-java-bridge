@@ -18,9 +18,22 @@ jobs:
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.2.1
             - name: Build
-              run: cargo build --verbose
+              run: cargo build
             - name: Run tests
-              run: cargo test --verbose
+              run: cargo test
+              timeout-minutes: 20
+
+    test-cargo-all:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v3
+            - name: Rust Cache
+              uses: Swatinem/rust-cache@v2.2.1
+            - name: Build
+              run: cargo build --all-features
+            - name: Run tests
+              run: cargo test --all-features
               timeout-minutes: 20
 
     test-npm:
