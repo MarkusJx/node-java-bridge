@@ -2,8 +2,8 @@ mod java;
 mod library;
 pub mod sys;
 
+mod log;
 #[cfg(test)]
 mod tests;
-mod log;
 
 pub use crate::java::*;
