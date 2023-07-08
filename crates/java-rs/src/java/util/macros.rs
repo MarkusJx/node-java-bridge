@@ -15,27 +15,29 @@ macro_rules! define_call_methods {
                 args.len()
             );
 
-            unsafe {
+            let $result_name = unsafe {
                 let args = self.convert_args(
                     args,
                     #[cfg(feature = "type_check")]
                     method.get_signature(),
                 )?;
-                let $result_name = self.methods.$method.unwrap()(
+
+                self.methods.$method.unwrap()(
                     self.env,
                     object.get_raw(),
                     method.id(),
                     args.as_ptr(),
-                );
-                if self.is_err() {
-                    return Err(self.get_last_error(
-                        file!(),
-                        line!(),
-                        true,
-                        concat!(stringify!($method), " failed"),
-                    )?);
-                }
+                )
+            };
 
+            if self.is_err() {
+                Err(self.get_last_error(
+                    file!(),
+                    line!(),
+                    true,
+                    concat!(stringify!($method), " failed"),
+                )?)
+            } else {
                 Ok($converter)
             }
         }
@@ -54,27 +56,29 @@ macro_rules! define_call_methods {
                 args.len()
             );
 
-            unsafe {
+            let $result_name = unsafe {
                 let args = self.convert_args(
                     args,
                     #[cfg(feature = "type_check")]
                     method.get_signature(),
                 )?;
-                let $result_name = self.methods.$static_method.unwrap()(
+
+                self.methods.$static_method.unwrap()(
                     self.env,
                     class.class(),
                     method.id(),
                     args.as_ptr(),
-                );
-                if self.is_err() {
-                    return Err(self.get_last_error(
-                        file!(),
-                        line!(),
-                        true,
-                        concat!(stringify!($static_method), " failed"),
-                    )?);
-                }
+                )
+            };
 
+            if self.is_err() {
+                Err(self.get_last_error(
+                    file!(),
+                    line!(),
+                    true,
+                    concat!(stringify!($static_method), " failed"),
+                )?)
+            } else {
                 Ok($converter)
             }
         }
@@ -104,22 +108,23 @@ macro_rules! define_array_methods {
                     data.as_ptr() as $jni_type,
                 );
             }
+
             if self.is_err() {
                 self.delete_local_ref(arr);
-                return Err(self.get_last_error(
+                Err(self.get_last_error(
                     file!(),
                     line!(),
                     true,
                     concat!(stringify!($set_method), " failed"),
-                )?);
+                )?)
+            } else {
+                Ok(<$result_type>::from(LocalJavaObject::new(
+                    arr,
+                    self,
+                    #[cfg(feature = "type_check")]
+                    JavaType::new($signature.to_string(), false),
+                )))
             }
-
-            Ok(<$result_type>::from(LocalJavaObject::new(
-                arr,
-                self,
-                #[cfg(feature = "type_check")]
-                JavaType::new($signature.to_string(), false),
-            )))
         }
 
         pub fn $get_name(&'a self, array: sys::jobject) -> ResultType<Vec<$rust_type>> {
@@ -694,19 +699,19 @@ macro_rules! define_field_methods {
                 object.get_signature()
             );
 
-            unsafe {
-                let res =
-                    self.methods.$getter_method.unwrap()(self.env, object.get_raw(), field.id());
-                if self.is_err() {
-                    Err(self.get_last_error(
-                        file!(),
-                        line!(),
-                        true,
-                        concat!(stringify!($getter), " failed"),
-                    )?)
-                } else {
-                    Ok(res)
-                }
+            let res = unsafe {
+                self.methods.$getter_method.unwrap()(self.env, object.get_raw(), field.id())
+            };
+
+            if self.is_err() {
+                Err(self.get_last_error(
+                    file!(),
+                    line!(),
+                    true,
+                    concat!(stringify!($getter), " failed"),
+                )?)
+            } else {
+                Ok(res)
             }
         }
 
@@ -725,16 +730,17 @@ macro_rules! define_field_methods {
 
             unsafe {
                 self.methods.$setter_method.unwrap()(self.env, object.get_raw(), field.id(), value);
-                if self.is_err() {
-                    Err(self.get_last_error(
-                        file!(),
-                        line!(),
-                        true,
-                        concat!(stringify!($setter), " failed"),
-                    )?)
-                } else {
-                    Ok(())
-                }
+            }
+
+            if self.is_err() {
+                Err(self.get_last_error(
+                    file!(),
+                    line!(),
+                    true,
+                    concat!(stringify!($setter), " failed"),
+                )?)
+            } else {
+                Ok(())
             }
         }
 
@@ -743,22 +749,19 @@ macro_rules! define_field_methods {
             field: &$static_value_type,
             class: &JavaClass<'_>,
         ) -> ResultType<$result_type> {
-            unsafe {
-                let res = self.methods.$static_getter_method.unwrap()(
-                    self.env,
-                    class.class(),
-                    field.id(),
-                );
-                if self.is_err() {
-                    Err(self.get_last_error(
-                        file!(),
-                        line!(),
-                        true,
-                        concat!(stringify!($static_getter), " failed"),
-                    )?)
-                } else {
-                    Ok(res)
-                }
+            let res = unsafe {
+                self.methods.$static_getter_method.unwrap()(self.env, class.class(), field.id())
+            };
+
+            if self.is_err() {
+                Err(self.get_last_error(
+                    file!(),
+                    line!(),
+                    true,
+                    concat!(stringify!($static_getter), " failed"),
+                )?)
+            } else {
+                Ok(res)
             }
         }
 
@@ -775,16 +778,17 @@ macro_rules! define_field_methods {
                     field.id(),
                     value,
                 );
-                if self.is_err() {
-                    Err(self.get_last_error(
-                        file!(),
-                        line!(),
-                        true,
-                        concat!(stringify!($static_setter), " failed"),
-                    )?)
-                } else {
-                    Ok(())
-                }
+            }
+
+            if self.is_err() {
+                Err(self.get_last_error(
+                    file!(),
+                    line!(),
+                    true,
+                    concat!(stringify!($static_setter), " failed"),
+                )?)
+            } else {
+                Ok(())
             }
         }
     };
