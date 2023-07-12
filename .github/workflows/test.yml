@@ -80,7 +80,7 @@ jobs:
                   architecture: ${{matrix.arch}}
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.2.1
-              if: ${{matrix.os != 'ubuntu-latest' && matrix.os == 'ubuntu-20.04'}}
+              if: ${{matrix.os != 'ubuntu-latest' && matrix.os != 'ubuntu-20.04'}}
             - name: Install
               run: npm ci
             - name: Build
