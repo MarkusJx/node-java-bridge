@@ -67,7 +67,7 @@ export declare class JavaClassProxy {
      * @return the java instance proxy constructor
      */
     public getClassConstructor<
-        T extends JavaClassType = UnknownJavaClassType
+        T extends JavaClassType = UnknownJavaClassType,
     >(): T;
 }
 

@@ -217,7 +217,7 @@ export function setClassLoader(classLoader: UnknownJavaClass): void {
  * @return the java class constructor
  */
 export function importClass<
-    T extends JavaClassConstructorType = UnknownJavaClassType
+    T extends JavaClassConstructorType = UnknownJavaClassType,
 >(classname: string): T {
     ensureJvm();
     return javaInstance!.importClass(classname) as T;
@@ -227,7 +227,7 @@ export function importClass<
  * @inheritDoc importClass
  */
 export function importClassAsync<
-    T extends JavaClassConstructorType = UnknownJavaClassType
+    T extends JavaClassConstructorType = UnknownJavaClassType,
 >(classname: string): Promise<T> {
     ensureJvm();
     return javaInstance!.importClassAsync(classname) as Promise<T>;
