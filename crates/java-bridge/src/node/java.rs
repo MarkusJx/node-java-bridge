@@ -243,6 +243,14 @@ impl Java {
         j_env.replace_class_loader(instance.clone()).map_napi_err()
     }
 
+    /// Clear the class proxy cache.
+    /// Use this method in order to reset the config for all class proxies.
+    /// The new config will be applied once the class is imported again.
+    #[napi]
+    pub fn clear_class_proxies() {
+        CACHED_CLASSES.lock().unwrap().clear();
+    }
+
     pub fn vm(&self) -> JavaVM {
         self.root_vm.clone()
     }

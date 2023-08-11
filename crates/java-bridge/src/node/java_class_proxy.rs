@@ -1,6 +1,7 @@
 use crate::java::class_constructor::ClassConstructor;
 use crate::java::class_field::ClassField;
 use crate::java::class_method::ClassMethod;
+use crate::node::config::Config;
 use crate::node::extensions::class_ext::ArgumentMatch;
 use java_rs::java_vm::JavaVM;
 use java_rs::objects::class::GlobalJavaClass;
@@ -17,6 +18,7 @@ pub struct JavaClassProxy {
     pub static_fields: HashMap<String, ClassField>,
     pub constructors: Vec<ClassConstructor>,
     pub class_name: String,
+    pub config: Config,
 }
 
 impl JavaClassProxy {
@@ -33,6 +35,7 @@ impl JavaClassProxy {
             static_fields: ClassField::get_class_fields(vm.clone(), class_name.clone(), true)?,
             constructors: ClassConstructor::get_constructors(vm, class_name.clone())?,
             class_name,
+            config: Config::get().clone(),
         })
     }
 

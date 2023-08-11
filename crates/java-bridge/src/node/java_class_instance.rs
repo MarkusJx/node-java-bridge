@@ -1,4 +1,3 @@
-use crate::node::config::Config;
 use crate::node::extensions::java_call_result_ext::ToNapiValue;
 use crate::node::extensions::java_type_ext::NapiToJava;
 use crate::node::helpers::arg_convert::{call_context_to_java_args, call_results_to_args};
@@ -12,6 +11,7 @@ use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_type::JavaType;
 use java_rs::objects::class::GlobalJavaClass;
 use java_rs::objects::object::GlobalJavaObject;
+use lazy_static::lazy_static;
 use napi::{
     CallContext, Env, JsBoolean, JsFunction, JsObject, JsUnknown, Property, PropertyAttributes,
     Status,
@@ -22,6 +22,10 @@ use std::time::Duration;
 
 pub const CLASS_PROXY_PROPERTY: &str = "class.proxy";
 pub const OBJECT_PROPERTY: &str = "class.object";
+
+lazy_static! {
+    pub static ref EMPTY_STRING: String = "".to_string();
+}
 
 pub struct JavaClassInstance;
 
@@ -50,7 +54,10 @@ impl JavaClassInstance {
         for method in &proxy.static_methods {
             let name = method.0.clone();
             let name_cpy = name.clone();
-            let name_sync = name.clone() + "Sync";
+            let name_async =
+                name.clone() + proxy.config.async_suffix.as_ref().unwrap_or(&EMPTY_STRING);
+            let name_sync =
+                name.clone() + proxy.config.sync_suffix.as_ref().unwrap_or(&EMPTY_STRING);
 
             constructor.set_named_property(
                 name_sync.clone().as_str(),
@@ -63,9 +70,9 @@ impl JavaClassInstance {
             )?;
 
             constructor.set_named_property(
-                name.clone().as_str(),
+                name_async.clone().as_str(),
                 env.create_function_from_closure(
-                    name.clone().as_str(),
+                    name_async.as_str(),
                     move |ctx: CallContext| -> napi::Result<JsObject> {
                         Self::call_static_method_async(&ctx, &name)
                     },
@@ -149,7 +156,7 @@ impl JavaClassInstance {
         env.wrap(&mut instance_obj, instance)?;
         this.set_named_property(OBJECT_PROPERTY, instance_obj)?;
 
-        if Config::get().custom_inspect {
+        if proxy.config.custom_inspect {
             Self::add_custom_inspect(env, this);
         }
 
@@ -181,7 +188,10 @@ impl JavaClassInstance {
 
             let name = method.0.clone();
             let name_cpy = name.clone();
-            let name_sync = name.clone() + "Sync";
+            let name_async =
+                name.clone() + proxy.config.async_suffix.as_ref().unwrap_or(&EMPTY_STRING);
+            let name_sync =
+                name.clone() + proxy.config.sync_suffix.as_ref().unwrap_or(&EMPTY_STRING);
 
             this.set_named_property(
                 name_sync.clone().as_str(),
@@ -194,9 +204,9 @@ impl JavaClassInstance {
             )?;
 
             this.set_named_property(
-                name.clone().as_str(),
+                name_async.clone().as_str(),
                 env.create_function_from_closure(
-                    name.clone().as_str(),
+                    name_async.as_str(),
                     move |ctx: CallContext| -> napi::Result<JsObject> {
                         Self::call_method_async(&ctx, &name)
                     },
@@ -342,7 +352,7 @@ impl JavaClassInstance {
         let env = proxy.vm.attach_thread().map_napi_err()?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
 
-        let result = if Config::get().run_event_loop_when_interface_proxy_is_active
+        let result = if proxy.config.run_event_loop_when_interface_proxy_is_active
             && interface_proxy_exists()
         {
             // If the call context contains an interface proxy, we need to call the method

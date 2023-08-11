@@ -234,6 +234,15 @@ export function importClassAsync<
 }
 
 /**
+ * Clear the class proxy cache.
+ * Use this method in order to reset the config for all class proxies.
+ * The new config will be applied once the class is imported again.
+ */
+export function clearClassProxies() {
+    Java.clearClassProxies();
+}
+
+/**
  * Append a single or multiple jars to the class path.
  *
  * Just replaces the old internal class loader with a new one containing the new jars.
@@ -768,7 +777,11 @@ export function getJavaInstance(): Java | null {
 /**
  * Configuration options for the java bridge.
  */
-export class config {
+export abstract class config {
+    private constructor() {
+        throw new Error('This class cannot be instantiated');
+    }
+
     /**
      * **Experimental Feature**
      *
@@ -820,5 +833,25 @@ export class config {
      */
     static get customInspect(): boolean {
         return JavaConfig.getCustomInspect();
+    }
+
+    static set syncSuffix(value: string | null) {
+        JavaConfig.setSyncSuffix(value);
+    }
+
+    static get syncSuffix(): string | null {
+        return JavaConfig.getSyncSuffix();
+    }
+
+    static set asyncSuffix(value: string | null) {
+        JavaConfig.setAsyncSuffix(value);
+    }
+
+    static get asyncSuffix(): string | null {
+        return JavaConfig.getAsyncSuffix();
+    }
+
+    static reset(): void {
+        JavaConfig.reset();
     }
 }

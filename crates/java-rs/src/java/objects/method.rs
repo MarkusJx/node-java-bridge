@@ -121,6 +121,7 @@ define_java_methods!(
         Type::Object,
         Type::LangBoolean,
         Type::String,
+        Type::CharSequence,
         Type::LangCharacter,
         Type::LangByte,
         Type::LangFloat,

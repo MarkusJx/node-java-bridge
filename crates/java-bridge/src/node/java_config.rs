@@ -1,4 +1,5 @@
 use crate::node::config::Config;
+use crate::node::java_class_instance::EMPTY_STRING;
 
 #[napi]
 pub struct JavaConfig;
@@ -23,5 +24,48 @@ impl JavaConfig {
     #[napi]
     pub fn get_custom_inspect() -> bool {
         Config::get().custom_inspect
+    }
+
+    #[napi]
+    pub fn set_sync_suffix(value: Option<String>) -> napi::Result<()> {
+        if value.as_ref().unwrap_or(&EMPTY_STRING)
+            == Config::get().async_suffix.as_ref().unwrap_or(&EMPTY_STRING)
+        {
+            Err(napi::Error::from_reason(
+                "syncSuffix and asyncSuffix cannot be the same",
+            ))
+        } else {
+            Config::get().sync_suffix = value;
+            Ok(())
+        }
+    }
+
+    #[napi]
+    pub fn get_sync_suffix() -> Option<String> {
+        Config::get().sync_suffix.clone()
+    }
+
+    #[napi]
+    pub fn set_async_suffix(value: Option<String>) -> napi::Result<()> {
+        if value.as_ref().unwrap_or(&EMPTY_STRING)
+            == Config::get().sync_suffix.as_ref().unwrap_or(&EMPTY_STRING)
+        {
+            Err(napi::Error::from_reason(
+                "syncSuffix and asyncSuffix cannot be the same",
+            ))
+        } else {
+            Config::get().async_suffix = value;
+            Ok(())
+        }
+    }
+
+    #[napi]
+    pub fn get_async_suffix() -> Option<String> {
+        Config::get().async_suffix.clone()
+    }
+
+    #[napi]
+    pub fn reset() {
+        Config::get().clone_from(&Config::default());
     }
 }

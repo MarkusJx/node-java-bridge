@@ -5,6 +5,7 @@ import {
     ensureJvm,
     JavaClass,
     config,
+    clearClassProxies,
 } from '../.';
 import { expect } from 'chai';
 import { inspect } from 'util';
@@ -147,6 +148,7 @@ describe('StringTest', () => {
     });
 
     it('inspect.custom', () => {
+        clearClassProxies();
         config.customInspect = true;
         const LoggableString = importClass<typeof JString>('java.lang.String');
         const str = new LoggableString('test');
