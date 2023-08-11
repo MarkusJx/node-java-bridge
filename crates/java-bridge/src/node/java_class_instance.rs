@@ -23,7 +23,7 @@ use std::time::Duration;
 pub const CLASS_PROXY_PROPERTY: &str = "class.proxy";
 pub const OBJECT_PROPERTY: &str = "class.object";
 
-pub struct JavaClassInstance {}
+pub struct JavaClassInstance;
 
 impl JavaClassInstance {
     pub fn create_class_instance(
@@ -149,7 +149,36 @@ impl JavaClassInstance {
         env.wrap(&mut instance_obj, instance)?;
         this.set_named_property(OBJECT_PROPERTY, instance_obj)?;
 
+        if Config::get().custom_inspect {
+            Self::add_custom_inspect(env, this);
+        }
+
         for method in &proxy.methods {
+            if method.0 == "toString" {
+                this.set_named_property(
+                    "toString",
+                    env.create_function_from_closure("toString", move |ctx: CallContext| {
+                        Self::call_method(&ctx, &"toString".to_string())
+                    }),
+                )?;
+
+                this.set_named_property(
+                    "toStringSync",
+                    env.create_function_from_closure("toStringSync", move |ctx: CallContext| {
+                        Self::call_method(&ctx, &"toString".to_string())
+                    }),
+                )?;
+
+                this.set_named_property(
+                    "toStringAsync",
+                    env.create_function_from_closure("toStringAsync", move |ctx: CallContext| {
+                        Self::call_method_async(&ctx, &"toString".to_string())
+                    }),
+                )?;
+
+                continue;
+            }
+
             let name = method.0.clone();
             let name_cpy = name.clone();
             let name_sync = name.clone() + "Sync";
@@ -377,9 +406,49 @@ impl JavaClassInstance {
             },
         )
     }
+
+    fn add_custom_inspect(env: &Env, this: &mut JsObject) -> Option<()> {
+        let custom = env
+            .get_global()
+            .ok()?
+            .get_named_property::<JsObject>("Symbol")
+            .ok()?
+            .get_named_property::<JsFunction>("for")
+            .ok()?
+            .call(
+                None,
+                &[env.create_string("nodejs.util.inspect.custom").ok()?],
+            )
+            .ok()?;
+
+        this.set_property(
+            custom,
+            env.create_function_from_closure(
+                "custom",
+                |ctx: CallContext| -> napi::Result<JsUnknown> {
+                    let proxy = Self::get_class_proxy(&ctx, false)?;
+                    let method = proxy
+                        .methods
+                        .get("toString")
+                        .ok_or(napi::Error::from_reason("Method toString not found"))?
+                        .iter()
+                        .find(|m| m.parameter_types().len() == 0)
+                        .ok_or(napi::Error::from_reason("Method toString not found"))?;
+
+                    let obj = Self::get_object(&ctx)?;
+                    let env = proxy.vm.attach_thread().map_napi_err()?;
+
+                    let res = method.call(&obj, &[]).map_napi_err()?;
+                    res.to_napi_value(&env, &ctx.env).map_napi_err()
+                },
+            )
+            .ok()?,
+        )
+        .ok()
+    }
 }
 
-#[js_function(255)]
+#[js_function(255usize)]
 fn constructor(ctx: CallContext) -> napi::Result<JsUnknown> {
     let new_target_func = ctx.get_new_target::<JsFunction>();
     if new_target_func.is_err() {
@@ -409,7 +478,7 @@ fn constructor(ctx: CallContext) -> napi::Result<JsUnknown> {
     Ok(ctx.env.get_undefined()?.into_unknown())
 }
 
-#[js_function(255)]
+#[js_function(255usize)]
 fn new_instance(ctx: CallContext) -> napi::Result<JsObject> {
     let proxy = JavaClassInstance::get_class_proxy(&ctx, true)?.clone();
     let constructor = proxy
@@ -429,7 +498,7 @@ fn new_instance(ctx: CallContext) -> napi::Result<JsObject> {
     )
 }
 
-#[js_function(0)]
+#[js_function(0usize)]
 fn get_class_field(ctx: CallContext) -> napi::Result<JsObject> {
     let cls: JsFunction = ctx.this()?;
     let proxy_obj: JsObject = cls

@@ -1,4 +1,4 @@
-mod config;
+pub mod config;
 pub mod extensions;
 pub mod helpers;
 mod interface_proxy;
