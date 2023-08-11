@@ -59,6 +59,7 @@
         "pretest": "npm run build",
         "version": "napi version",
         "prettier": "prettier --write .",
+        "prettier:check": "prettier --check .",
         "prebuild": "rimraf dist",
         "prebuild:debug": "rimraf dist",
         "benchmark": "ts-node -P test/tsconfig.json test/benchmark/benchmark.ts",
