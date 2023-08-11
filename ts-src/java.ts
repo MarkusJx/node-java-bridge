@@ -13,6 +13,7 @@ import {
 } from './definitions';
 import { getJavaLibPath, getNativeLibPath } from './nativeLib';
 export { clearDaemonProxies } from '../native';
+//import "webpack/module";
 
 /**
  * The static java instance
@@ -796,5 +797,28 @@ export class config {
      */
     static get runEventLoopWhenInterfaceProxyIsActive(): boolean {
         return JavaConfig.getRunEventLoopWhenInterfaceProxyIsActive();
+    }
+
+    /**
+     * Whether to add custom inspect methods to java objects.
+     * This is disabled by default.
+     * This allows console.log to print java objects in a more readable way
+     * using the `toString` method of the java object.
+     *
+     * @since 2.4.0
+     * @param value whether to add custom inspect methods to java objects
+     */
+    static set customInspect(value: boolean) {
+        JavaConfig.setCustomInspect(value);
+    }
+
+    /**
+     * Get whether to add custom inspect methods to java objects.
+     *
+     * @since 2.4.0
+     * @returns whether to add custom inspect methods to java objects
+     */
+    static get customInspect(): boolean {
+        return JavaConfig.getCustomInspect();
     }
 }

@@ -20,9 +20,7 @@ function getModule(base: string, isPackagedElectron: boolean): string {
         const module = base.replaceAll('.', '-').replace('java', 'java-bridge');
 
         let res: string;
-        // @ts-ignore
         if (__non_webpack_require__ && __non_webpack_require__.resolve) {
-            // @ts-ignore
             res = __non_webpack_require__.resolve(module);
         } else {
             res = require.resolve(module);

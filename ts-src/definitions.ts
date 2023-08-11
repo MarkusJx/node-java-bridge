@@ -1,3 +1,5 @@
+import { inspect } from 'util';
+
 /**
  * The supported java versions.
  * Your list of supported versions
@@ -176,19 +178,51 @@ export declare class JavaClass extends JavaObject {
 
     /**
      * Java default toString method.
-     * Async call.
+     * Sync call.
      *
      * @returns this as a string
      */
-    public toString(): Promise<string>;
+    public toString(): string;
 
     /**
      * Java default toString method.
      * Sync call.
      *
+     * @deprecated use {@link toString} instead
      * @returns this as a string
      */
     public toStringSync(): string;
+
+    /**
+     * Java default toString method.
+     * Async call.
+     *
+     * @since 2.4.0
+     * @returns this as a string
+     */
+    public toStringAsync(): Promise<string>;
+
+    /**
+     * Java default hashCode method.
+     * Async call.
+     */
+    public hashCode(): Promise<number>;
+
+    /**
+     * Java default hashCode method.
+     * Sync call.
+     */
+    public hashCodeSync(): number;
+
+    /**
+     * Custom inspect method for an improved console.log output.
+     * This will return the output of {@link toString}.
+     * Will only be defined if {@link config.customInspect} is true.
+     *
+     * @since 2.4.0
+     * @returns this as a string
+     */
+    public [inspect.custom]?(): string;
 }
 
 /**

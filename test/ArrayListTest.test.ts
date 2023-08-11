@@ -179,4 +179,15 @@ describe('ArrayListTest', () => {
         expect(isInstanceOf(list!, 'java.lang.Object')).to.be.true;
         expect(isInstanceOf(list!, 'java.lang.String')).to.be.false;
     }).timeout(timeout);
+
+    it('toString', async () => {
+        const list = new ArrayList!();
+        list.addSync('Hello');
+        list.addSync('World');
+
+        expect(list.toStringSync()).to.equal('[Hello, World]');
+        expect(list.toString()).to.equal('[Hello, World]');
+        expect(await list.toStringAsync()).to.equal('[Hello, World]');
+        expect(list + '').to.equal('[Hello, World]');
+    });
 });
