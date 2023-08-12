@@ -3,6 +3,8 @@ import {
     Java,
     JavaOptions,
     JavaConfig,
+    ClassConfiguration,
+    Config,
 } from '../native';
 import {
     JavaClass,
@@ -12,8 +14,7 @@ import {
     UnknownJavaClassType,
 } from './definitions';
 import { getJavaLibPath, getNativeLibPath } from './nativeLib';
-export { clearDaemonProxies } from '../native';
-//import "webpack/module";
+export { clearDaemonProxies, clearClassProxies } from '../native';
 
 /**
  * The static java instance
@@ -160,6 +161,14 @@ export function setClassLoader(classLoader: UnknownJavaClass): void {
  * constructor type of the class as the template parameter to get
  * the proper type returned. You could also just cast the result.
  *
+ * When passing a {@link ClassConfiguration} object, the config will be applied
+ * to this class. This config does not apply to any other class.
+ * If you want to change the config for all classes, use the
+ * {@link config} class in order to do that. Any undefined field
+ * in the config will be ignored and the default value will be used.
+ * If you want to change the sync and async suffixes to an empty string,
+ * you can pass an empty string as the suffix.
+ *
  * ## Examples
  * ### Import ``java.util.ArrayList`` and create a new instance of it
  * ```ts
@@ -212,15 +221,36 @@ export function setClassLoader(classLoader: UnknownJavaClass): void {
  * assert.equals(list.getSync(1), 'World');
  * ```
  *
+ * ### Import ``java.util.ArrayList`` with custom config
+ * ```ts
+ * import { importClass, config } from 'java-bridge';
+ *
+ * // Import java.util.ArrayList with custom config
+ * const ArrayList = importClass('java.util.ArrayList', {
+ *    syncSuffix: '',
+ *    asyncSuffix: 'Async',
+ * });
+ *
+ * // Create a new instance of ArrayList
+ * const list = new ArrayList();
+ *
+ * // Call the async method
+ * await list.addAsync('Hello World!');
+ *
+ * // Call the sync method
+ * list.add('Hello World!');
+ * ```
+ *
  * @template T the type of the java class to import as a js type
  * @param classname the name of the class to resolve
+ * @param config the config to use when importing the class
  * @return the java class constructor
  */
 export function importClass<
     T extends JavaClassConstructorType = UnknownJavaClassType
->(classname: string): T {
+>(classname: string, config?: ClassConfiguration): T {
     ensureJvm();
-    return javaInstance!.importClass(classname) as T;
+    return javaInstance!.importClass(classname, config) as T;
 }
 
 /**
@@ -228,18 +258,9 @@ export function importClass<
  */
 export function importClassAsync<
     T extends JavaClassConstructorType = UnknownJavaClassType
->(classname: string): Promise<T> {
+>(classname: string, config?: ClassConfiguration): Promise<T> {
     ensureJvm();
-    return javaInstance!.importClassAsync(classname) as Promise<T>;
-}
-
-/**
- * Clear the class proxy cache.
- * Use this method in order to reset the config for all class proxies.
- * The new config will be applied once the class is imported again.
- */
-export function clearClassProxies() {
-    Java.clearClassProxies();
+    return javaInstance!.importClassAsync(classname, config) as Promise<T>;
 }
 
 /**
@@ -776,6 +797,8 @@ export function getJavaInstance(): Java | null {
 
 /**
  * Configuration options for the java bridge.
+ *
+ * @since 2.2.3
  */
 export abstract class config {
     private constructor() {
@@ -795,6 +818,7 @@ export abstract class config {
      *
      * **Note:** Enabling this may cause the application to crash. Use with caution.
      *
+     * @since 2.2.3
      * @experimental
      * @param value whether to run the event loop when an interface proxy is active
      */
@@ -806,6 +830,7 @@ export abstract class config {
      * **Experimental Feature**
      *
      * Get whether to run the event loop when an interface proxy is active.
+     * @since 2.2.3
      * @experimental
      */
     static get runEventLoopWhenInterfaceProxyIsActive(): boolean {
@@ -835,22 +860,104 @@ export abstract class config {
         return JavaConfig.getCustomInspect();
     }
 
+    /**
+     * Set the suffix for synchronous methods.
+     * This is `Sync` by default.
+     * Pass `null` or an empty string to disable the suffix.
+     * This must not be the same as the {@link asyncSuffix}.
+     *
+     * # Example
+     * ```ts
+     * import { config, clearClassProxies } from 'java-bridge';
+     *
+     * // Set the async suffix in order to prevent errors
+     * config.asyncSuffix = 'Async';
+     * // Set the sync suffix to an empty string
+     * config.syncSuffix = '';
+     * // This would do the same
+     * config.syncSuffix = null;
+     *
+     * // Clear the class proxy cache
+     * clearClassProxies();
+     *
+     * // Import the class
+     * const ArrayList = importClass('java.util.ArrayList');
+     *
+     * // Create a new instance
+     * const list = new ArrayList();
+     *
+     * // Call the method
+     * list.add('Hello World!');
+     *
+     * // Async methods now have the 'Async' suffix
+     * await list.addAsync('Hello World!');
+     * ```
+     *
+     * @see asyncSuffix
+     * @since 2.4.0
+     * @param value the suffix to use for synchronous methods
+     */
     static set syncSuffix(value: string | null) {
         JavaConfig.setSyncSuffix(value);
     }
 
+    /**
+     * Get the suffix for synchronous methods.
+     *
+     * @since 2.4.0
+     */
     static get syncSuffix(): string | null {
         return JavaConfig.getSyncSuffix();
     }
 
+    /**
+     * Set the suffix for asynchronous methods.
+     * This is `Async` by default.
+     * Pass `null` or an empty string to disable the suffix.
+     * This must not be the same as the {@link syncSuffix}.
+     *
+     * @see syncSuffix
+     * @since 2.4.0
+     * @param value the suffix to use for asynchronous methods
+     */
     static set asyncSuffix(value: string | null) {
         JavaConfig.setAsyncSuffix(value);
     }
 
+    /**
+     * Get the suffix for asynchronous methods.
+     *
+     * @since 2.4.0
+     */
     static get asyncSuffix(): string | null {
         return JavaConfig.getAsyncSuffix();
     }
 
+    /**
+     * Override the whole config.
+     * If you want to change only a single field, use the static setters instead.
+     *
+     * @since 2.4.0
+     * @param config the config to use
+     */
+    static set config(config: Config) {
+        JavaConfig.set(config);
+    }
+
+    /**
+     * Get the current config.
+     *
+     * @since 2.4.0
+     */
+    static get config(): Config {
+        return JavaConfig.get();
+    }
+
+    /**
+     * Reset the config to the default values.
+     *
+     * @since 2.4.0
+     */
     static reset(): void {
         JavaConfig.reset();
     }

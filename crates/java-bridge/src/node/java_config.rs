@@ -65,6 +65,25 @@ impl JavaConfig {
     }
 
     #[napi]
+    pub fn set(value: Config) -> napi::Result<()> {
+        if value.async_suffix.as_ref().unwrap_or(&EMPTY_STRING)
+            == value.sync_suffix.as_ref().unwrap_or(&EMPTY_STRING)
+        {
+            Err(napi::Error::from_reason(
+                "syncSuffix and asyncSuffix cannot be the same",
+            ))
+        } else {
+            Config::get().clone_from(&value);
+            Ok(())
+        }
+    }
+
+    #[napi]
+    pub fn get() -> Config {
+        Config::get().clone()
+    }
+
+    #[napi]
     pub fn reset() {
         Config::get().clone_from(&Config::default());
     }

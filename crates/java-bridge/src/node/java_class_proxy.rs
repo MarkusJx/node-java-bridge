@@ -22,7 +22,7 @@ pub struct JavaClassProxy {
 }
 
 impl JavaClassProxy {
-    pub fn new(vm: JavaVM, class_name: String) -> ResultType<Self> {
+    pub fn new(vm: JavaVM, class_name: String, config: Option<Config>) -> ResultType<Self> {
         let env = vm.attach_thread()?;
         let class = env.find_global_class_by_java_name(class_name.clone())?;
 
@@ -35,7 +35,7 @@ impl JavaClassProxy {
             static_fields: ClassField::get_class_fields(vm.clone(), class_name.clone(), true)?,
             constructors: ClassConstructor::get_constructors(vm, class_name.clone())?,
             class_name,
-            config: Config::get().clone(),
+            config: config.unwrap_or_else(|| Config::get().clone()),
         })
     }
 
