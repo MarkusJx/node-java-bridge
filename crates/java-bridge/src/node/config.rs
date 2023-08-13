@@ -1,8 +1,9 @@
 use std::sync::{Mutex, MutexGuard};
 
-use crate::node::java_class_instance::EMPTY_STRING;
 use lazy_static::lazy_static;
 use smart_default::SmartDefault;
+
+use crate::node::util::traits::UnwrapOrEmpty;
 
 lazy_static! {
     static ref CONFIG: Mutex<Config> = Mutex::new(Config::default());
@@ -14,12 +15,22 @@ lazy_static! {
 #[napi(object)]
 pub struct ClassConfiguration {
     /// If true, the event loop will be run when an interface proxy is active.
+    /// If not specified, the value from the global configuration will be used.
     pub run_event_loop_when_interface_proxy_is_active: Option<bool>,
     /// If true, the custom inspect method will be used to display the object in the console.
+    /// If not specified, the value from the global configuration will be used.
     pub custom_inspect: Option<bool>,
     /// The suffix to use for synchronous methods.
+    /// Set this value to an empty string to disable the suffix.
+    /// The default value is "Sync".
+    /// Setting this value to the same value as asyncSuffix will result in an error.
+    /// If not specified, the value from the global configuration will be used.
     pub sync_suffix: Option<String>,
     /// The suffix to use for asynchronous methods.
+    /// Set this value to an empty string to disable the suffix.
+    /// The default value is an empty string.
+    /// Setting this value to the same value as syncSuffix will result in an error.
+    /// If not specified, the value from the global configuration will be used.
     pub async_suffix: Option<String>,
 }
 
@@ -31,16 +42,12 @@ impl TryFrom<ClassConfiguration> for Config {
         let async_suffix = config.async_suffix.as_ref();
         let sync_suffix = config.sync_suffix.as_ref();
 
-        if value
-            .sync_suffix
-            .as_ref()
-            .or(sync_suffix)
-            .unwrap_or(&EMPTY_STRING)
+        if value.sync_suffix.as_ref().or(sync_suffix).unwrap_or_empty()
             == value
                 .async_suffix
                 .as_ref()
                 .or(async_suffix)
-                .unwrap_or(&EMPTY_STRING)
+                .unwrap_or_empty()
         {
             return Err(napi::Error::from_reason(
                 "syncSuffix and asyncSuffix cannot be the same",
@@ -75,11 +82,17 @@ pub struct Config {
     #[default(false)]
     pub custom_inspect: bool,
     /// The suffix to use for synchronous methods.
+    /// Set this value to an empty string to disable the suffix.
+    /// The default value is "Sync".
+    /// Setting this value to the same value as asyncSuffix will result in an error.
     ///
     /// @since 2.4.0
     #[default(Some("Sync".to_string()))]
     pub sync_suffix: Option<String>,
     /// The suffix to use for asynchronous methods.
+    /// Set this value to an empty string to disable the suffix.
+    /// The default value is an empty string.
+    /// Setting this value to the same value as syncSuffix will result in an error.
     ///
     /// @since 2.4.0
     #[default(None)]

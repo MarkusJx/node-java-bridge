@@ -6,12 +6,12 @@ use crate::node::helpers::napi_ext::{load_napi_library, uv_run, uv_run_mode};
 use crate::node::interface_proxy::proxies::interface_proxy_exists;
 use crate::node::java::Java;
 use crate::node::java_class_proxy::JavaClassProxy;
+use crate::node::util::traits::UnwrapOrEmpty;
 use futures::future;
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_type::JavaType;
 use java_rs::objects::class::GlobalJavaClass;
 use java_rs::objects::object::GlobalJavaObject;
-use lazy_static::lazy_static;
 use napi::{
     CallContext, Env, JsBoolean, JsFunction, JsObject, JsUnknown, Property, PropertyAttributes,
     Status,
@@ -22,10 +22,6 @@ use std::time::Duration;
 
 pub const CLASS_PROXY_PROPERTY: &str = "class.proxy";
 pub const OBJECT_PROPERTY: &str = "class.object";
-
-lazy_static! {
-    pub static ref EMPTY_STRING: String = "".to_string();
-}
 
 pub struct JavaClassInstance;
 
@@ -54,10 +50,8 @@ impl JavaClassInstance {
         for method in &proxy.static_methods {
             let name = method.0.clone();
             let name_cpy = name.clone();
-            let name_async =
-                name.clone() + proxy.config.async_suffix.as_ref().unwrap_or(&EMPTY_STRING);
-            let name_sync =
-                name.clone() + proxy.config.sync_suffix.as_ref().unwrap_or(&EMPTY_STRING);
+            let name_async = name.clone() + proxy.config.async_suffix.unwrap_or_empty();
+            let name_sync = name.clone() + proxy.config.sync_suffix.unwrap_or_empty();
 
             constructor.set_named_property(
                 name_sync.clone().as_str(),
@@ -188,10 +182,8 @@ impl JavaClassInstance {
 
             let name = method.0.clone();
             let name_cpy = name.clone();
-            let name_async =
-                name.clone() + proxy.config.async_suffix.as_ref().unwrap_or(&EMPTY_STRING);
-            let name_sync =
-                name.clone() + proxy.config.sync_suffix.as_ref().unwrap_or(&EMPTY_STRING);
+            let name_async = name.clone() + proxy.config.async_suffix.unwrap_or_empty();
+            let name_sync = name.clone() + proxy.config.sync_suffix.unwrap_or_empty();
 
             this.set_named_property(
                 name_sync.clone().as_str(),

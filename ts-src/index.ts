@@ -26,3 +26,4 @@ import * as java from './java';
 export default java;
 export { getJavaLibPath, InterfaceProxyOptions } from '../native';
 export { getJavaVersion, getJavaVersionSync } from './util';
+export type { JavaConfig } from '../native';

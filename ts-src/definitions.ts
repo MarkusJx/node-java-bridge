@@ -217,7 +217,7 @@ export declare class JavaClass extends JavaObject {
     /**
      * Custom inspect method for an improved console.log output.
      * This will return the output of {@link toString}.
-     * Will only be defined if {@link config.customInspect} is true.
+     * Will only be defined if {@link JavaConfig.customInspect} is true.
      *
      * @since 2.4.0
      * @returns this as a string

@@ -4,7 +4,6 @@ import {
     JavaOptions,
     JavaConfig,
     ClassConfiguration,
-    Config,
 } from '../native';
 import {
     JavaClass,
@@ -691,7 +690,7 @@ export type AnyProxyRecord = Record<string, ProxyMethod>;
  *
  * If you still want to call everything in a synchronous manner, make sure to enable
  * running the event loop while waiting for a java method to return by setting
- * {@link config.runEventLoopWhenInterfaceProxyIsActive} to true.
+ * {@link JavaConfig.runEventLoopWhenInterfaceProxyIsActive} to true.
  * **This may cause application crashes, so it is strongly recommended to just use async methods.**
  *
  * ### Keeping the proxy alive
@@ -758,7 +757,8 @@ export function newProxy<T extends ProxyRecord<T> = AnyProxyRecord>(
             try {
                 const res = (method as ProxyMethod)(...args);
                 if (res instanceof Promise) {
-                    res.then((res: unknown) => callback(null, res)).catch(
+                    res.then(
+                        (res: unknown) => callback(null, res),
                         (e: unknown) => {
                             if (e instanceof Error) {
                                 callback(e);
@@ -796,169 +796,6 @@ export function getJavaInstance(): Java | null {
 }
 
 /**
- * Configuration options for the java bridge.
- *
- * @since 2.2.3
+ * @inheritDoc JavaConfig
  */
-export abstract class config {
-    private constructor() {
-        throw new Error('This class cannot be instantiated');
-    }
-
-    /**
-     * **Experimental Feature**
-     *
-     * Set whether to run the event loop when an interface proxy is active.
-     * This is disabled by default. Enabling this will cause the bridge
-     * to run the event loop when an interface proxy either as direct
-     * proxy or as daemon proxy is active. This is only required if the
-     * proxied method calls back into the javascript process in the same thread.
-     * If the proxy is used either in an async method or in a different thread,
-     * this is not required.
-     *
-     * **Note:** Enabling this may cause the application to crash. Use with caution.
-     *
-     * @since 2.2.3
-     * @experimental
-     * @param value whether to run the event loop when an interface proxy is active
-     */
-    static set runEventLoopWhenInterfaceProxyIsActive(value: boolean) {
-        JavaConfig.setRunEventLoopWhenInterfaceProxyIsActive(value);
-    }
-
-    /**
-     * **Experimental Feature**
-     *
-     * Get whether to run the event loop when an interface proxy is active.
-     * @since 2.2.3
-     * @experimental
-     */
-    static get runEventLoopWhenInterfaceProxyIsActive(): boolean {
-        return JavaConfig.getRunEventLoopWhenInterfaceProxyIsActive();
-    }
-
-    /**
-     * Whether to add custom inspect methods to java objects.
-     * This is disabled by default.
-     * This allows console.log to print java objects in a more readable way
-     * using the `toString` method of the java object.
-     *
-     * @since 2.4.0
-     * @param value whether to add custom inspect methods to java objects
-     */
-    static set customInspect(value: boolean) {
-        JavaConfig.setCustomInspect(value);
-    }
-
-    /**
-     * Get whether to add custom inspect methods to java objects.
-     *
-     * @since 2.4.0
-     * @returns whether to add custom inspect methods to java objects
-     */
-    static get customInspect(): boolean {
-        return JavaConfig.getCustomInspect();
-    }
-
-    /**
-     * Set the suffix for synchronous methods.
-     * This is `Sync` by default.
-     * Pass `null` or an empty string to disable the suffix.
-     * This must not be the same as the {@link asyncSuffix}.
-     *
-     * # Example
-     * ```ts
-     * import { config, clearClassProxies } from 'java-bridge';
-     *
-     * // Set the async suffix in order to prevent errors
-     * config.asyncSuffix = 'Async';
-     * // Set the sync suffix to an empty string
-     * config.syncSuffix = '';
-     * // This would do the same
-     * config.syncSuffix = null;
-     *
-     * // Clear the class proxy cache
-     * clearClassProxies();
-     *
-     * // Import the class
-     * const ArrayList = importClass('java.util.ArrayList');
-     *
-     * // Create a new instance
-     * const list = new ArrayList();
-     *
-     * // Call the method
-     * list.add('Hello World!');
-     *
-     * // Async methods now have the 'Async' suffix
-     * await list.addAsync('Hello World!');
-     * ```
-     *
-     * @see asyncSuffix
-     * @since 2.4.0
-     * @param value the suffix to use for synchronous methods
-     */
-    static set syncSuffix(value: string | null) {
-        JavaConfig.setSyncSuffix(value);
-    }
-
-    /**
-     * Get the suffix for synchronous methods.
-     *
-     * @since 2.4.0
-     */
-    static get syncSuffix(): string | null {
-        return JavaConfig.getSyncSuffix();
-    }
-
-    /**
-     * Set the suffix for asynchronous methods.
-     * This is `Async` by default.
-     * Pass `null` or an empty string to disable the suffix.
-     * This must not be the same as the {@link syncSuffix}.
-     *
-     * @see syncSuffix
-     * @since 2.4.0
-     * @param value the suffix to use for asynchronous methods
-     */
-    static set asyncSuffix(value: string | null) {
-        JavaConfig.setAsyncSuffix(value);
-    }
-
-    /**
-     * Get the suffix for asynchronous methods.
-     *
-     * @since 2.4.0
-     */
-    static get asyncSuffix(): string | null {
-        return JavaConfig.getAsyncSuffix();
-    }
-
-    /**
-     * Override the whole config.
-     * If you want to change only a single field, use the static setters instead.
-     *
-     * @since 2.4.0
-     * @param config the config to use
-     */
-    static set config(config: Config) {
-        JavaConfig.set(config);
-    }
-
-    /**
-     * Get the current config.
-     *
-     * @since 2.4.0
-     */
-    static get config(): Config {
-        return JavaConfig.get();
-    }
-
-    /**
-     * Reset the config to the default values.
-     *
-     * @since 2.4.0
-     */
-    static reset(): void {
-        JavaConfig.reset();
-    }
-}
+export const config = new JavaConfig();
