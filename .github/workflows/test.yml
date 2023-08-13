@@ -43,27 +43,35 @@ jobs:
                     - os: ubuntu-20.04
                       node-version: 16.x
                       arch: x64
+                      features: default
                     - os: ubuntu-latest
                       node-version: 18.x
                       arch: x64
+                      features: all
                     - os: windows-latest
                       node-version: 16.x
                       arch: x64
+                      features: default
                     - os: windows-latest
                       node-version: 18.x
                       arch: x64
+                      features: all
                     - os: windows-latest
                       node-version: 16.x
                       arch: x86
+                      features: default
                     - os: windows-latest
                       node-version: 18.x
                       arch: x86
+                      features: default
                     - os: macos-latest
                       node-version: 16.x
                       arch: x64
+                      features: default
                     - os: macos-latest
                       node-version: 18.x
                       arch: x64
+                      features: all
         runs-on: ${{matrix.os}}
         steps:
             - uses: actions/checkout@v3
@@ -84,8 +92,11 @@ jobs:
             - name: Install
               run: npm ci
             - name: Build
-              if: ${{matrix.os != 'windows-latest' || matrix.arch == 'x64'}}
+              if: ${{matrix.os != 'windows-latest' || matrix.arch == 'x64'}} && ${{matrix.features == 'default'}}
               run: npm run build
+            - name: Build with all features
+              if: ${{matrix.os != 'windows-latest' || matrix.arch == 'x64'}} && ${{matrix.features == 'all'}}
+              run: npm run build:all
             - name: Build (win32)
               if: ${{matrix.os == 'windows-latest' && matrix.arch == 'x86'}}
               run: |

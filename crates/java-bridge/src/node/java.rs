@@ -9,7 +9,7 @@ use crate::node::java_class_proxy::JavaClassProxy;
 use crate::node::java_options::JavaOptions;
 use crate::node::stdout_redirect::StdoutRedirect;
 use crate::node::util::util::{list_files, parse_array_or_string, parse_classpath_args};
-use app_state::{AppStateTrait, MutAppState};
+use app_state::{stateful, AppStateTrait, MutAppState, MutAppStateLock};
 use futures::future;
 use java_rs::java_env::JavaEnv;
 use java_rs::java_vm::JavaVM;
@@ -292,9 +292,8 @@ impl Java {
 /// The new config will be applied once the class is imported again.
 ///
 /// @since 2.4.0
+#[stateful(init(cache))]
 #[napi]
-pub fn clear_class_proxies() {
-    MutAppState::<ClassCache>::get_or_insert_default()
-        .get_mut()
-        .clear();
+pub fn clear_class_proxies(mut cache: MutAppStateLock<ClassCache>) {
+    cache.clear();
 }

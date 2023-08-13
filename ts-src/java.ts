@@ -13,8 +13,7 @@ import {
     UnknownJavaClassType,
 } from './definitions';
 import { getJavaLibPath, getNativeLibPath } from './nativeLib';
-export { clearDaemonProxies, clearClassProxies } from '../native';
-export * from './logging';
+export { clearDaemonProxies, clearClassProxies, logging } from '../native';
 
 /**
  * The static java instance

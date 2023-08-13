@@ -1,6 +1,7 @@
 use crate::node::helpers::napi_error::MapToNapiError;
 use app_state::{stateful, AppStateTrait, MutAppState, MutAppStateLock};
 use log::{Level, Record};
+use napi::threadsafe_function::ErrorStrategy;
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::Status;
 use std::fmt::{Debug, Formatter};
@@ -8,7 +9,7 @@ use std::io;
 use std::io::ErrorKind;
 use std::ops::Not;
 
-pub type LogFn = ThreadsafeFunction<String>;
+pub type LogFn = ThreadsafeFunction<String, ErrorStrategy::Fatal>;
 
 #[derive(Eq, PartialEq, Copy, Clone)]
 enum WriterType {
@@ -96,26 +97,30 @@ impl<'a> NodeWriter<'a> {
             return Ok(());
         };
 
-        if let Some(data) = NodeWriter::convert(buf) {
+        if let Some(data) = NodeWriter::convert(buf)? {
             NodeWriter::check_status(writer.call(data, ThreadsafeFunctionCallMode::NonBlocking))?;
         }
 
         Ok(())
     }
 
-    fn convert(data: &mut Vec<u8>) -> Option<napi::Result<String>> {
-        data.is_empty().not().then(|| {
-            String::from_utf8(
-                data.drain(
-                    0..data[data.len() - 1]
-                        .eq(&b'\n')
-                        .then(|| data.len() - 1)
-                        .unwrap_or(data.len()),
+    fn convert(data: &mut Vec<u8>) -> io::Result<Option<String>> {
+        data.is_empty()
+            .not()
+            .then(|| {
+                String::from_utf8(
+                    data.drain(
+                        0..data[data.len() - 1]
+                            .eq(&b'\n')
+                            .then(|| data.len() - 1)
+                            .unwrap_or(data.len()),
+                    )
+                    .collect(),
                 )
-                .collect(),
-            )
-            .map_napi_err()
-        })
+                .map_napi_err()
+            })
+            .map_or(Ok(None), |v| v.map(Some))
+            .map_err(|e| io::Error::new(ErrorKind::Other, e))
     }
 
     fn check_status(status: Status) -> io::Result<()> {
