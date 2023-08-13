@@ -94,6 +94,7 @@ describe('ProxyTest', () => {
         let proxy: JavaInterfaceProxy | null = null;
 
         before(() => {
+            java.clearClassProxies();
             java.config.runEventLoopWhenInterfaceProxyIsActive = true;
         });
 

@@ -31,6 +31,7 @@ pub enum Type {
     LangDouble = 18,
     LangObject = 19,
     String = 20,
+    CharSequence = 21,
 }
 
 impl Type {
@@ -47,7 +48,8 @@ impl Type {
             | Type::LangFloat
             | Type::LangDouble
             | Type::LangObject
-            | Type::String => true,
+            | Type::String
+            | Type::CharSequence => true,
             _ => false,
         }
     }
@@ -157,6 +159,9 @@ impl JavaType {
             }
             "java.lang.Object" => {
                 type_enum = Type::LangObject;
+            }
+            "java.lang.CharSequence" => {
+                type_enum = Type::CharSequence;
             }
             _ => {
                 if signature.ends_with("[]") {

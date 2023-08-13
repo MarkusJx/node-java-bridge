@@ -3,35 +3,12 @@ import {
     importClass,
     importClassAsync,
     ensureJvm,
-    JavaClass,
+    config,
+    clearClassProxies,
 } from '../.';
 import { expect } from 'chai';
-
-declare class JString extends JavaClass {
-    constructor(value: string);
-
-    static newInstanceAsync(value: string): Promise<JString>;
-
-    static valueOf(values: string[]): Promise<JString>;
-
-    static valueOfSync(values: string[]): JString;
-
-    toString(): Promise<string>;
-
-    toStringSync(): string;
-
-    equals(other: JString): Promise<boolean>;
-
-    equalsSync(other: JString): boolean;
-
-    toCharArraySync(): string[];
-
-    toCharArray(): Promise<string[]>;
-
-    getBytesSync(): Buffer;
-
-    splitSync(regex: string): string[];
-}
+import { inspect } from 'util';
+import { JString } from './classes';
 
 describe('StringTest', () => {
     it('Ensure jvm', () => {
@@ -53,7 +30,7 @@ describe('StringTest', () => {
         );
         const instance = await JavaStringAsync.newInstanceAsync('some text');
 
-        expect(await instance.toString()).to.equal('some text');
+        expect(await instance.toStringAsync()).to.equal('some text');
     });
 
     let s1: JString;
@@ -63,7 +40,7 @@ describe('StringTest', () => {
     });
 
     it('String async match', async function () {
-        expect(await s1.toString()).to.equal('some text');
+        expect(await s1.toStringAsync()).to.equal('some text');
     });
 
     it('String equals', () => {
@@ -100,14 +77,14 @@ describe('StringTest', () => {
     it('String to char array', () => {
         let arr = s1.toCharArraySync();
         expect(JSON.stringify(arr)).to.equal(
-            JSON.stringify(s1.toStringSync().split(''))
+            JSON.stringify(s1.toString().split(''))
         );
     });
 
     it('String to char array async', async () => {
         let arr = await s1.toCharArray();
         expect(JSON.stringify(arr)).to.equal(
-            JSON.stringify(s1.toStringSync().split(''))
+            JSON.stringify(s1.toString().split(''))
         );
     });
 
@@ -138,5 +115,23 @@ describe('StringTest', () => {
         expect(isInstanceOf(s1, 'java.util.List')).to.be.false;
         expect(isInstanceOf(s1, JavaString)).to.be.true;
         expect(isInstanceOf(s1, Object)).to.be.true;
+    });
+
+    it('toString', async () => {
+        const str = new JavaString('test');
+
+        expect(str.toString()).to.equal('test');
+        expect(await str.toStringAsync()).to.equal('test');
+        expect(str + '').to.equal('test');
+    });
+
+    it('inspect.custom', () => {
+        clearClassProxies();
+        config.customInspect = true;
+        const LoggableString = importClass<typeof JString>('java.lang.String');
+        const str = new LoggableString('test');
+        config.customInspect = false;
+
+        expect(str[inspect.custom]!()).to.equal('test');
     });
 });

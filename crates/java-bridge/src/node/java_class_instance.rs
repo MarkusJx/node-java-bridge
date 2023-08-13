@@ -1,4 +1,3 @@
-use crate::node::config::Config;
 use crate::node::extensions::java_call_result_ext::ToNapiValue;
 use crate::node::extensions::java_type_ext::NapiToJava;
 use crate::node::helpers::arg_convert::{call_context_to_java_args, call_results_to_args};
@@ -7,6 +6,7 @@ use crate::node::helpers::napi_ext::{load_napi_library, uv_run, uv_run_mode};
 use crate::node::interface_proxy::proxies::interface_proxy_exists;
 use crate::node::java::Java;
 use crate::node::java_class_proxy::JavaClassProxy;
+use crate::node::util::traits::UnwrapOrEmpty;
 use futures::future;
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_type::JavaType;
@@ -50,7 +50,8 @@ impl JavaClassInstance {
         for method in &proxy.static_methods {
             let name = method.0.clone();
             let name_cpy = name.clone();
-            let name_sync = name.clone() + "Sync";
+            let name_async = name.clone() + proxy.config.async_suffix.unwrap_or_empty();
+            let name_sync = name.clone() + proxy.config.sync_suffix.unwrap_or_empty();
 
             constructor.set_named_property(
                 name_sync.clone().as_str(),
@@ -63,9 +64,9 @@ impl JavaClassInstance {
             )?;
 
             constructor.set_named_property(
-                name.clone().as_str(),
+                name_async.clone().as_str(),
                 env.create_function_from_closure(
-                    name.clone().as_str(),
+                    name_async.as_str(),
                     move |ctx: CallContext| -> napi::Result<JsObject> {
                         Self::call_static_method_async(&ctx, &name)
                     },
@@ -149,10 +150,40 @@ impl JavaClassInstance {
         env.wrap(&mut instance_obj, instance)?;
         this.set_named_property(OBJECT_PROPERTY, instance_obj)?;
 
+        if proxy.config.custom_inspect {
+            Self::add_custom_inspect(env, this);
+        }
+
         for method in &proxy.methods {
+            if method.0 == "toString" {
+                this.set_named_property(
+                    "toString",
+                    env.create_function_from_closure("toString", move |ctx: CallContext| {
+                        Self::call_method(&ctx, &"toString".to_string())
+                    }),
+                )?;
+
+                this.set_named_property(
+                    "toStringSync",
+                    env.create_function_from_closure("toStringSync", move |ctx: CallContext| {
+                        Self::call_method(&ctx, &"toString".to_string())
+                    }),
+                )?;
+
+                this.set_named_property(
+                    "toStringAsync",
+                    env.create_function_from_closure("toStringAsync", move |ctx: CallContext| {
+                        Self::call_method_async(&ctx, &"toString".to_string())
+                    }),
+                )?;
+
+                continue;
+            }
+
             let name = method.0.clone();
             let name_cpy = name.clone();
-            let name_sync = name.clone() + "Sync";
+            let name_async = name.clone() + proxy.config.async_suffix.unwrap_or_empty();
+            let name_sync = name.clone() + proxy.config.sync_suffix.unwrap_or_empty();
 
             this.set_named_property(
                 name_sync.clone().as_str(),
@@ -165,9 +196,9 @@ impl JavaClassInstance {
             )?;
 
             this.set_named_property(
-                name.clone().as_str(),
+                name_async.clone().as_str(),
                 env.create_function_from_closure(
-                    name.clone().as_str(),
+                    name_async.as_str(),
                     move |ctx: CallContext| -> napi::Result<JsObject> {
                         Self::call_method_async(&ctx, &name)
                     },
@@ -313,7 +344,7 @@ impl JavaClassInstance {
         let env = proxy.vm.attach_thread().map_napi_err()?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
 
-        let result = if Config::get().run_event_loop_when_interface_proxy_is_active
+        let result = if proxy.config.run_event_loop_when_interface_proxy_is_active
             && interface_proxy_exists()
         {
             // If the call context contains an interface proxy, we need to call the method
@@ -377,9 +408,49 @@ impl JavaClassInstance {
             },
         )
     }
+
+    fn add_custom_inspect(env: &Env, this: &mut JsObject) -> Option<()> {
+        let custom = env
+            .get_global()
+            .ok()?
+            .get_named_property::<JsObject>("Symbol")
+            .ok()?
+            .get_named_property::<JsFunction>("for")
+            .ok()?
+            .call(
+                None,
+                &[env.create_string("nodejs.util.inspect.custom").ok()?],
+            )
+            .ok()?;
+
+        this.set_property(
+            custom,
+            env.create_function_from_closure(
+                "custom",
+                |ctx: CallContext| -> napi::Result<JsUnknown> {
+                    let proxy = Self::get_class_proxy(&ctx, false)?;
+                    let method = proxy
+                        .methods
+                        .get("toString")
+                        .ok_or(napi::Error::from_reason("Method toString not found"))?
+                        .iter()
+                        .find(|m| m.parameter_types().len() == 0)
+                        .ok_or(napi::Error::from_reason("Method toString not found"))?;
+
+                    let obj = Self::get_object(&ctx)?;
+                    let env = proxy.vm.attach_thread().map_napi_err()?;
+
+                    let res = method.call(&obj, &[]).map_napi_err()?;
+                    res.to_napi_value(&env, &ctx.env).map_napi_err()
+                },
+            )
+            .ok()?,
+        )
+        .ok()
+    }
 }
 
-#[js_function(255)]
+#[js_function(255usize)]
 fn constructor(ctx: CallContext) -> napi::Result<JsUnknown> {
     let new_target_func = ctx.get_new_target::<JsFunction>();
     if new_target_func.is_err() {
@@ -409,7 +480,7 @@ fn constructor(ctx: CallContext) -> napi::Result<JsUnknown> {
     Ok(ctx.env.get_undefined()?.into_unknown())
 }
 
-#[js_function(255)]
+#[js_function(255usize)]
 fn new_instance(ctx: CallContext) -> napi::Result<JsObject> {
     let proxy = JavaClassInstance::get_class_proxy(&ctx, true)?.clone();
     let constructor = proxy
@@ -429,7 +500,7 @@ fn new_instance(ctx: CallContext) -> napi::Result<JsObject> {
     )
 }
 
-#[js_function(0)]
+#[js_function(0usize)]
 fn get_class_field(ctx: CallContext) -> napi::Result<JsObject> {
     let cls: JsFunction = ctx.this()?;
     let proxy_obj: JsObject = cls

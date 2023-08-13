@@ -49,6 +49,7 @@ impl JsTypeEq for JavaType {
         Ok(match other.get_type()? {
             ValueType::String => {
                 Type::String == self
+                    || Type::CharSequence == self
                     || (other.coerce_to_string()?.utf16_len()? == 1 && self.is_char())
             }
             ValueType::Number => {
@@ -235,7 +236,7 @@ impl NapiToJava for JavaType {
                     LocalJavaObject::from_i16(env, val as i16)?.into()
                 }
             }
-            Type::String => {
+            Type::String | Type::CharSequence => {
                 if value.get_type()? == ValueType::Object {
                     JavaObject::from(value.into_java_object(node_env)?)
                 } else {

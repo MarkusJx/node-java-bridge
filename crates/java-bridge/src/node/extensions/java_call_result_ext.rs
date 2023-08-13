@@ -175,7 +175,7 @@ impl ToNapiValue for JavaCallResult {
                     let vm = j_env.get_java_vm()?;
                     let proxy = cache
                         .get_mut()
-                        .get_class_proxy(&vm, signature.to_string())?;
+                        .get_class_proxy(&vm, signature.to_string(), None)?;
 
                     JavaClassInstance::from_existing(proxy, env, object.clone())?
                 }

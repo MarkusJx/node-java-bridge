@@ -1,5 +1,5 @@
 {
-    "include": ["ts-src/**/*", "node_modules/webpack/module.d.ts"],
+    "include": ["ts-src/**/*"],
     "compilerOptions": {
         "allowJs": true,
         "target": "es2020",
@@ -19,7 +19,8 @@
         "sourceMap": true,
         "resolveJsonModule": true,
         "noUnusedLocals": true,
-        "noUnusedParameters": true
+        "noUnusedParameters": true,
+        "types": ["node", "webpack-env"]
     },
     "exclude": ["node_modules", "dist"]
 }
