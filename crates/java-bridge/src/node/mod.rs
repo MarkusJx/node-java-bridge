@@ -1,5 +1,5 @@
-pub mod config;
 mod class_cache;
+pub mod config;
 pub mod extensions;
 pub mod helpers;
 mod interface_proxy;
