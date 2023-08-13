@@ -3,6 +3,7 @@ import {
     Java,
     JavaOptions,
     JavaConfig,
+    ClassConfiguration,
 } from '../native';
 import {
     JavaClass,
@@ -12,8 +13,7 @@ import {
     UnknownJavaClassType,
 } from './definitions';
 import { getJavaLibPath, getNativeLibPath } from './nativeLib';
-export { clearDaemonProxies } from '../native';
-//import "webpack/module";
+export { clearDaemonProxies, clearClassProxies } from '../native';
 
 /**
  * The static java instance
@@ -160,6 +160,14 @@ export function setClassLoader(classLoader: UnknownJavaClass): void {
  * constructor type of the class as the template parameter to get
  * the proper type returned. You could also just cast the result.
  *
+ * When passing a {@link ClassConfiguration} object, the config will be applied
+ * to this class. This config does not apply to any other class.
+ * If you want to change the config for all classes, use the
+ * {@link config} class in order to do that. Any undefined field
+ * in the config will be ignored and the default value will be used.
+ * If you want to change the sync and async suffixes to an empty string,
+ * you can pass an empty string as the suffix.
+ *
  * ## Examples
  * ### Import ``java.util.ArrayList`` and create a new instance of it
  * ```ts
@@ -212,15 +220,36 @@ export function setClassLoader(classLoader: UnknownJavaClass): void {
  * assert.equals(list.getSync(1), 'World');
  * ```
  *
+ * ### Import ``java.util.ArrayList`` with custom config
+ * ```ts
+ * import { importClass, config } from 'java-bridge';
+ *
+ * // Import java.util.ArrayList with custom config
+ * const ArrayList = importClass('java.util.ArrayList', {
+ *    syncSuffix: '',
+ *    asyncSuffix: 'Async',
+ * });
+ *
+ * // Create a new instance of ArrayList
+ * const list = new ArrayList();
+ *
+ * // Call the async method
+ * await list.addAsync('Hello World!');
+ *
+ * // Call the sync method
+ * list.add('Hello World!');
+ * ```
+ *
  * @template T the type of the java class to import as a js type
  * @param classname the name of the class to resolve
+ * @param config the config to use when importing the class
  * @return the java class constructor
  */
 export function importClass<
     T extends JavaClassConstructorType = UnknownJavaClassType
->(classname: string): T {
+>(classname: string, config?: ClassConfiguration): T {
     ensureJvm();
-    return javaInstance!.importClass(classname) as T;
+    return javaInstance!.importClass(classname, config) as T;
 }
 
 /**
@@ -228,9 +257,9 @@ export function importClass<
  */
 export function importClassAsync<
     T extends JavaClassConstructorType = UnknownJavaClassType
->(classname: string): Promise<T> {
+>(classname: string, config?: ClassConfiguration): Promise<T> {
     ensureJvm();
-    return javaInstance!.importClassAsync(classname) as Promise<T>;
+    return javaInstance!.importClassAsync(classname, config) as Promise<T>;
 }
 
 /**
@@ -661,7 +690,7 @@ export type AnyProxyRecord = Record<string, ProxyMethod>;
  *
  * If you still want to call everything in a synchronous manner, make sure to enable
  * running the event loop while waiting for a java method to return by setting
- * {@link config.runEventLoopWhenInterfaceProxyIsActive} to true.
+ * {@link JavaConfig.runEventLoopWhenInterfaceProxyIsActive} to true.
  * **This may cause application crashes, so it is strongly recommended to just use async methods.**
  *
  * ### Keeping the proxy alive
@@ -728,7 +757,8 @@ export function newProxy<T extends ProxyRecord<T> = AnyProxyRecord>(
             try {
                 const res = (method as ProxyMethod)(...args);
                 if (res instanceof Promise) {
-                    res.then((res: unknown) => callback(null, res)).catch(
+                    res.then(
+                        (res: unknown) => callback(null, res),
                         (e: unknown) => {
                             if (e instanceof Error) {
                                 callback(e);
@@ -766,59 +796,6 @@ export function getJavaInstance(): Java | null {
 }
 
 /**
- * Configuration options for the java bridge.
+ * @inheritDoc JavaConfig
  */
-export class config {
-    /**
-     * **Experimental Feature**
-     *
-     * Set whether to run the event loop when an interface proxy is active.
-     * This is disabled by default. Enabling this will cause the bridge
-     * to run the event loop when an interface proxy either as direct
-     * proxy or as daemon proxy is active. This is only required if the
-     * proxied method calls back into the javascript process in the same thread.
-     * If the proxy is used either in an async method or in a different thread,
-     * this is not required.
-     *
-     * **Note:** Enabling this may cause the application to crash. Use with caution.
-     *
-     * @experimental
-     * @param value whether to run the event loop when an interface proxy is active
-     */
-    static set runEventLoopWhenInterfaceProxyIsActive(value: boolean) {
-        JavaConfig.setRunEventLoopWhenInterfaceProxyIsActive(value);
-    }
-
-    /**
-     * **Experimental Feature**
-     *
-     * Get whether to run the event loop when an interface proxy is active.
-     * @experimental
-     */
-    static get runEventLoopWhenInterfaceProxyIsActive(): boolean {
-        return JavaConfig.getRunEventLoopWhenInterfaceProxyIsActive();
-    }
-
-    /**
-     * Whether to add custom inspect methods to java objects.
-     * This is disabled by default.
-     * This allows console.log to print java objects in a more readable way
-     * using the `toString` method of the java object.
-     *
-     * @since 2.4.0
-     * @param value whether to add custom inspect methods to java objects
-     */
-    static set customInspect(value: boolean) {
-        JavaConfig.setCustomInspect(value);
-    }
-
-    /**
-     * Get whether to add custom inspect methods to java objects.
-     *
-     * @since 2.4.0
-     * @returns whether to add custom inspect methods to java objects
-     */
-    static get customInspect(): boolean {
-        return JavaConfig.getCustomInspect();
-    }
-}
+export const config = new JavaConfig();

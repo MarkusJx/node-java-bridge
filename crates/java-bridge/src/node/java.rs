@@ -1,3 +1,4 @@
+use crate::node::config::{ClassConfiguration, Config};
 use crate::node::helpers::napi_error::{MapToNapiError, StrIntoNapiError};
 use crate::node::interface_proxy::interface_proxy_options::InterfaceProxyOptions;
 use crate::node::interface_proxy::java_interface_proxy::JavaInterfaceProxy;
@@ -26,12 +27,40 @@ lazy_static! {
         Mutex::new(HashMap::new());
 }
 
-pub fn get_class_proxy(vm: &JavaVM, class_name: String) -> ResultType<Arc<JavaClassProxy>> {
+pub fn get_class_proxy(
+    vm: &JavaVM,
+    class_name: String,
+    config: Option<ClassConfiguration>,
+) -> ResultType<Arc<JavaClassProxy>> {
+    let config = config
+        .map(|c| c.try_into())
+        .map_or(Ok(None), |c| c.map(Some))?;
     let mut cached_classes = CACHED_CLASSES.lock().unwrap();
-    if cached_classes.contains_key(class_name.as_str()) {
-        Ok(cached_classes.get(class_name.as_str()).unwrap().clone())
+
+    if let Some(proxy) = cached_classes.get(&class_name) {
+        if let Some(cfg) = config {
+            if proxy.config != cfg {
+                return Ok(Arc::new(JavaClassProxy::new(
+                    vm.clone(),
+                    class_name.clone(),
+                    Some(cfg),
+                )?));
+            }
+        }
+
+        Ok(proxy.clone())
     } else {
-        let proxy = Arc::new(JavaClassProxy::new(vm.clone(), class_name.clone())?);
+        if let Some(cfg) = config.as_ref() {
+            if !Config::get().eq(&cfg) {
+                return Ok(Arc::new(JavaClassProxy::new(
+                    vm.clone(),
+                    class_name.clone(),
+                    Some(cfg.clone()),
+                )?));
+            }
+        }
+
+        let proxy = Arc::new(JavaClassProxy::new(vm.clone(), class_name.clone(), config)?);
         cached_classes.insert(class_name, proxy.clone());
 
         Ok(proxy)
@@ -108,8 +137,13 @@ impl Java {
     /// Will import the class and parse all of its methods and fields.
     /// The imported class will be cached for future use.
     #[napi(ts_return_type = "object")]
-    pub fn import_class(&mut self, env: Env, class_name: String) -> napi::Result<JsFunction> {
-        let proxy = get_class_proxy(&self.root_vm, class_name).map_napi_err()?;
+    pub fn import_class(
+        &mut self,
+        env: Env,
+        class_name: String,
+        config: Option<ClassConfiguration>,
+    ) -> napi::Result<JsFunction> {
+        let proxy = get_class_proxy(&self.root_vm, class_name, config).map_napi_err()?;
         JavaClassInstance::create_class_instance(&env, proxy)
     }
 
@@ -121,9 +155,10 @@ impl Java {
         &'static mut self,
         env: Env,
         class_name: String,
+        config: Option<ClassConfiguration>,
     ) -> napi::Result<JsObject> {
         env.execute_tokio_future(
-            future::lazy(|_| get_class_proxy(&self.root_vm, class_name).map_napi_err()),
+            future::lazy(|_| get_class_proxy(&self.root_vm, class_name, config).map_napi_err()),
             |&mut env, proxy| JavaClassInstance::create_class_instance(&env, proxy),
         )
     }
@@ -223,8 +258,8 @@ impl Java {
 
     #[napi(getter, ts_return_type = "object")]
     pub fn get_class_loader(&self, env: Env) -> napi::Result<JsUnknown> {
-        let proxy =
-            get_class_proxy(&self.root_vm, "java.net.URLClassLoader".into()).map_napi_err()?;
+        let proxy = get_class_proxy(&self.root_vm, "java.net.URLClassLoader".into(), None)
+            .map_napi_err()?;
         let j_env = self.root_vm.attach_thread().map_napi_err()?;
         JavaClassInstance::from_existing(proxy, &env, j_env.get_class_loader().map_napi_err()?)
     }
@@ -281,4 +316,14 @@ impl Java {
         env.instance_of(JavaObject::from(this.clone()), other)
             .map_napi_err()
     }
+}
+
+/// Clear the class proxy cache.
+/// Use this method in order to reset the config for all class proxies.
+/// The new config will be applied once the class is imported again.
+///
+/// @since 2.4.0
+#[napi]
+pub fn clear_class_proxies() {
+    CACHED_CLASSES.lock().unwrap().clear();
 }
