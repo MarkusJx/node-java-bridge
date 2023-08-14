@@ -41,7 +41,7 @@ pub struct NodeWriter<'a> {
 
 impl io::Write for NodeWriter<'_> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        if self.record.level() <= Level::Info {
+        if self.record.level() >= Level::Info {
             self.out_buffer.append(&mut buf.to_vec());
         } else {
             self.err_buffer.append(&mut buf.to_vec());

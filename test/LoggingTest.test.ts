@@ -50,12 +50,44 @@ describe('LoggingTest', () => {
 
         logging.initLogger(path.join(__dirname, 'log.config.json'));
         const promise = new Promise((resolve, reject) => {
-            logging.setLogCallbacks(reject, resolve);
+            logging.setLogCallbacks(resolve, reject);
         });
 
         expect(await promise).to.match(
             /\d+-\d+-\d+T\d+:\d+:\d+.\d+\+\d+:\d+ \[.+] .+/gm
         );
         expect(() => logging.resetLogCallbacks()).to.not.throw();
+    });
+
+    it('check setLogCallbacks with out callback (logging enabled)', async function () {
+        if (!logging.LOGGING_SUPPORTED) {
+            this.skip();
+        }
+
+        logging.initLogger(path.join(__dirname, 'log.config.json'));
+        const promise = new Promise((resolve) => {
+            logging.setLogCallbacks(resolve, null);
+        });
+
+        expect(await promise).to.match(
+            /\d+-\d+-\d+T\d+:\d+:\d+.\d+\+\d+:\d+ \[.+] .+/gm
+        );
+        logging.resetLogCallbacks();
+    });
+
+    it('check setLogCallbacks with err callback (logging enabled)', async function () {
+        if (!logging.LOGGING_SUPPORTED) {
+            this.skip();
+        }
+
+        logging.initLogger(path.join(__dirname, 'log.config.json'));
+        const promise = new Promise((resolve) => {
+            logging.setLogCallbacks(null, resolve);
+        });
+
+        expect(await promise).to.match(
+            /\d+-\d+-\d+T\d+:\d+:\d+.\d+\+\d+:\d+ \[.+] .+/gm
+        );
+        logging.resetLogCallbacks();
     });
 });

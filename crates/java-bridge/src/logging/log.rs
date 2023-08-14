@@ -55,11 +55,11 @@ mod logging {
     ///
     /// @param path The path to the configuration file.
     pub fn init_logger(path: String) -> napi::Result<()> {
-        let mut handle_guard = HANDLE.lock().map_napi_err()?;
         let mut deserializers = Deserializers::default();
         deserializers.insert("node", NodeAppenderSerializer);
 
         let config = load_config_file(path, deserializers).map_napi_err()?;
+        let mut handle_guard = HANDLE.lock().map_napi_err()?;
         if let Some(handle) = handle_guard.as_ref() {
             info!("Logger already initialized, updating configuration");
             handle.set_config(config);
