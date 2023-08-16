@@ -6,9 +6,12 @@ import {
     config,
     clearClassProxies,
 } from '../.';
-import { expect } from 'chai';
+import { expect, use } from 'chai';
 import { inspect } from 'util';
 import { JString } from './classes';
+import chaiAsPromised from 'chai-as-promised';
+
+use(chaiAsPromised);
 
 describe('StringTest', () => {
     it('Ensure jvm', () => {
@@ -133,5 +136,13 @@ describe('StringTest', () => {
         config.customInspect = false;
 
         expect(str[inspect.custom]!()).to.equal('test');
+    });
+
+    it('async stack trace', async () => {
+        await expect(JavaString.newInstanceAsync(null))
+            .to.eventually.be.rejected.property('stack')
+            .to.match(
+                /at Context\.<anonymous> \(.+test[/\\]StringTest.test.ts:\d+:\d+\)/gm
+            );
     });
 });

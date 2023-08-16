@@ -1,10 +1,12 @@
 import java, { importClass, JavaClass, JavaInterfaceProxy } from '../.';
-import assert from 'assert';
-import { expect } from 'chai';
+import { expect, use } from 'chai';
 import { afterEach } from 'mocha';
 import semver from 'semver';
 import { shouldIncreaseTimeout } from './testUtil';
+import chaiAsPromised from 'chai-as-promised';
 require('expose-gc');
+
+use(chaiAsPromised);
 
 declare class JThread extends JavaClass {
     public constructor(proxy: JavaInterfaceProxy);
@@ -140,14 +142,9 @@ describe('ProxyTest', () => {
                 java.importClass<typeof JavaString>('java.lang.String');
             const str = new JString('hello');
 
-            try {
-                await str.transform(proxy);
-                assert.fail('Should have thrown');
-            } catch (e: any) {
-                expect(e.message).to.contain(
-                    'io.github.markusjx.bridge.JavascriptException: Error'
-                );
-            }
+            await expect(str.transform(proxy!)).to.eventually.be.rejectedWith(
+                'io.github.markusjx.bridge.JavascriptException: Error'
+            );
         });
 
         it('Proxy with error (sync)', function () {
@@ -163,14 +160,9 @@ describe('ProxyTest', () => {
                 java.importClass<typeof JavaString>('java.lang.String');
             const str = new JString('hello');
 
-            try {
-                str.transformSync(proxy);
-                assert.fail('Should have thrown');
-            } catch (e: any) {
-                expect(e.message).to.contain(
-                    'io.github.markusjx.bridge.JavascriptException: Error'
-                );
-            }
+            expect(() => str.transformSync(proxy!)).to.throw(
+                'io.github.markusjx.bridge.JavascriptException: Error'
+            );
         });
 
         it('Proxy with async method', async function () {
@@ -209,14 +201,9 @@ describe('ProxyTest', () => {
                 java.importClass<typeof JavaString>('java.lang.String');
             const str = new JString('hello');
 
-            try {
-                await str.transform(proxy);
-                assert.fail('Should have thrown');
-            } catch (e: any) {
-                expect(e.message).to.contain(
-                    'io.github.markusjx.bridge.JavascriptException: Error'
-                );
-            }
+            await expect(str.transform(proxy!)).to.eventually.be.rejectedWith(
+                'io.github.markusjx.bridge.JavascriptException: Error'
+            );
         });
 
         it('Proxy with async method throwing error', async function () {
@@ -232,14 +219,9 @@ describe('ProxyTest', () => {
                 java.importClass<typeof JavaString>('java.lang.String');
             const str = new JString('hello');
 
-            try {
-                await str.transform(proxy);
-                assert.fail('Should have thrown');
-            } catch (e: any) {
-                expect(e.message).to.contain(
-                    'io.github.markusjx.bridge.JavascriptException: Error'
-                );
-            }
+            await expect(str.transform(proxy!)).to.eventually.be.rejectedWith(
+                'io.github.markusjx.bridge.JavascriptException: Error'
+            );
         });
 
         afterEach(() => {
