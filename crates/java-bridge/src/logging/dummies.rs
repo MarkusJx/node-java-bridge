@@ -1,4 +1,10 @@
 #[napi]
+/// A namespace containing logging functions.
+///
+/// All methods in this namespace are dummies.
+/// They will print a warning once to stderr when called.
+///
+/// Re-compile the native module with the `log` feature to enable logging.
 pub mod logging {
     use napi::JsUnknown;
     use std::sync::Once;

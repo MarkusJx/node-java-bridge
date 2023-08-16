@@ -142,7 +142,7 @@ describe('StringTest', () => {
         await expect(JavaString.newInstanceAsync(null))
             .to.eventually.be.rejected.property('stack')
             .to.match(
-                /at Context\.<anonymous> \(.+test[/\\]StringTest.test.ts:\d+:\d+\)/gm
+                /at Context\.<anonymous> \(.+test[/\\]StringTest\.test\.ts:\d+:\d+\)/gm
             );
     });
 });
