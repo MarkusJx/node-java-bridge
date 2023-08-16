@@ -17,7 +17,6 @@ use crate::objects::java_object::AsJavaObject;
 use crate::{assert_non_null, define_object_value_of_method, sys};
 use std::error::Error;
 use std::fmt::{Debug, Formatter};
-use std::marker::PhantomData;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -27,7 +26,6 @@ pub struct LocalJavaObject<'a> {
     env: &'a JavaEnvWrapper<'a>,
     #[cfg(feature = "type_check")]
     signature: JavaType,
-    _marker: PhantomData<&'a sys::jobject>,
 }
 
 impl<'a> LocalJavaObject<'a> {
@@ -44,7 +42,6 @@ impl<'a> LocalJavaObject<'a> {
             env,
             #[cfg(feature = "type_check")]
             signature,
-            _marker: PhantomData,
         }
     }
 
@@ -62,7 +59,6 @@ impl<'a> LocalJavaObject<'a> {
             signature: signature.unwrap_or(JavaType::object()),
             free: true,
             env: env.get_env(),
-            _marker: PhantomData,
         }
     }
 
@@ -84,7 +80,6 @@ impl<'a> LocalJavaObject<'a> {
             env: env.get_env(),
             #[cfg(feature = "type_check")]
             signature: object.signature.clone(),
-            _marker: PhantomData,
         }
     }
 
@@ -99,7 +94,6 @@ impl<'a> LocalJavaObject<'a> {
             env,
             #[cfg(feature = "type_check")]
             signature: object.signature.clone(),
-            _marker: PhantomData,
         }
     }
 
@@ -117,7 +111,6 @@ impl<'a> LocalJavaObject<'a> {
             env,
             #[cfg(feature = "type_check")]
             signature: self.signature.clone(),
-            _marker: PhantomData,
         }
     }
 
@@ -314,7 +307,7 @@ impl GlobalJavaObject {
         self.object.lock().unwrap().get_vm()
     }
 
-    /// Get this object's raw value in order to pass it
+    /// Get this objects raw value in order to pass it
     /// to the JVM as a method return value.
     /// Disables automatic freeing of the object
     /// and allows the returned value to be `null`.

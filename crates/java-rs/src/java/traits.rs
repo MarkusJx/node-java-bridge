@@ -21,6 +21,10 @@ pub trait GetSignature {
     fn get_signature(&self) -> JavaType;
 }
 
+pub trait GetSignatureRef {
+    fn get_signature_ref(&self) -> &JavaType;
+}
+
 pub trait IsInstanceOf {
     fn is_instance_of(&self, classname: &str) -> ResultType<bool>;
 }

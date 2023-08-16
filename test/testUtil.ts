@@ -32,7 +32,10 @@ console.log('Process platform:', process.platform);
 export class JarTool {
     private readonly outputStream: UnknownJavaClass;
 
-    constructor(private readonly rootDir: string, outFile: string) {
+    constructor(
+        private readonly rootDir: string,
+        outFile: string
+    ) {
         const manifest = new Manifest();
         manifest
             .getMainAttributesSync()!

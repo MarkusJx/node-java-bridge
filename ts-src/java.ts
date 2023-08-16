@@ -13,7 +13,7 @@ import {
     UnknownJavaClassType,
 } from './definitions';
 import { getJavaLibPath, getNativeLibPath } from './nativeLib';
-export { clearDaemonProxies, clearClassProxies } from '../native';
+export { clearDaemonProxies, clearClassProxies, logging } from '../native';
 
 /**
  * The static java instance
@@ -182,10 +182,10 @@ export function setClassLoader(classLoader: UnknownJavaClass): void {
  *
  * ### Import ``java.util.ArrayList`` with types
  * ```ts
- * import { importClass, JavaClassInstance, JavaType } from 'java-bridge';
+ * import { importClass, JavaClass, JavaType } from 'java-bridge';
  *
  * // Definitions for class java.util.List
- * declare class List <T extends JavaType> extends JavaClassInstance {
+ * declare class List<T extends JavaType> extends JavaClass {
  *     size(): Promise<number>;
  *     sizeSync(): number;
  *     add(e: T): Promise<void>;
@@ -246,7 +246,7 @@ export function setClassLoader(classLoader: UnknownJavaClass): void {
  * @return the java class constructor
  */
 export function importClass<
-    T extends JavaClassConstructorType = UnknownJavaClassType
+    T extends JavaClassConstructorType = UnknownJavaClassType,
 >(classname: string, config?: ClassConfiguration): T {
     ensureJvm();
     return javaInstance!.importClass(classname, config) as T;
@@ -256,7 +256,7 @@ export function importClass<
  * @inheritDoc importClass
  */
 export function importClassAsync<
-    T extends JavaClassConstructorType = UnknownJavaClassType
+    T extends JavaClassConstructorType = UnknownJavaClassType,
 >(classname: string, config?: ClassConfiguration): Promise<T> {
     ensureJvm();
     return javaInstance!.importClassAsync(classname, config) as Promise<T>;
@@ -582,7 +582,15 @@ type InternalProxyRecord = Parameters<
     typeof Java.prototype.createInterfaceProxy
 >[1];
 
+/**
+ * A record of methods to implement.
+ * Useful for creating a proxy for a specific interface.
+ */
 export type ProxyRecord<T> = Partial<Record<keyof T, ProxyMethod>>;
+
+/**
+ * A generic proxy record.
+ */
 export type AnyProxyRecord = Record<string, ProxyMethod>;
 
 /**
@@ -751,6 +759,8 @@ export function newProxy<T extends ProxyRecord<T> = AnyProxyRecord>(
             ...args: any[]
         ): void => {
             if (err) {
+                // This is extremely unlikely to happen.
+                // Probably out of memory or something.
                 throw err;
             }
 

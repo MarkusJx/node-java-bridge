@@ -161,10 +161,10 @@ impl<'a> JavaEnv<'a> {
 
     pub fn object_to_string(&self, object: &LocalJavaObject) -> ResultType<String> {
         if !object.is_instance_of("java/lang/String")? {
-            return Err("The object is not a string".into());
+            Err("The object is not a string".into())
+        } else {
+            unsafe { self.0.get_string_utf_chars(object.get_raw()) }
         }
-
-        unsafe { self.0.get_string_utf_chars(object.get_raw()) }
     }
 
     pub fn instance_of(&self, this: JavaObject, other: GlobalJavaClass) -> ResultType<bool> {

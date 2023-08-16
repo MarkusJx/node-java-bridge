@@ -138,9 +138,7 @@ async function updateImports(): Promise<void> {
 
     const glob = promisify(_glob);
     await Promise.all(
-        (
-            await glob('**/*.ts', { cwd: outDir })
-        )
+        (await glob('**/*.ts', { cwd: outDir }))
             .map((file) => path.join(outDir, file))
             .map(async (file) => {
                 const contents = await fs.promises.readFile(file, 'utf8');

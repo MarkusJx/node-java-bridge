@@ -18,9 +18,22 @@ jobs:
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.2.1
             - name: Build
-              run: cargo build --verbose
+              run: cargo build
             - name: Run tests
-              run: cargo test --verbose
+              run: cargo test
+              timeout-minutes: 20
+
+    test-cargo-all:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v3
+            - name: Rust Cache
+              uses: Swatinem/rust-cache@v2.2.1
+            - name: Build
+              run: cargo build --all-features
+            - name: Run tests
+              run: cargo test --all-features
               timeout-minutes: 20
 
     test-npm:
@@ -30,27 +43,35 @@ jobs:
                     - os: ubuntu-20.04
                       node-version: 16.x
                       arch: x64
+                      features: default
                     - os: ubuntu-latest
                       node-version: 18.x
                       arch: x64
+                      features: all
                     - os: windows-latest
                       node-version: 16.x
                       arch: x64
+                      features: default
                     - os: windows-latest
                       node-version: 18.x
                       arch: x64
+                      features: all
                     - os: windows-latest
                       node-version: 16.x
                       arch: x86
+                      features: default
                     - os: windows-latest
                       node-version: 18.x
                       arch: x86
+                      features: default
                     - os: macos-latest
                       node-version: 16.x
                       arch: x64
+                      features: default
                     - os: macos-latest
                       node-version: 18.x
                       arch: x64
+                      features: all
         runs-on: ${{matrix.os}}
         steps:
             - uses: actions/checkout@v3
@@ -67,11 +88,15 @@ jobs:
                   architecture: ${{matrix.arch}}
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.2.1
+              if: ${{matrix.os != 'ubuntu-latest' && matrix.os != 'ubuntu-20.04'}}
             - name: Install
               run: npm ci
             - name: Build
-              if: ${{matrix.os != 'windows-latest' || matrix.arch == 'x64'}}
+              if: ${{matrix.os != 'windows-latest' || matrix.arch == 'x64'}} && ${{matrix.features == 'default'}}
               run: npm run build
+            - name: Build with all features
+              if: ${{matrix.os != 'windows-latest' || matrix.arch == 'x64'}} && ${{matrix.features == 'all'}}
+              run: npm run build:all
             - name: Build (win32)
               if: ${{matrix.os == 'windows-latest' && matrix.arch == 'x86'}}
               run: |

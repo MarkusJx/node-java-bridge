@@ -28,12 +28,14 @@ use crate::objects::args::AsJavaArg;
 use crate::signature::Signature;
 #[cfg(feature = "type_check")]
 use crate::traits::GetSignature;
+use crate::traits::GetSignatureRef;
 use crate::{
     assert_non_null, define_array_methods, define_call_methods, define_field_methods, sys,
 };
 use std::borrow::Borrow;
 use std::error::Error;
 use std::ffi::{CStr, CString};
+use std::ops::Not;
 use std::ptr;
 use std::sync::{Arc, Mutex};
 use std::thread::ThreadId;
@@ -88,6 +90,7 @@ impl<'a> JavaEnvWrapper<'a> {
         let mut vm: *mut sys::JavaVM = ptr::null_mut();
         let res =
             unsafe { self.methods.GetJavaVM.unwrap()(self.env, &mut vm as *mut *mut sys::JavaVM) };
+
         if res != sys::JNI_OK as _ || vm.is_null() {
             Err(format!("Failed to get JavaVM: {}", jni_error_to_string(res)).into())
         } else {
@@ -99,15 +102,15 @@ impl<'a> JavaEnvWrapper<'a> {
         let class = unsafe { self.methods.GetObjectClass.unwrap()(self.env, object.get_raw()) };
 
         if self.is_err() || class.is_null() {
-            return Err(self.get_last_error(file!(), line!(), true, "GetObjectClass failed")?);
+            Err(self.get_last_error(file!(), line!(), true, "GetObjectClass failed")?)
+        } else {
+            Ok(JavaClass::new(
+                class,
+                self,
+                #[cfg(feature = "type_check")]
+                object.get_signature().clone(),
+            ))
         }
-
-        Ok(JavaClass::new(
-            class,
-            self,
-            #[cfg(feature = "type_check")]
-            object.get_signature().clone(),
-        ))
     }
 
     pub fn get_object_signature(&self, object: JavaObject) -> ResultType<JavaType> {
@@ -199,16 +202,17 @@ impl<'a> JavaEnvWrapper<'a> {
     fn exception_occurred(&'a self) -> ResultType<LocalJavaObject<'a>> {
         let throwable = unsafe { self.methods.ExceptionOccurred.unwrap()(self.env) };
         self.clear_err();
-        if throwable == ptr::null_mut() {
-            return Err(JNIError::from("Call to ExceptionOccurred failed").into());
-        }
 
-        Ok(LocalJavaObject::new(
-            throwable,
-            self,
-            #[cfg(feature = "type_check")]
-            JavaType::object(),
-        ))
+        if throwable == ptr::null_mut() {
+            Err(JNIError::from("Call to ExceptionOccurred failed").into())
+        } else {
+            Ok(LocalJavaObject::new(
+                throwable,
+                self,
+                #[cfg(feature = "type_check")]
+                JavaType::object(),
+            ))
+        }
     }
 
     /// Convert the frames of the last pending exception to a rust error.
@@ -257,8 +261,8 @@ impl<'a> JavaEnvWrapper<'a> {
         } else {
             return Ok(());
         };
-        let num_frames = frames.len()?;
 
+        let num_frames = frames.len()?;
         self.convert_frames(
             &mut frames,
             num_frames,
@@ -380,13 +384,12 @@ impl<'a> JavaEnvWrapper<'a> {
         crate::trace!("Creating global reference to object of type {}", signature);
 
         assert_non_null!(object);
-        unsafe {
-            let obj = self.methods.NewGlobalRef.unwrap()(self.env, object);
-            if self.is_err() || obj.is_null() {
-                self.clear_err();
-                return Err(JNIError::new("Failed to create global reference".to_string()).into());
-            }
+        let obj = unsafe { self.methods.NewGlobalRef.unwrap()(self.env, object) };
 
+        if self.is_err() || obj.is_null() {
+            self.clear_err();
+            Err(JNIError::new("Failed to create global reference".to_string()).into())
+        } else {
             Ok(GlobalJavaObject::new(
                 obj,
                 self.jvm
@@ -411,17 +414,16 @@ impl<'a> JavaEnvWrapper<'a> {
         crate::trace!("Resolving class '{}'", class_name);
         let c_class_name = CString::new(class_name)?;
 
-        unsafe {
-            let class = self.methods.FindClass.unwrap()(self.env, c_class_name.as_ptr());
-            if self.is_err() || class.is_null() {
-                return Err(self.get_last_error(
-                    file!(),
-                    line!(),
-                    resolve_errors,
-                    format!("Could not find class '{}'", class_name).as_str(),
-                )?);
-            }
+        let class = unsafe { self.methods.FindClass.unwrap()(self.env, c_class_name.as_ptr()) };
 
+        if self.is_err() || class.is_null() {
+            Err(self.get_last_error(
+                file!(),
+                line!(),
+                resolve_errors,
+                format!("Could not find class '{}'", class_name).as_str(),
+            )?)
+        } else {
             Ok(JavaClass::new(
                 class,
                 &self,
@@ -544,23 +546,23 @@ impl<'a> JavaEnvWrapper<'a> {
 
         let method_name_str = CString::new(method_name)?;
         let signature_str = CString::new(signature)?;
-        unsafe {
-            let method = self.methods.GetMethodID.unwrap()(
+        let method = unsafe {
+            self.methods.GetMethodID.unwrap()(
                 self.env,
                 class.class(),
                 method_name_str.as_ptr(),
                 signature_str.as_ptr(),
-            );
+            )
+        };
 
-            if self.is_err() || method.is_null() {
-                return Err(self.get_last_error(
-                    file!(),
-                    line!(),
-                    resolve_errors,
-                    format!("Could not find method '{}{}'", method_name, signature).as_str(),
-                )?);
-            }
-
+        if self.is_err() || method.is_null() {
+            Err(self.get_last_error(
+                file!(),
+                line!(),
+                resolve_errors,
+                format!("Could not find method '{}{}'", method_name, signature).as_str(),
+            )?)
+        } else {
             Ok(JavaMethod::new(
                 method,
                 class,
@@ -584,23 +586,23 @@ impl<'a> JavaEnvWrapper<'a> {
 
         let method_name_str = CString::new(method_name)?;
         let signature_str = CString::new(signature)?;
-        unsafe {
-            let method = self.methods.GetStaticMethodID.unwrap()(
+        let method = unsafe {
+            self.methods.GetStaticMethodID.unwrap()(
                 self.env,
                 class.class(),
                 method_name_str.as_ptr(),
                 signature_str.as_ptr(),
-            );
+            )
+        };
 
-            if self.is_err() || method.is_null() {
-                return Err(self.get_last_error(
-                    file!(),
-                    line!(),
-                    true,
-                    format!("Could not find method '{}'", method_name).as_str(),
-                )?);
-            }
-
+        if self.is_err() || method.is_null() {
+            Err(self.get_last_error(
+                file!(),
+                line!(),
+                true,
+                format!("Could not find method '{}'", method_name).as_str(),
+            )?)
+        } else {
             Ok(JavaMethod::new(
                 method,
                 class,
@@ -647,6 +649,21 @@ impl<'a> JavaEnvWrapper<'a> {
         self.call_object_method_with_errors(object, method, args, true)
     }
 
+    fn return_method_object(
+        &'a self,
+        obj: sys::jobject,
+        _method: &JavaMethod<'_>,
+    ) -> ResultType<Option<LocalJavaObject<'a>>> {
+        Ok(obj.is_null().not().then(|| {
+            LocalJavaObject::new(
+                obj,
+                self,
+                #[cfg(feature = "type_check")]
+                _method.get_signature().get_return_type().clone(),
+            )
+        }))
+    }
+
     pub fn call_object_method_with_errors(
         &'a self,
         object: JavaObject<'_>,
@@ -661,38 +678,30 @@ impl<'a> JavaEnvWrapper<'a> {
             args.len()
         );
 
-        unsafe {
+        let obj = unsafe {
             let args = self.convert_args(
                 args,
                 #[cfg(feature = "type_check")]
                 method.get_signature(),
             )?;
 
-            let obj = self.methods.CallObjectMethodA.unwrap()(
+            self.methods.CallObjectMethodA.unwrap()(
                 self.env,
                 object.get_raw(),
                 method.id(),
                 args.as_ptr(),
-            );
-            if self.is_err() {
-                return Err(self.get_last_error(
-                    file!(),
-                    line!(),
-                    resolve_errors,
-                    "CallObjectMethodA failed",
-                )?);
-            }
+            )
+        };
 
-            Ok(if obj.is_null() {
-                None
-            } else {
-                Some(LocalJavaObject::new(
-                    obj,
-                    self,
-                    #[cfg(feature = "type_check")]
-                    method.get_signature().get_return_type().clone(),
-                ))
-            })
+        if self.is_err() {
+            Err(self.get_last_error(
+                file!(),
+                line!(),
+                resolve_errors,
+                "CallObjectMethodA failed",
+            )?)
+        } else {
+            self.return_method_object(obj, method)
         }
     }
 
@@ -709,38 +718,30 @@ impl<'a> JavaEnvWrapper<'a> {
             args.len()
         );
 
-        unsafe {
+        let obj = unsafe {
             let args = self.convert_args(
                 args,
                 #[cfg(feature = "type_check")]
                 method.get_signature(),
             )?;
 
-            let obj = self.methods.CallStaticObjectMethodA.unwrap()(
+            self.methods.CallStaticObjectMethodA.unwrap()(
                 self.env,
                 class.class(),
                 method.id(),
                 args.as_ptr(),
-            );
-            if self.is_err() {
-                return Err(self.get_last_error(
-                    file!(),
-                    line!(),
-                    true,
-                    format!("CallStaticObjectMethod failed").as_str(),
-                )?);
-            }
+            )
+        };
 
-            Ok(if obj.is_null() {
-                None
-            } else {
-                Some(LocalJavaObject::new(
-                    obj,
-                    self,
-                    #[cfg(feature = "type_check")]
-                    method.get_signature().get_return_type().clone(),
-                ))
-            })
+        if self.is_err() {
+            Err(self.get_last_error(
+                file!(),
+                line!(),
+                true,
+                format!("CallStaticObjectMethod failed").as_str(),
+            )?)
+        } else {
+            self.return_method_object(obj, method)
         }
     }
 
@@ -846,8 +847,8 @@ impl<'a> JavaEnvWrapper<'a> {
 
         let field_name = CString::new(name.clone())?;
         let field_signature = CString::new(signature.to_jni_type())?;
-        unsafe {
-            let field = if is_static {
+        let field = unsafe {
+            if is_static {
                 self.methods.GetStaticFieldID.unwrap()(
                     self.env,
                     class.class(),
@@ -861,18 +862,38 @@ impl<'a> JavaEnvWrapper<'a> {
                     field_name.as_ptr(),
                     field_signature.as_ptr(),
                 )
-            };
-
-            if self.is_err() || field.is_null() {
-                return Err(self.get_last_error(
-                    file!(),
-                    line!(),
-                    true,
-                    format!("Could not find field '{}'", name).as_str(),
-                )?);
             }
+        };
 
-            Ok(JavaField::new(field, signature, class, is_static))
+        if self.is_err() || field.is_null() {
+            Err(self.get_last_error(
+                file!(),
+                line!(),
+                true,
+                format!("Could not find field '{}'", name).as_str(),
+            )?)
+        } else {
+            Ok(unsafe { JavaField::new(field, signature, class, is_static) })
+        }
+    }
+
+    fn return_field_object<T: GetSignatureRef>(
+        &'a self,
+        res: sys::jobject,
+        _field: &T,
+        alt_text: &'static str,
+    ) -> ResultType<Option<JavaObject<'a>>> {
+        if self.is_err() {
+            Err(self.get_last_error(file!(), line!(), true, alt_text)?)
+        } else if res.is_null() {
+            Ok(None)
+        } else {
+            Ok(Some(JavaObject::from(LocalJavaObject::new(
+                res,
+                self,
+                #[cfg(feature = "type_check")]
+                _field.get_signature_ref().clone(),
+            ))))
         }
     }
 
@@ -882,23 +903,12 @@ impl<'a> JavaEnvWrapper<'a> {
         object: &JavaObject<'_>,
     ) -> ResultType<Option<JavaObject<'a>>> {
         #[cfg(feature = "log")]
-        crate::trace!("Getting object field {}", field.get_signature());
+        crate::trace!("Getting object field {}", field.get_signature_ref());
 
-        unsafe {
-            let res = self.methods.GetObjectField.unwrap()(self.env, object.get_raw(), field.id());
-            if self.is_err() {
-                Err(self.get_last_error(file!(), line!(), true, "GetObjectField failed")?)
-            } else if res.is_null() {
-                Ok(None)
-            } else {
-                Ok(Some(JavaObject::from(LocalJavaObject::new(
-                    res,
-                    self,
-                    #[cfg(feature = "type_check")]
-                    field.get_signature().clone(),
-                ))))
-            }
-        }
+        let res =
+            unsafe { self.methods.GetObjectField.unwrap()(self.env, object.get_raw(), field.id()) };
+
+        self.return_field_object(res, field, "GetObjectField failed")
     }
 
     pub fn set_object_field(
@@ -908,7 +918,7 @@ impl<'a> JavaEnvWrapper<'a> {
         value: Option<JavaObject<'_>>,
     ) -> ResultType<()> {
         #[cfg(feature = "log")]
-        crate::trace!("Setting object field {}", field.get_signature());
+        crate::trace!("Setting object field {}", field.get_signature_ref());
 
         unsafe {
             self.methods.SetObjectField.unwrap()(
@@ -920,11 +930,12 @@ impl<'a> JavaEnvWrapper<'a> {
                     .map(|v| v.get_raw())
                     .unwrap_or(ptr::null_mut()),
             );
-            if self.is_err() {
-                Err(self.get_last_error(file!(), line!(), true, "SetObjectField failed")?)
-            } else {
-                Ok(())
-            }
+        }
+
+        if self.is_err() {
+            Err(self.get_last_error(file!(), line!(), true, "SetObjectField failed")?)
+        } else {
+            Ok(())
         }
     }
 
@@ -936,22 +947,11 @@ impl<'a> JavaEnvWrapper<'a> {
         #[cfg(feature = "log")]
         crate::trace!("Getting static object field {}", field.get_signature());
 
-        unsafe {
-            let res =
-                self.methods.GetStaticObjectField.unwrap()(self.env, class.class(), field.id());
-            if self.is_err() {
-                Err(self.get_last_error(file!(), line!(), true, "GetStaticObjectField failed")?)
-            } else if res.is_null() {
-                Ok(None)
-            } else {
-                Ok(Some(JavaObject::from(LocalJavaObject::new(
-                    res,
-                    self,
-                    #[cfg(feature = "type_check")]
-                    field.get_signature().clone(),
-                ))))
-            }
-        }
+        let res = unsafe {
+            self.methods.GetStaticObjectField.unwrap()(self.env, class.class(), field.id())
+        };
+
+        self.return_field_object(res, field, "GetStaticObjectField failed")
     }
 
     pub fn set_static_object_field(
@@ -973,16 +973,17 @@ impl<'a> JavaEnvWrapper<'a> {
                     .map(|v| v.get_raw())
                     .unwrap_or(ptr::null_mut()),
             );
-            if self.is_err() {
-                Err(self.get_last_error(
-                    file!(),
-                    line!(),
-                    true,
-                    concat!(stringify!($static_setter), " failed"),
-                )?)
-            } else {
-                Ok(())
-            }
+        }
+
+        if self.is_err() {
+            Err(self.get_last_error(
+                file!(),
+                line!(),
+                true,
+                concat!(stringify!($static_setter), " failed"),
+            )?)
+        } else {
+            Ok(())
         }
     }
 
@@ -1097,33 +1098,34 @@ impl<'a> JavaEnvWrapper<'a> {
         index: i32,
         resolve_errors: bool,
     ) -> ResultType<Option<LocalJavaObject<'a>>> {
-        unsafe {
-            let obj = self.methods.GetObjectArrayElement.unwrap()(self.env, array.get_raw(), index);
-            if self.is_err() {
-                return Err(self.get_last_error(
-                    file!(),
-                    line!(),
-                    resolve_errors,
-                    "GetObjectArrayElement failed",
-                )?);
-            }
+        let obj = unsafe {
+            self.methods.GetObjectArrayElement.unwrap()(self.env, array.get_raw(), index)
+        };
 
-            if obj.is_null() {
-                Ok(None)
-            } else {
-                Ok(Some(LocalJavaObject::new(
-                    obj,
-                    self,
-                    #[cfg(feature = "type_check")]
-                    array
-                        .get_signature()
-                        .inner()
-                        .ok_or("Array signature is not an array".to_string())?
-                        .lock()
-                        .unwrap()
-                        .clone(),
-                )))
-            }
+        if self.is_err() {
+            return Err(self.get_last_error(
+                file!(),
+                line!(),
+                resolve_errors,
+                "GetObjectArrayElement failed",
+            )?);
+        }
+
+        if obj.is_null() {
+            Ok(None)
+        } else {
+            Ok(Some(LocalJavaObject::new(
+                obj,
+                self,
+                #[cfg(feature = "type_check")]
+                array
+                    .get_signature()
+                    .inner()
+                    .ok_or("Array signature is not an array".to_string())?
+                    .lock()
+                    .unwrap()
+                    .clone(),
+            )))
         }
     }
 
@@ -1143,32 +1145,22 @@ impl<'a> JavaEnvWrapper<'a> {
                     .map(|e| e.get_raw())
                     .unwrap_or(ptr::null_mut()),
             );
-            if self.is_err() {
-                return Err(self.get_last_error(
-                    file!(),
-                    line!(),
-                    true,
-                    "SetObjectArrayElement failed",
-                )?);
-            }
+        }
 
+        if self.is_err() {
+            Err(self.get_last_error(file!(), line!(), true, "SetObjectArrayElement failed")?)
+        } else {
             Ok(())
         }
     }
 
     pub fn get_array_length(&self, array: sys::jobject) -> ResultType<i32> {
         assert_non_null!(array);
-        unsafe {
-            let length = self.methods.GetArrayLength.unwrap()(self.env, array);
-            if self.is_err() {
-                return Err(self.get_last_error(
-                    file!(),
-                    line!(),
-                    true,
-                    "GetArrayLength failed",
-                )?);
-            }
+        let length = unsafe { self.methods.GetArrayLength.unwrap()(self.env, array) };
 
+        if self.is_err() {
+            Err(self.get_last_error(file!(), line!(), true, "GetArrayLength failed")?)
+        } else {
             Ok(length)
         }
     }
@@ -1178,18 +1170,13 @@ impl<'a> JavaEnvWrapper<'a> {
         class: &'a JavaClass<'a>,
         len: i32,
     ) -> ResultType<JavaObjectArray> {
-        unsafe {
-            let arr =
-                self.methods.NewObjectArray.unwrap()(self.env, len, class.class(), ptr::null_mut());
-            if self.is_err() || arr.is_null() {
-                return Err(self.get_last_error(
-                    file!(),
-                    line!(),
-                    true,
-                    "NewObjectArray failed",
-                )?);
-            }
+        let arr = unsafe {
+            self.methods.NewObjectArray.unwrap()(self.env, len, class.class(), ptr::null_mut())
+        };
 
+        if self.is_err() || arr.is_null() {
+            Err(self.get_last_error(file!(), line!(), true, "NewObjectArray failed")?)
+        } else {
             Ok(JavaObjectArray::from(LocalJavaObject::new(
                 arr,
                 self,
@@ -1319,13 +1306,12 @@ impl<'a> JavaEnvWrapper<'a> {
         crate::trace!("Converting '{}' to java string", string);
 
         let c_string = CString::new(string)?;
-        unsafe {
-            let string = self.methods.NewStringUTF.unwrap()(self.env, c_string.as_ptr());
-            if self.is_err() || string == ptr::null_mut() {
-                self.clear_err();
-                return Err(JNIError::from("NewStringUTF failed").into());
-            }
+        let string = unsafe { self.methods.NewStringUTF.unwrap()(self.env, c_string.as_ptr()) };
 
+        if self.is_err() || string.is_null() {
+            self.clear_err();
+            Err(JNIError::from("NewStringUTF failed").into())
+        } else {
             Ok(JavaString::new(self, string))
         }
     }
@@ -1347,6 +1333,7 @@ impl<'a> JavaEnvWrapper<'a> {
         assert_non_null!(sub);
         assert_non_null!(sup);
         let result = self.methods.IsAssignableFrom.unwrap()(self.env, sub, sup);
+
         if self.is_err() {
             Err(self.get_last_error(file!(), line!(), true, "IsAssignableFrom failed")?)
         } else {

@@ -4,6 +4,7 @@ use crate::java::java_type::{JavaType, Type};
 use crate::java::objects::class::{GlobalJavaClass, JavaClass};
 use crate::java::objects::java_object::JavaObject;
 use crate::java::util::util::ResultType;
+use crate::traits::GetSignatureRef;
 use crate::{define_field, sys};
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicPtr, Ordering};
@@ -192,10 +193,6 @@ impl<'a> JavaObjectField<'a> {
         self.0.class.env().set_object_field(self, object, value)
     }
 
-    pub fn get_signature(&self) -> &JavaType {
-        &self.0.field_type
-    }
-
     pub fn from_global(field: GlobalJavaField, class: &'a JavaClass<'a>) -> ResultType<Self> {
         if field.is_static {
             return Err("Tried creating a non-static field from a static field".into());
@@ -218,6 +215,12 @@ impl<'a> JavaObjectField<'a> {
 
     pub(in crate::java) unsafe fn id(&self) -> sys::jfieldID {
         self.0.id()
+    }
+}
+
+impl GetSignatureRef for JavaObjectField<'_> {
+    fn get_signature_ref(&self) -> &JavaType {
+        &self.0.field_type
     }
 }
 
@@ -294,6 +297,12 @@ impl<'a> StaticJavaObjectField<'a> {
 
     pub(in crate::java) unsafe fn id(&self) -> sys::jfieldID {
         self.0.id()
+    }
+}
+
+impl GetSignatureRef for StaticJavaObjectField<'_> {
+    fn get_signature_ref(&self) -> &JavaType {
+        &self.0.field_type
     }
 }
 

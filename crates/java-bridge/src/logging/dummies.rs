@@ -1,0 +1,49 @@
+#[napi]
+pub mod logging {
+    use napi::JsUnknown;
+    use std::sync::Once;
+
+    fn warn_disabled() {
+        static ONCE: Once = Once::new();
+        ONCE.call_once(|| {
+            eprintln!("WARNING: logging is not supported in this build");
+        });
+    }
+
+    #[napi]
+    /// This method is not supported in this build.
+    /// It will print a warning to stderr when called.
+    ///
+    /// Re-compile the native module with the `log` feature to enable logging.
+    pub fn set_log_callbacks(
+        #[napi(ts_arg_type = "((data: string | null) => void) | null | undefined")] _out: JsUnknown,
+        #[napi(ts_arg_type = "((data: string | null) => void) | null | undefined")] _err: JsUnknown,
+    ) {
+        warn_disabled()
+    }
+
+    #[napi]
+    /// This method is not supported in this build.
+    /// It will print a warning to stderr when called.
+    ///
+    /// Re-compile the native module with the `log` feature to enable logging.
+    pub fn init_logger(_path: String) {
+        warn_disabled()
+    }
+
+    #[napi]
+    /// This method is not supported in this build.
+    /// It will print a warning to stderr when called.
+    ///
+    /// Re-compile the native module with the `log` feature to enable logging.
+    pub fn reset_log_callbacks() {
+        warn_disabled()
+    }
+
+    #[napi]
+    /// Whether logging is supported.
+    /// Logging is disabled by default.
+    /// This constant currently is set to `false`
+    /// as logging is not supported in this build.
+    pub const LOGGING_SUPPORTED: bool = false;
+}

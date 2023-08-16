@@ -1,0 +1,14 @@
+{
+    "appenders": {
+        "node": {
+            "kind": "node",
+            "encoder": {
+                "pattern": "{d} [{t}] {m}{n}"
+            }
+        }
+    },
+    "root": {
+        "level": "trace",
+        "appenders": ["node"]
+    }
+}

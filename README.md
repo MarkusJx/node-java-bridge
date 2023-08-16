@@ -15,8 +15,6 @@ loads the jvm native library dynamically when the program first starts up.
 
 The full documentation of this package is available [here](https://markusjx.github.io/node-java-bridge/).
 
-The bindings to java are located in a separate package, [java-rs](https://github.com/MarkusJx/java-rs).
-
 **NOTE: As of version `2.1.0`, this package has been renamed from `@markusjx/java` to `java-bridge`.**
 
 ## Installation
@@ -274,6 +272,26 @@ const guard = stdout.enableRedirect(
     }
 );
 ```
+
+## Logging
+
+If you want to enable logging for this module, you need to re-compile the module
+with the `log` feature. Please install the dependencies listed in the
+[build section](#build-instructions) and run `npm run build:all` to build the module with
+all features enabled.
+
+Logged events include:
+
+-   Class loading
+-   Method calls
+-   Class instance creation
+-   Method and class lookup
+
+**Note:** Logging affects the performance of the module. Thus, it is recommended
+to only enable logging when debugging.
+
+For further information on how to use the logging feature, please take a look at the
+[logging module documentation](https://markusjx.github.io/node-java-bridge/modules/logging.html).
 
 ## Value conversion rules
 

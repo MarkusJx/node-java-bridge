@@ -1,27 +1,17 @@
 import path from 'path';
-import { BannerPlugin } from 'webpack';
 import nodeExternals from 'webpack-node-externals';
 
-interface AdditionalOptions {
-    banner?: string;
-}
-
-const config = (
-    entry: string,
-    mode: string,
-    outName: string,
-    opts?: AdditionalOptions
-) => ({
-    entry,
+module.exports = {
+    entry: './ts-src/index.ts',
     target: 'node',
-    mode,
+    mode: 'production',
     externalsPresets: {
         node: true,
     },
     externals: [nodeExternals()],
     output: {
         path: path.join(__dirname, 'dist'),
-        filename: outName,
+        filename: 'index.prod.min.js',
         library: {
             name: 'java',
             type: 'umd',
@@ -58,15 +48,4 @@ const config = (
         extensions: ['.ts', '.js'],
     },
     devtool: 'source-map',
-    plugins: [
-        opts?.banner &&
-            new BannerPlugin({
-                banner: opts?.banner,
-                raw: true,
-            }),
-    ].filter((v) => !!v),
-});
-
-module.exports = [
-    config('./ts-src/index.ts', 'production', 'index.prod.min.js'),
-];
+};

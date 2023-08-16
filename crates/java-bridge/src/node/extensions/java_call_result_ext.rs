@@ -1,6 +1,7 @@
-use crate::node::java::get_class_proxy;
+use crate::node::class_cache::ClassCache;
 use crate::node::java_class_instance::JavaClassInstance;
 use crate::node::util::util::ResultType;
+use app_state::{stateful, AppStateTrait, MutAppState};
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_env::JavaEnv;
 use java_rs::java_type::{JavaType, Type};
@@ -117,6 +118,7 @@ impl ToNapiValue for JavaCallResult {
         Ok(res)
     }
 
+    #[stateful(init(cache))]
     fn object_to_napi_value(
         &self,
         object: &GlobalJavaObject,
@@ -124,6 +126,7 @@ impl ToNapiValue for JavaCallResult {
         env: &Env,
         signature: &JavaType,
         objects: bool,
+        cache: MutAppState<ClassCache>,
     ) -> ResultType<JsUnknown> {
         let obj = LocalJavaObject::from(object, &j_env);
         let res = match signature.type_enum() {
@@ -170,7 +173,10 @@ impl ToNapiValue for JavaCallResult {
                     )?
                 } else {
                     let vm = j_env.get_java_vm()?;
-                    let proxy = get_class_proxy(&vm, signature.to_string(), None)?;
+                    let proxy =
+                        cache
+                            .get_mut()
+                            .get_class_proxy(&vm, signature.to_string(), None)?;
 
                     JavaClassInstance::from_existing(proxy, env, object.clone())?
                 }
