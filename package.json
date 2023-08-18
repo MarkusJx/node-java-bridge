@@ -73,6 +73,7 @@
     "devDependencies": {
         "@napi-rs/cli": "^2.16.2",
         "@types/chai": "^4.3.5",
+        "@types/chai-as-promised": "^7.1.5",
         "@types/is-ci": "^3.0.0",
         "@types/mocha": "^10.0.1",
         "@types/node": "^20.4.10",
@@ -81,6 +82,7 @@
         "@types/webpack-node-externals": "^3.0.0",
         "@types/yargs": "^17.0.24",
         "chai": "^4.3.7",
+        "chai-as-promised": "^7.1.1",
         "cpy-cli": "^5.0.0",
         "expose-gc": "^1.0.0",
         "is-ci": "^3.0.1",

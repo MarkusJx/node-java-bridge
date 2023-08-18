@@ -291,7 +291,7 @@ Logged events include:
 to only enable logging when debugging.
 
 For further information on how to use the logging feature, please take a look at the
-[logging module documentation](https://markusjx.github.io/node-java-bridge/modules/logging.html).
+[logging module documentation](https://markusjx.github.io/node-java-bridge/modules/internal.logging.html).
 
 ## Value conversion rules
 

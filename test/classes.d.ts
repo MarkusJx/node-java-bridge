@@ -3,7 +3,7 @@ import type { JavaClass } from '../ts-src';
 export declare class JString extends JavaClass {
     constructor(value: string);
 
-    static newInstanceAsync(value: string): Promise<JString>;
+    static newInstanceAsync(value: string | null): Promise<JString>;
 
     static [`valueOf`](values: string[]): Promise<JString>;
 

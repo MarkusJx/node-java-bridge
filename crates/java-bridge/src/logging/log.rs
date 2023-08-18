@@ -1,4 +1,33 @@
 #[napi]
+/// A namespace containing logging functions.
+///
+/// The methods in this namespace are only available
+/// if the native library was compiled with the `log` feature.
+/// By default, the native library is compiled without this feature.
+///
+/// If you don't know if the native library was compiled with the `log` feature,
+/// the jsdoc comments of all methods in this namespace will start with
+/// "This method is not supported in this build" if the native library
+/// has been compiled without the `log` feature. Otherwise, the usual
+/// jsdoc comments will be present. Also, the {@link internal.logging.LOGGING_SUPPORTED}
+/// constant can be used to check if the native library was compiled with
+/// the `log` feature.
+///
+/// ## Example
+/// ```ts
+/// import { logging } from 'java-bridge';
+///
+/// logging.initLogger('log4rs.json');
+/// logging.setLogCallbacks(
+///   (out) => console.log(out),
+///   (err) => console.error(err)
+/// );
+/// ```
+///
+/// See {@link logging.initLogger} for further information
+/// on how to configure the logger.
+///
+/// @since 2.4.0
 mod logging {
     use crate::logging::appender::NodeAppenderSerializer;
     use crate::logging::writer::NodeWriter;
