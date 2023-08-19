@@ -82,7 +82,10 @@ impl JavaConfig {
     /// Pass `null` or an empty string to disable the suffix.
     /// This must not be the same as the {@link asyncSuffix}.
     ///
-    /// # Example
+    /// This option does not affect standard methods of java classes
+    /// like `toString`, `toStringSync`, `toStringAsync` and `newInstanceAsync`.
+    ///
+    /// ## Example
     /// ```ts
     /// import { config, clearClassProxies } from 'java-bridge';
     ///
@@ -136,6 +139,9 @@ impl JavaConfig {
     /// This is `Async` by default.
     /// Pass `null` or an empty string to disable the suffix.
     /// This must not be the same as the {@link syncSuffix}.
+    ///
+    /// This option does not affect standard methods of java classes
+    /// like `toString`, `toStringSync`, `toStringAsync` and `newInstanceAsync`.
     ///
     /// @see syncSuffix
     /// @since 2.4.0

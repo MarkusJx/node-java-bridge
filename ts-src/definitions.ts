@@ -150,6 +150,9 @@ export declare class JavaClass extends JavaObject {
      * Does not overwrite any existing instanceof operator.
      * This uses the native java instanceof operator.
      *
+     * This method's name is not affected by the {@link JavaConfig#syncSuffix}
+     * and {@link JavaConfig#asyncSuffix} options.
+     *
      * ## Example
      * ```ts
      * import { importClass } from 'java-bridge';
@@ -190,6 +193,9 @@ export declare class JavaClass extends JavaObject {
      * Java default toString method.
      * Sync call.
      *
+     * This method's name is not affected by the {@link JavaConfig#syncSuffix}
+     * and {@link JavaConfig#asyncSuffix} options.
+     *
      * @returns this as a string
      */
     public toString(): string;
@@ -197,6 +203,9 @@ export declare class JavaClass extends JavaObject {
     /**
      * Java default toString method.
      * Sync call.
+     *
+     * This method's name is not affected by the {@link JavaConfig#syncSuffix}
+     * and {@link JavaConfig#asyncSuffix} options.
      *
      * @deprecated use {@link toString} instead
      * @returns this as a string
@@ -206,6 +215,9 @@ export declare class JavaClass extends JavaObject {
     /**
      * Java default toString method.
      * Async call.
+     *
+     * This method's name is not affected by the {@link JavaConfig#syncSuffix}
+     * and {@link JavaConfig#asyncSuffix} options.
      *
      * @since 2.4.0
      * @returns this as a string
@@ -250,6 +262,9 @@ export declare class UnknownJavaClass extends JavaClass {
     /**
      * Create a new java class instance.
      * Async version.
+     *
+     * This method's name is not affected by the {@link JavaConfig#syncSuffix}
+     * and {@link JavaConfig#asyncSuffix} options.
      *
      * @template T the type of this class as a new instance of this class will be returned
      * @param args the arguments to create the instance
