@@ -45,8 +45,8 @@
         "artifacts": "napi artifacts",
         "build:all": "npm run build:napi -- --features all && npm run postbuild",
         "build": "npm run build:napi",
-        "build:debug": "npm run build:napi:debug && npm run build:ts && npm run build:java",
-        "postbuild": "npm run build:ts && npm run build:java",
+        "build:debug": "npm run build:napi:debug && npm run build:java && npm run build:ts",
+        "postbuild": "npm run build:java && npm run build:ts",
         "build:napi": "napi build --cargo-name java --platform --release --js native.js --dts native.d.ts",
         "build:napi:debug": "napi build --cargo-name java --platform --js native.js --dts native.d.ts",
         "build:ts": "webpack build && cpy native.d.ts dist",
@@ -67,9 +67,6 @@
         "prebenchmark": "npm run build",
         "docs": "typedoc --out docs ts-src/index.ts"
     },
-    "dependencies": {
-        "glob": "^10.3.3"
-    },
     "devDependencies": {
         "@napi-rs/cli": "^2.16.2",
         "@types/chai": "^4.3.5",
@@ -83,6 +80,7 @@
         "@types/yargs": "^17.0.24",
         "chai": "^4.3.7",
         "chai-as-promised": "^7.1.1",
+        "copy-webpack-plugin": "^11.0.0",
         "cpy-cli": "^5.0.0",
         "expose-gc": "^1.0.0",
         "is-ci": "^3.0.1",
