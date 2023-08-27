@@ -1,5 +1,6 @@
 import path from 'path';
 import nodeExternals from 'webpack-node-externals';
+import CopyPlugin from 'copy-webpack-plugin';
 
 module.exports = {
     entry: './ts-src/index.ts',
@@ -44,6 +45,16 @@ module.exports = {
             },
         ],
     },
+    plugins: [
+        new CopyPlugin({
+            patterns: [
+                {
+                    from: './java-src/build/libs/JavaBridge-*.jar',
+                    to: 'JavaBridge.jar',
+                },
+            ],
+        }),
+    ],
     resolve: {
         extensions: ['.ts', '.js'],
     },

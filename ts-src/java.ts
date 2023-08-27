@@ -38,6 +38,7 @@ export interface JVMOptions extends JavaOptions {
     opts?: Array<string> | null;
     /**
      * Whether this runs inside a packaged electron app
+     * @deprecated this option is not needed anymore and will be removed in a future version
      */
     isPackagedElectron?: boolean;
 }
@@ -103,7 +104,7 @@ export function ensureJvm(options?: JVMOptions): boolean {
             options?.version,
             options?.opts,
             options,
-            getJavaLibPath(options?.isPackagedElectron ?? false),
+            getJavaLibPath(),
             getNativeLibPath(options?.isPackagedElectron ?? false)
         );
 

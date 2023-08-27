@@ -1,6 +1,5 @@
 import path from 'path';
 import fs, { readFileSync } from 'fs';
-import { globSync } from 'glob';
 
 const { platform, arch } = process;
 
@@ -92,15 +91,12 @@ export function getNativeLibPath(isPackagedElectron: boolean): string {
     }
 }
 
-export function getJavaLibPath(isPackagedElectron: boolean): string {
-    let dir = path.join(__dirname, '..', 'java-src', 'build', 'libs');
-    if (isPackagedElectron)
-        dir = dir.replace(APP_ASAR_REGEX, APP_ASAR_UNPACKED);
+export function getJavaLibPath(): string {
+    const lib = path.join(__dirname, 'JavaBridge.jar');
 
-    const files = globSync('*.jar', { cwd: dir });
-    if (files.length === 0) {
-        throw new Error(`No java lib found in ${dir}`);
+    if (fs.existsSync(lib) && fs.statSync(lib).isFile()) {
+        return lib;
     } else {
-        return path.join(dir, files[0]);
+        throw new Error('JavaBridge.jar not found');
     }
 }

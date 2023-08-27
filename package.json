@@ -67,9 +67,6 @@
         "prebenchmark": "npm run build",
         "docs": "typedoc --out docs ts-src/index.ts"
     },
-    "dependencies": {
-        "glob": "^10.3.3"
-    },
     "devDependencies": {
         "@napi-rs/cli": "^2.16.2",
         "@types/chai": "^4.3.5",
@@ -83,6 +80,7 @@
         "@types/yargs": "^17.0.24",
         "chai": "^4.3.7",
         "chai-as-promised": "^7.1.1",
+        "copy-webpack-plugin": "^11.0.0",
         "cpy-cli": "^5.0.0",
         "expose-gc": "^1.0.0",
         "is-ci": "^3.0.1",
