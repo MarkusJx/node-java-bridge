@@ -35,6 +35,7 @@ use crate::{
 use std::borrow::Borrow;
 use std::error::Error;
 use std::ffi::{CStr, CString};
+use std::fmt::Display;
 use std::ops::Not;
 use std::ptr;
 use std::sync::{Arc, Mutex};
@@ -1302,7 +1303,10 @@ impl<'a> JavaEnvWrapper<'a> {
         Ok(converted?)
     }
 
-    pub fn string_to_java_string(&'a self, string: String) -> ResultType<JavaString<'a>> {
+    pub fn string_to_java_string<T: Into<Vec<u8>> + Display>(
+        &'a self,
+        string: T,
+    ) -> ResultType<JavaString<'a>> {
         crate::trace!("Converting '{}' to java string", string);
 
         let c_string = CString::new(string)?;

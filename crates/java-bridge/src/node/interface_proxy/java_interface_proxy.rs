@@ -188,7 +188,7 @@ impl JavaInterfaceProxy {
         let string = JavaClass::by_name("java/lang/String", &j_env)?;
         let mut implemented_methods = JavaObjectArray::new(&string, methods.len())?;
         for i in 0..methods.len() {
-            let str = JavaString::from_string(methods.keys().nth(i).unwrap().into(), &j_env)?;
+            let str = JavaString::from_string(methods.keys().nth(i).unwrap().to_string(), &j_env)?;
             implemented_methods.set(i as _, Some(JavaObject::from(str)))?;
         }
 

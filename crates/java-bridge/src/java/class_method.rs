@@ -2,8 +2,9 @@ use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_env::JavaEnv;
 use java_rs::java_type::{JavaType, Type};
 use java_rs::java_vm::JavaVM;
-use java_rs::objects::args::JavaArgs;
+use java_rs::objects::args::{AsJavaArg, JavaArgs};
 use java_rs::objects::array::JavaObjectArray;
+use java_rs::objects::class::JavaClass;
 use java_rs::objects::java_object::JavaObject;
 use java_rs::objects::method::{
     GlobalJavaMethod, JavaBooleanMethod, JavaByteMethod, JavaCharMethod, JavaDoubleMethod,
@@ -13,6 +14,7 @@ use java_rs::objects::method::{
     StaticJavaObjectMethod, StaticJavaShortMethod, StaticJavaVoidMethod,
 };
 use java_rs::objects::object::{GlobalJavaObject, LocalJavaObject};
+use java_rs::objects::string::JavaString;
 use java_rs::util::conversion::{
     get_method_from_signature, get_method_name, get_method_parameters, get_method_return_type,
 };
@@ -41,7 +43,7 @@ impl ClassMethod {
         let java_class = env.get_java_lang_class()?;
         let get_methods = java_class
             .get_object_method("getMethods", "()[Ljava/lang/reflect/Method;")?
-            .bind(JavaObject::from(class));
+            .bind(JavaObject::from(class.clone()));
         let methods = JavaObjectArray::from(
             get_methods
                 .call(&[])?
@@ -68,6 +70,45 @@ impl ClassMethod {
                 res.entry(method_name).or_insert(vec![]).push(method);
             }
         }
+
+        // If the class doesn't have a toString method, add the
+        // default one from the java.lang.Object class.
+        let to_string = res.get("toString");
+        if to_string.is_none()
+            || to_string
+                .unwrap()
+                .iter()
+                .find(|m| m.parameter_types.is_empty() && m.return_type.is_string())
+                .is_none()
+        {
+            let java_object = JavaClass::by_name("java/lang/Object", &env)?;
+            let get_method = java_class
+                .get_object_method(
+                    "getMethod",
+                    "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;",
+                )?
+                .bind(JavaObject::from(&java_object));
+
+            let method_name = JavaString::from_string("toString", &env)?;
+            let parameter_types = JavaObjectArray::new(&java_class, 0)?;
+
+            let to_string_method = get_method
+                .call(&[method_name.as_arg(), parameter_types.as_arg()])?
+                .ok_or("Failed to get toString method".to_string())?;
+
+            let to_string = ClassMethod::from_method(
+                vm.clone(),
+                &env,
+                to_string_method,
+                class_name.clone(),
+                false,
+            )?;
+
+            res.entry("toString".to_string())
+                .or_insert(vec![])
+                .push(to_string);
+        }
+
         Ok(res)
     }
 

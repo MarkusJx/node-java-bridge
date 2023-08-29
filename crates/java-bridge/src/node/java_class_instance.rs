@@ -369,7 +369,7 @@ impl JavaClassInstance {
                     uv_run(ctx.env.get_uv_event_loop()?, uv_run_mode::UV_RUN_NOWAIT);
                 }
 
-                thread::sleep(Duration::from_millis(10));
+                spin_sleep::sleep(Duration::from_micros(1));
             }
 
             handle
