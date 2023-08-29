@@ -10,7 +10,7 @@ env:
     CARGO_TERM_COLOR: always
 
 concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
+    group: workflow-${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
 
 jobs:
