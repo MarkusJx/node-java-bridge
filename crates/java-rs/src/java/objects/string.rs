@@ -9,6 +9,7 @@ use crate::java_type::Type;
 use crate::objects::java_object::{AsJavaObject, JavaObject};
 use crate::sys;
 use std::error::Error;
+use std::fmt::Display;
 
 pub struct JavaString<'a>(pub(in crate::java::objects) LocalJavaObject<'a>);
 
@@ -29,7 +30,10 @@ impl<'a> JavaString<'a> {
         env.string_to_java_string(string)
     }
 
-    pub fn from_string(string: String, env: &'a JavaEnv<'a>) -> ResultType<Self> {
+    pub fn from_string<T: Into<Vec<u8>> + Display>(
+        string: T,
+        env: &'a JavaEnv<'a>,
+    ) -> ResultType<Self> {
         env.get_env().string_to_java_string(string)
     }
 

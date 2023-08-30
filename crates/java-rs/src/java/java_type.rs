@@ -419,6 +419,10 @@ impl JavaType {
             || self.type_enum() == Type::Double
     }
 
+    pub fn is_string(&self) -> bool {
+        self.type_enum() == Type::String
+    }
+
     pub fn as_class<'a>(&self, env: &'a JavaEnv<'a>) -> ResultType<JavaClass<'a>> {
         let class_name = match self.type_enum {
             Type::Void => "java.lang.Void",

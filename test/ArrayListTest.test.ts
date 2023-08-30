@@ -5,6 +5,11 @@ import { shouldIncreaseTimeout } from './testUtil';
 
 const timeout = shouldIncreaseTimeout ? 20e3 : 2e3;
 
+declare class StreamClass<T extends JavaType> extends JavaClass {
+    toListSync(): ListClass<T>;
+    toList(): Promise<ListClass<T>>;
+}
+
 declare class ListClass<T extends JavaType> extends JavaClass {
     containsSync(element: T): boolean;
     sizeSync(): number;
@@ -24,9 +29,14 @@ declare class ListClass<T extends JavaType> extends JavaClass {
     get(index: number): Promise<T>;
     remove(index: number): Promise<T>;
     clear(): Promise<void>;
+
+    streamSync(): StreamClass<T>;
+    stream(): Promise<StreamClass<T>>;
 }
 
 declare class ArrayListClass<T extends JavaType> extends ListClass<T> {
+    static newInstanceAsync(): Promise<ArrayListClass<JavaType>>;
+
     constructor();
     constructor(other: ListClass<T>);
 }
@@ -189,5 +199,50 @@ describe('ArrayListTest', () => {
         expect(list.toString()).to.equal('[Hello, World]');
         expect(await list.toStringAsync()).to.equal('[Hello, World]');
         expect(list + '').to.equal('[Hello, World]');
+    });
+
+    const streamAsStringRegex =
+        /java\.util\.stream\.ReferencePipeline\$Head@[0-9a-z]+/;
+
+    it('stream toString', () => {
+        const list = new ArrayList!();
+        list.addSync('Hello');
+        list.addSync('World');
+
+        const stream = list.streamSync();
+        expect(stream.toString()).to.match(streamAsStringRegex);
+        expect(stream + '').to.match(streamAsStringRegex);
+    });
+
+    it('stream toString (async)', async () => {
+        const list = await ArrayList!.newInstanceAsync();
+        await list.add('Hello');
+        await list.add('World');
+
+        const stream = await list.stream();
+        expect(await stream.toStringAsync()).to.match(streamAsStringRegex);
+        expect(stream.toString()).to.match(streamAsStringRegex);
+        expect(stream + '').to.match(streamAsStringRegex);
+    });
+
+    it('stream as list toString', () => {
+        const list = new ArrayList!();
+        list.addSync('Hello');
+        list.addSync('World');
+
+        const streamAsList = list.streamSync().toListSync();
+        expect(streamAsList.toString()).to.equal('[Hello, World]');
+        expect(streamAsList + '').to.equal('[Hello, World]');
+    });
+
+    it('stream as list toString (async)', async () => {
+        const list = await ArrayList!.newInstanceAsync();
+        await list.add('Hello');
+        await list.add('World');
+
+        const streamAsList = await (await list.stream()).toList();
+        expect(await streamAsList.toStringAsync()).to.equal('[Hello, World]');
+        expect(streamAsList.toString()).to.equal('[Hello, World]');
+        expect(streamAsList + '').to.equal('[Hello, World]');
     });
 });

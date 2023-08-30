@@ -111,8 +111,6 @@ fn method_call_with_invalid_args() {
         .get_static_object_method("valueOf", "(I)Ljava/lang/String;")
         .unwrap();
     method
-        .call(&[JavaString::from_string("hello".into(), &env)
-            .unwrap()
-            .as_arg()])
+        .call(&[JavaString::from_string("hello", &env).unwrap().as_arg()])
         .expect_err("Should have failed");
 }
