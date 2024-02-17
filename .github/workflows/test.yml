@@ -223,8 +223,7 @@ jobs:
                       npm config set cache /tmp --global
                       export CI=true
                       npm ci
-                      npm run build
-                      npm testOnly
+                      npm test
             - name: Create test summary
               uses: test-summary/action@dist
               if: always()
