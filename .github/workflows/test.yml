@@ -214,7 +214,7 @@ jobs:
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.7.3
             - name: Run tests
-              uses: addnab/docker-run-action@v4
+              uses: addnab/docker-run-action@v3
               timeout-minutes: 180
               with:
                   image: ghcr.io/markusjx/node-java-bridge/java-bridge-node-alpine-build:node-${{matrix.node-version}}-jdk-17
