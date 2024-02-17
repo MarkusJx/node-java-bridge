@@ -52,6 +52,10 @@ module.exports = {
                     from: './java-src/build/libs/JavaBridge-*.jar',
                     to: 'JavaBridge.jar',
                 },
+                {
+                    from: './native.d.ts',
+                    to: 'native.d.ts',
+                }
             ],
         }),
     ],

@@ -466,7 +466,8 @@ describe('ClassTest', () => {
 
         expect(Class.test2).to.be.a('string');
         expect(Class.test2).to.equal('test2');
-        expect(() => (Class.test2 = 't2')).to.throw();
+        Class.test2 = 't2';
+        expect(Class.test2).to.equal('test2');
 
         const instance = new Class();
         expect(instance).to.be.an('object');
@@ -477,7 +478,8 @@ describe('ClassTest', () => {
 
         expect(instance.s2).to.be.a('string');
         expect(instance.s2).to.equal('def');
-        expect(() => (instance.s2 = 'def')).to.throw();
+        instance.s2 = 'cde';
+        expect(instance.s2).to.equal('def');
     }).timeout(timeout);
 
     it('Class with complex properties', () => {

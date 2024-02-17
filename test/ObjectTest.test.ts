@@ -15,6 +15,7 @@ describe('Object test', () => {
         const System = importClass('java.lang.System');
 
         expect(System.out).to.be.an('object');
-        expect(() => (System.out = null)).to.throw();
+        System.out = null;
+        expect(System.out).to.be.not.null;
     });
 });
