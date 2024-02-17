@@ -28,8 +28,9 @@ describe('StringTest', () => {
     });
 
     it('Async class resolve', async () => {
-        const JavaStringAsync =
-            await importClassAsync<typeof JString>('java.lang.String');
+        const JavaStringAsync = await importClassAsync<typeof JString>(
+            'java.lang.String'
+        );
         const instance = await JavaStringAsync.newInstanceAsync('some text');
 
         expect(await instance.toStringAsync()).to.equal('some text');
