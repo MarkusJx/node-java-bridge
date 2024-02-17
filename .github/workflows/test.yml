@@ -45,35 +45,35 @@ jobs:
             matrix:
                 include:
                     - os: ubuntu-20.04
-                      node-version: 16.x
+                      node-version: 18.x
                       arch: x64
                       features: default
                     - os: ubuntu-latest
-                      node-version: 18.x
+                      node-version: 20.x
                       arch: x64
                       features: all
                     - os: windows-latest
-                      node-version: 16.x
-                      arch: x64
-                      features: default
-                    - os: windows-latest
                       node-version: 18.x
                       arch: x64
-                      features: all
-                    - os: windows-latest
-                      node-version: 16.x
-                      arch: x86
                       features: default
+                    - os: windows-latest
+                      node-version: 20.x
+                      arch: x64
+                      features: all
                     - os: windows-latest
                       node-version: 18.x
                       arch: x86
                       features: default
-                    - os: macos-latest
-                      node-version: 16.x
-                      arch: x64
+                    - os: windows-latest
+                      node-version: 20.x
+                      arch: x86
                       features: default
                     - os: macos-latest
                       node-version: 18.x
+                      arch: x64
+                      features: default
+                    - os: macos-latest
+                      node-version: 20.x
                       arch: x64
                       features: all
         runs-on: ${{matrix.os}}
@@ -133,7 +133,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                node-version: [16, 18]
+                node-version: [18, 20]
         runs-on: ubuntu-20.04
         steps:
             - uses: actions/checkout@v3
@@ -207,7 +207,7 @@ jobs:
       strategy:
         fail-fast: false
         matrix:
-            node-version: [16, 18]
+            node-version: [18, 20]
       runs-on: ubuntu-20.04
       steps:
         - uses: actions/checkout@v3
@@ -239,7 +239,7 @@ jobs:
             options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace
             run: |
               apk update
-              apk add openjdk17
+              apk add openjdk17 libc6-compat
               npm config set cache /tmp --global
               export CI=true
               npm install

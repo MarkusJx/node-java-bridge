@@ -1,0 +1,31 @@
+{
+  "name": "java-bridge-linux-x64-musl",
+  "version": "2.4.0",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "java.linux-x64-musl.node",
+  "files": [
+    "java.linux-x64-musl.node"
+  ],
+  "description": "A bridge between Node.js and Java APIs",
+  "author": "MarkusJx",
+  "homepage": "https://github.com/MarkusJx/node-java-bridge#readme",
+  "license": "MIT",
+  "engines": {
+    "node": ">= 15"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MarkusJx/node-java-bridge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MarkusJx/node-java-bridge/issues"
+  },
+  "libc": [
+    "musl"
+  ]
+}

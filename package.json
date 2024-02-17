@@ -26,7 +26,8 @@
             "additional": [
                 "aarch64-apple-darwin",
                 "i686-pc-windows-msvc",
-                "aarch64-unknown-linux-gnu"
+                "aarch64-unknown-linux-gnu",
+                "x86_64-unknown-linux-musl"
             ]
         }
     },
@@ -111,6 +112,7 @@
         "java-bridge-linux-arm64-gnu": "2.1.5",
         "java-bridge-linux-x64-gnu": "2.1.5",
         "java-bridge-win32-ia32-msvc": "2.1.5",
-        "java-bridge-win32-x64-msvc": "2.1.5"
+        "java-bridge-win32-x64-msvc": "2.1.5",
+        "java-bridge-linux-x64-musl": "2.1.5"
     }
 }
