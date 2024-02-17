@@ -1,45 +1,45 @@
 name: Build test container
 on:
-  workflow_dispatch:
-    inputs:
-      node-version:
-        description: 'Node version'
-        required: true
-      debian-version:
-        description: 'Debian version'
-        required: true
-      jdk-version:
-        description: 'JDK version'
-        required: true
+    workflow_dispatch:
+        inputs:
+            node-version:
+                description: 'Node version'
+                required: true
+            debian-version:
+                description: 'Debian version'
+                required: true
+            jdk-version:
+                description: 'JDK version'
+                required: true
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: java-bridge-asan-testcontainer
+    REGISTRY: ghcr.io
+    IMAGE_NAME: java-bridge-asan-testcontainer
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+    build:
+        runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v3
-      - name: Create dockerfile
-        uses: edgardleal/mustache-template-action@v1.0.4
-        env:
-          DEBIAN_VERSION: ${{github.event.inputs.debian-version}}
-          JDK_VERSION: ${{github.event.inputs.jdk-version}}
-          NODE_VERSION: ${{github.event.inputs.node-version}}
-        with:
-          input: ./docker/Dockerfile-test-template.hbs
-          output: Dockerfile
+        steps:
+            - uses: actions/checkout@v3
+            - name: Create dockerfile
+              uses: edgardleal/mustache-template-action@v1.0.4
+              env:
+                  DEBIAN_VERSION: ${{github.event.inputs.debian-version}}
+                  JDK_VERSION: ${{github.event.inputs.jdk-version}}
+                  NODE_VERSION: ${{github.event.inputs.node-version}}
+              with:
+                  input: ./docker/Dockerfile-test-template.hbs
+                  output: Dockerfile
 
-      - name: Build image
-        run: docker build . --file Dockerfile --tag $IMAGE_NAME
+            - name: Build image
+              run: docker build . --file Dockerfile --tag $IMAGE_NAME
 
-      - name: Log into registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
-      - name: Push latest image
-        run: |
-          IMAGE_ID=$REGISTRY/${{ github.repository }}
-          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')/$IMAGE_NAME
-          docker tag $IMAGE_NAME $IMAGE_ID:latest
-          docker push $IMAGE_ID:latest
+            - name: Log into registry
+              run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
+            - name: Push latest image
+              run: |
+                  IMAGE_ID=$REGISTRY/${{ github.repository }}
+                  IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')/$IMAGE_NAME
+                  docker tag $IMAGE_NAME $IMAGE_ID:latest
+                  docker push $IMAGE_ID:latest

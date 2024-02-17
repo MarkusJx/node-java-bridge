@@ -164,9 +164,8 @@ describe('Config test', () => {
         expect(await res2).to.deep.equal(['t', 'e', 's', 't']);
         expect(s.toCharArraySync()).to.deep.equal(['t', 'e', 's', 't']);
 
-        const JavaStr2 = await importClassAsync<typeof JString>(
-            'java.lang.String'
-        );
+        const JavaStr2 =
+            await importClassAsync<typeof JString>('java.lang.String');
         const s2 = new JavaStr2('test');
 
         expect(s2.toCharArray).to.be.a('function');
