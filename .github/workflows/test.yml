@@ -204,63 +204,47 @@ jobs:
                   path: java-bridge-*.tgz
 
     test-linux-musl-binding:
-      strategy:
-        fail-fast: false
-        matrix:
-            node-version: [18, 20]
-      runs-on: ubuntu-20.04
-      steps:
-        - uses: actions/checkout@v3
-        - name: Setup Node.js ${{matrix.node-version}} environment
-          uses: actions/setup-node@v3.6.0
-          with:
-            node-version: ${{matrix.node-version}}
-        - name: Setup java 17
-          uses: actions/setup-java@v3
-          with:
-            distribution: 'temurin'
-            java-version: '17'
-        - name: Install rust toolchain
-          uses: dtolnay/rust-toolchain@stable
-          with:
-            toolchain: stable
-            targets: x86_64-unknown-linux-musl
-        - name: Rust Cache
-          uses: Swatinem/rust-cache@v2.2.1
-        - name: Install
-          run: npm ci
-        - name: Build
-          run: npm run build -- -- --target x86_64-unknown-linux-musl
-        - name: Run tests
-          uses: addnab/docker-run-action@v3
-          timeout-minutes: 180
-          with:
-            image: node:${{matrix.node-version}}-alpine
-            options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace
-            run: |
-              apk update
-              apk add openjdk17 libc6-compat
-              npm config set cache /tmp --global
-              export CI=true
-              npm install
-              npm run testOnly
-        - name: Create test summary
-          uses: test-summary/action@dist
-          if: always()
-          with:
-            show: all
-            paths: testResults.xml
-        - name: Create package
-          if: ${{matrix.node-version == '18'}}
-          run: |
-            node -e 'let p=require("./package.json");p.files.push("dist/*.node");require("fs").writeFileSync("package.json",JSON.stringify(p,null,4))'
-            npm pack
-        - name: Upload package
-          uses: actions/upload-artifact@v3
-          if: ${{matrix.node-version == '18'}}
-          with:
-            name: java-x64-ubuntu-musl
-            path: java-bridge-*.tgz
+        strategy:
+            fail-fast: false
+            matrix:
+                node-version: [18, 20]
+        runs-on: ubuntu-20.04
+        steps:
+            - uses: actions/checkout@v3
+            - name: Rust Cache
+              uses: Swatinem/rust-cache@v2.2.1
+            - name: Install
+              run: npm ci
+            - name: Build
+              run: npm run build -- -- --target x86_64-unknown-linux-musl
+            - name: Run tests
+              uses: addnab/docker-run-action@v3
+              timeout-minutes: 180
+              with:
+                  image: ghcr.io/markusjx/node-java-bridge/java-bridge-node-alpine-build:node-${{matrix.node-version}}-jdk-17
+                  options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace
+                  run: |
+                      npm config set cache /tmp --global
+                      export CI=true
+                      npm ci
+                      npm test
+            - name: Create test summary
+              uses: test-summary/action@dist
+              if: always()
+              with:
+                  show: all
+                  paths: testResults.xml
+            - name: Create package
+              if: ${{matrix.node-version == '18'}}
+              run: |
+                  node -e 'let p=require("./package.json");p.files.push("dist/*.node");require("fs").writeFileSync("package.json",JSON.stringify(p,null,4))'
+                  npm pack
+            - name: Upload package
+              uses: actions/upload-artifact@v3
+              if: ${{matrix.node-version == '18'}}
+              with:
+                  name: java-x64-ubuntu-musl
+                  path: java-bridge-*.tgz
 
     benchmark:
         runs-on: ubuntu-latest
