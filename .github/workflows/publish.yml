@@ -109,7 +109,7 @@ jobs:
                       npm config set cache /tmp --global
                       export CI=true
                       npm ci
-                      npm run build -- -- --target x86_64-unknown-linux-musl
+                      npm run build
             - name: Get version
               id: version
               run: echo "version=$(node -p 'require(`./package.json`).version')" >> $GITHUB_ENV
