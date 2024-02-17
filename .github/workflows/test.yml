@@ -220,6 +220,7 @@ jobs:
                   image: ghcr.io/markusjx/node-java-bridge/java-bridge-node-alpine-build:node-${{matrix.node-version}}-jdk-17
                   options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace
                   run: |
+                      apk add clang-static
                       npm config set cache /tmp --global
                       export CI=true
                       npm ci
