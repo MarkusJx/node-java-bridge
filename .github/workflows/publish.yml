@@ -95,8 +95,42 @@ jobs:
                   dry-run: ${{ github.event.inputs.dry-run == 'true' }}
                   ignore-scripts: false
 
+    build-musl:
+        runs-on: ubuntu-20.04
+        steps:
+            - uses: actions/checkout@v4
+            - name: Run tests
+              uses: addnab/docker-run-action@v3
+              timeout-minutes: 180
+              with:
+                  image: ghcr.io/markusjx/node-java-bridge/java-bridge-node-alpine-build:node-20-jdk-17
+                  options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace
+                  run: |
+                      npm config set cache /tmp --global
+                      export CI=true
+                      npm ci
+                      npm run build -- -- --target x86_64-unknown-linux-musl
+            - name: Get version
+              id: version
+              run: echo "version=$(node -p 'require(`./package.json`).version')" >> $GITHUB_ENV
+              shell: bash
+            - name: Set version
+              run: npm version --no-git-tag-version --allow-same-version ${{ env.version }} -f
+              working-directory: npm/linux-x64-musl
+            - name: Move binary
+              run: mv java.*.node npm/linux-x64-musl
+              shell: bash
+            - name: NPM Publish Binary
+              uses: JS-DevTools/npm-publish@v3
+              with:
+                  access: public
+                  token: ${{ secrets.NPM_TOKEN }}
+                  package: npm/linux-x64-musl/package.json
+                  dry-run: ${{ github.event.inputs.dry-run == 'true' }}
+                  ignore-scripts: false
+
     draft-release:
-        needs: [build]
+        needs: [build, build-musl]
         runs-on: ubuntu-latest
         if: github.ref == 'refs/heads/main' && github.event.inputs.dry-run != 'true'
         steps:
