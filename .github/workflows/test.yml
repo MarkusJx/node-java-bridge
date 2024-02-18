@@ -233,7 +233,7 @@ jobs:
             - name: Create package
               if: ${{matrix.node-version == '18'}}
               run: |
-                  node -e 'let p=require("./package.json");p.files.push("dist/*.node");require("fs").writeFileSync("package.json",JSON.stringify(p,null,4))'
+                  node -e 'let p=require("./package.json");p.files.push("dist/*.node", "dist/*.jar");require("fs").writeFileSync("package.json",JSON.stringify(p,null,4))'
                   npm pack
             - name: Upload package
               uses: actions/upload-artifact@v4
