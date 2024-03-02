@@ -13,11 +13,11 @@ jobs:
     check-ts-style:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
             - name: Setup Node.js environment
-              uses: actions/setup-node@v3.6.0
+              uses: actions/setup-node@v4
               with:
-                  node-version: 16.x
+                  node-version: 20.x
             - name: Install dependencies
               run: npm i -D
             - name: Prettier check
@@ -26,6 +26,6 @@ jobs:
     check-rust-style:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
             - name: Check style
               run: cargo fmt -- --check

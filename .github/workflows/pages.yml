@@ -28,25 +28,25 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
             - name: Setup Pages
-              uses: actions/configure-pages@v2
+              uses: actions/configure-pages@v4
             - name: Setup Node.js environment
-              uses: actions/setup-node@v3.4.1
+              uses: actions/setup-node@v4
               with:
-                  node-version: 16.x
+                  node-version: 20.x
             - name: Rust Cache
-              uses: Swatinem/rust-cache@v2.2.1
+              uses: Swatinem/rust-cache@v2.7.3
             - name: Build docs
               run: |
                   npm ci
                   npm run build
                   npm run docs
             - name: Upload artifact
-              uses: actions/upload-pages-artifact@v1
+              uses: actions/upload-pages-artifact@v3
               with:
                   # Upload entire repository
                   path: 'docs'
             - name: Deploy to GitHub Pages
               id: deployment
-              uses: actions/deploy-pages@v1
+              uses: actions/deploy-pages@v4

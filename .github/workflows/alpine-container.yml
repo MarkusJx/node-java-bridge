@@ -17,7 +17,7 @@ jobs:
     build:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
             - name: Create dockerfile
               uses: edgardleal/mustache-template-action@v1.0.4
               env:
@@ -35,7 +35,7 @@ jobs:
                   IMAGE_ID=$REGISTRY/${{ github.repository }}
                   IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')/$IMAGE_NAME
                   docker tag $IMAGE_NAME $IMAGE_ID:node-$NODE_VERSION-jdk-$JDK_VERSION
-                  docker push $IMAGE_ID:latest
+                  docker push $IMAGE_ID:node-$NODE_VERSION-jdk-$JDK_VERSION
               env:
                   NODE_VERSION: ${{github.event.inputs.node-version}}
                   JDK_VERSION: ${{github.event.inputs.jdk-version}}
