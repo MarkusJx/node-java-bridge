@@ -686,6 +686,9 @@ export type AnyProxyRecord = Record<string, ProxyMethod>;
  * ## Notes
  * * Keep this instance in scope to not destroy the interface proxy.
  * * Call {@link JavaInterfaceProxy.reset} to instantly destroy this instance.
+ *   Please note that calling {@link JavaInterfaceProxy.reset} is not necessary,
+ *   the proxy instance will be automatically destroyed when it is garbage collected.
+ *   Calling {@link JavaInterfaceProxy.reset} will just speed up the process.
  * * If any method is queried by the java process and not implemented in here,
  *   an exception will be thrown in the java process.
  * * Any errors thrown in the javascript process will be rethrown in the java process.
