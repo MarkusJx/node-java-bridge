@@ -151,7 +151,7 @@ impl JavaClassInstance {
         this.set_named_property(OBJECT_PROPERTY, instance_obj)?;
 
         if proxy.config.custom_inspect {
-            Self::add_custom_inspect(env, this);
+            Self::add_custom_inspect(env, this)?;
         }
 
         for method in &proxy.methods {
@@ -409,19 +409,13 @@ impl JavaClassInstance {
         )
     }
 
-    fn add_custom_inspect(env: &Env, this: &mut JsObject) -> Option<()> {
+    fn add_custom_inspect(env: &Env, this: &mut JsObject) -> napi::Result<()> {
         let custom = env
-            .get_global()
-            .ok()?
-            .get_named_property::<JsObject>("Symbol")
-            .ok()?
-            .get_named_property::<JsFunction>("for")
-            .ok()?
-            .call(
-                None,
-                &[env.create_string("nodejs.util.inspect.custom").ok()?],
-            )
-            .ok()?;
+            .get_global()?
+            .get_named_property::<JsUnknown>("Symbol")?
+            .coerce_to_object()?
+            .get_named_property::<JsFunction>("for")?
+            .call(None, &[env.create_string("nodejs.util.inspect.custom")?])?;
 
         this.set_property(
             custom,
@@ -443,10 +437,8 @@ impl JavaClassInstance {
                     let res = method.call(&obj, &[]).map_napi_err()?;
                     res.to_napi_value(&env, &ctx.env).map_napi_err()
                 },
-            )
-            .ok()?,
+            )?,
         )
-        .ok()
     }
 }
 

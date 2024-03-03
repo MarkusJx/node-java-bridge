@@ -19,7 +19,7 @@ fn main() {
         .header(java_home.join("jni.h").as_path().to_str().unwrap())
         .clang_arg(format!("-I{}", java_home.to_str().unwrap()).as_str())
         .clang_arg(format!("-I{}", java_home.join(os_dir).as_path().to_str().unwrap()).as_str())
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks));
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()));
 
     if build_target::target_os().unwrap() == Os::Linux
         && build_target::target_arch().unwrap() == Arch::AARCH64
