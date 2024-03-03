@@ -1,6 +1,6 @@
 {
     "name": "java-bridge",
-    "version": "2.5.0",
+    "version": "2.5.1",
     "main": "dist/index.prod.min.js",
     "types": "dist/index.d.ts",
     "description": "A bridge between Node.js and Java APIs",
@@ -17,7 +17,7 @@
         "dist/*.js",
         "dist/*.map",
         "dist/**/*.d.ts",
-        "java-src/build/libs/*.jar",
+        "dist/*.jar",
         "native.d.ts"
     ],
     "napi": {
@@ -111,8 +111,8 @@
         "java-bridge-darwin-x64": "2.1.5",
         "java-bridge-linux-arm64-gnu": "2.1.5",
         "java-bridge-linux-x64-gnu": "2.1.5",
+        "java-bridge-linux-x64-musl": "2.1.5",
         "java-bridge-win32-ia32-msvc": "2.1.5",
-        "java-bridge-win32-x64-msvc": "2.1.5",
-        "java-bridge-linux-x64-musl": "2.1.5"
+        "java-bridge-win32-x64-msvc": "2.1.5"
     }
 }
