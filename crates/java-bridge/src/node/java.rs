@@ -247,6 +247,13 @@ impl Java {
         j_env.replace_class_loader(instance.clone()).map_napi_err()
     }
 
+    #[napi]
+    pub fn delete(&self, env: Env, mut obj: JsObject) -> napi::Result<()> {
+        let instance_obj: JsObject = obj.get_named_property(OBJECT_PROPERTY)?;
+        obj.set_named_property(OBJECT_PROPERTY, env.get_null()?)?;
+        env.drop_wrapped::<GlobalJavaObject>(&instance_obj)
+    }
+
     pub fn vm(&self) -> JavaVM {
         self.root_vm.clone()
     }

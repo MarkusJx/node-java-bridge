@@ -13,6 +13,7 @@ import {
     UnknownJavaClassType,
 } from './definitions';
 import { getJavaLibPath, getNativeLibPath } from './nativeLib';
+
 export { clearDaemonProxies, clearClassProxies, logging } from '../native';
 
 /**
@@ -305,6 +306,21 @@ export function importClassAsync<
 export function appendClasspath(path: string | string[]): void {
     ensureJvm();
     javaInstance!.appendClasspath(path);
+}
+
+/**
+ * Instantly delete a java object and allow the object
+ * to be garbage collected by the java gc.
+ * Calling this method on an object that has already been
+ * deleted will throw an error. If an object has been deleted,
+ * it is not possible to use it anymore, although the object
+ * may still exist in the javascript process.
+ *
+ * @param obj the object to delete
+ */
+export function deleteObject(obj: JavaClass): void {
+    ensureJvm();
+    javaInstance!.delete(obj);
 }
 
 /**
