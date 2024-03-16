@@ -61,7 +61,7 @@ jobs:
               with:
                   registry: gcr.io
                   image: ghcr.io/markusjx/node-java-bridge/java-bridge-asan-testcontainer:latest
-                  options: -v ${{ github.workspace }}:/app
+                  options: -v ${{ github.workspace }}:/app -e INCREASE_TIMEOUT=true
                   run: |
                       npm run build:napi:debug -- --target=x86_64-unknown-linux-gnu \
                         --cargo-flags="-Zbuild-std"
