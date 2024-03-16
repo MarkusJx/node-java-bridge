@@ -1,4 +1,4 @@
-import { importClass, deleteObject, UnknownJavaClass, JavaClass } from '../.';
+import { importClass, deleteObject, JavaClass } from '../.';
 import { expect } from 'chai';
 import { shouldIncreaseTimeout } from './testUtil';
 
@@ -15,12 +15,12 @@ declare class RuntimeClass extends JavaClass {
 const getUsedMemory = (Runtime: typeof RuntimeClass): number => {
     return Number(
         Runtime.getRuntimeSync().totalMemorySync() -
-            Runtime.getRuntimeSync().freeMemorySync()
+        Runtime.getRuntimeSync().freeMemorySync(),
     );
 };
 
 describe('DeleteTest', () => {
-    it('Delete string instance', function () {
+    it('Delete string instance', function() {
         if (shouldIncreaseTimeout) this.timeout(timeout);
 
         const String = importClass('java.lang.String');
@@ -40,7 +40,7 @@ describe('DeleteTest', () => {
         expect(end).to.be.lessThan(after);
     });
 
-    it('Delete deleted instance', function () {
+    it('Delete deleted instance', function() {
         if (shouldIncreaseTimeout) this.timeout(timeout);
 
         const String = importClass('java.lang.String');
@@ -49,7 +49,7 @@ describe('DeleteTest', () => {
         expect(() => deleteObject(string)).to.throw();
     });
 
-    it('Access deleted instance', function () {
+    it('Access deleted instance', function() {
         if (shouldIncreaseTimeout) this.timeout(timeout);
 
         const String = importClass('java.lang.String');
