@@ -109,7 +109,10 @@ unsafe fn call_node_function(
     drop(daemon_proxies);
 
     let res = futures::executor::block_on(rx)??;
-    Ok(res.map(|o| o.map(|g| g.into_return_value()).unwrap_or(ptr::null_mut())))
+    Ok(res.map(|o| {
+        o.map(|g| g.into_return_value(&env))
+            .unwrap_or(ptr::null_mut())
+    }))
 }
 
 fn js_callback(

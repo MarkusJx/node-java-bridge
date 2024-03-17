@@ -197,7 +197,7 @@ impl<'a> JavaClass<'a> {
     pub fn from_local(
         object: LocalJavaObject<'a>,
         #[cfg(feature = "type_check")] signature: JavaType,
-    ) -> Self {
+    ) -> JavaClass<'a> {
         Self {
             object,
             #[cfg(feature = "type_check")]

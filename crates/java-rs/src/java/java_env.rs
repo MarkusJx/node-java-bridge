@@ -209,6 +209,10 @@ impl<'a> JavaEnv<'a> {
         }
     }
 
+    pub(in crate::java) fn create_local_ref(&self, object: sys::jobject) -> sys::jobject {
+        unsafe { self.0.methods.NewLocalRef.unwrap()(self.0.env, object) }
+    }
+
     pub(in crate::java) fn get_env(&'a self) -> &'a JavaEnvWrapper<'a> {
         &self.0
     }
