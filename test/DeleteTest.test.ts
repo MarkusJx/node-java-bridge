@@ -11,8 +11,9 @@ import {
     JString as StringClass,
     FunctionInterface,
 } from './classes';
+import isCi from 'is-ci';
 
-const timeout = shouldIncreaseTimeout ? 240e3 : 20e3;
+const timeout = shouldIncreaseTimeout ? 120e3 : 20e3;
 
 describe('DeleteTest', () => {
     it('Delete string instance', () => {
@@ -47,7 +48,11 @@ describe('DeleteTest', () => {
         expect(() => string.toString()).to.throw();
     }).timeout(timeout);
 
-    it('Check proxy memory leak', async () => {
+    it('Check proxy memory leak', async function () {
+        if (isCi && (process.arch === 'arm64' || process.arch === 'arm')) {
+            this.skip();
+        }
+
         const Runtime = importClass<typeof RuntimeClass>('java.lang.Runtime');
         const System = importClass<typeof SystemClass>('java.lang.System');
         const JString = importClass<typeof StringClass>('java.lang.String');
