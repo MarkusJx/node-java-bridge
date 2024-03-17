@@ -241,7 +241,6 @@ impl<'a> Drop for LocalJavaObject<'a> {
 struct GlobalJavaObjectInternal {
     object: AtomicPtr<sys::_jobject>,
     jvm: Arc<Mutex<JavaVMPtr>>,
-    free: bool,
 }
 
 impl GlobalJavaObjectInternal {
@@ -251,28 +250,21 @@ impl GlobalJavaObjectInternal {
         Self {
             object: AtomicPtr::new(object),
             jvm,
-            free: true,
         }
     }
 
     fn get_vm(&self) -> JavaVM {
         JavaVM::from_existing(self.jvm.clone())
     }
-
-    fn disable_free(&mut self) {
-        self.free = false
-    }
 }
 
 impl Drop for GlobalJavaObjectInternal {
     fn drop(&mut self) {
-        if self.free {
-            let vm = JavaVM::from_existing(self.jvm.clone());
-            let env = vm.attach_thread();
+        let vm = JavaVM::from_existing(self.jvm.clone());
+        let env = vm.attach_thread();
 
-            if let Ok(env) = env {
-                env.delete_global_ref(self.object.load(Ordering::Relaxed));
-            }
+        if let Ok(env) = env {
+            env.delete_global_ref(self.object.load(Ordering::Relaxed));
         }
     }
 }
@@ -309,11 +301,10 @@ impl GlobalJavaObject {
 
     /// Get this objects raw value in order to pass it
     /// to the JVM as a method return value.
-    /// Disables automatic freeing of the object
+    /// Creates a new local reference to the object
     /// and allows the returned value to be `null`.
-    pub unsafe fn into_return_value(self) -> sys::jobject {
-        self.object.lock().unwrap().disable_free();
-        self.get_raw()
+    pub unsafe fn into_return_value(self, env: &JavaEnv) -> sys::jobject {
+        env.create_local_ref(self.get_raw())
     }
 }
 

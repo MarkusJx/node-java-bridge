@@ -4,6 +4,7 @@ import { afterEach } from 'mocha';
 import semver from 'semver';
 import { shouldIncreaseTimeout } from './testUtil';
 import chaiAsPromised from 'chai-as-promised';
+
 require('expose-gc');
 
 use(chaiAsPromised);

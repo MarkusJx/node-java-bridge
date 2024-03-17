@@ -1,14 +1,5 @@
-import java, { JavaClass, StdoutRedirectGuard } from '../.';
-
-interface Stream {
-    printlnSync(msg: string): void;
-    flushSync(): void;
-}
-
-declare class System extends JavaClass {
-    public static readonly out: Stream;
-    public static readonly err: Stream;
-}
+import java, { StdoutRedirectGuard } from '../.';
+import { System } from './classes';
 
 describe('RedirectTest', () => {
     const system = java.importClass<typeof System>('java.lang.System');

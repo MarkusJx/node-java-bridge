@@ -8,6 +8,7 @@ import {
     importClass,
     UnknownJavaClass,
 } from '../.';
+import { RuntimeClass } from './classes';
 
 const ToolProvider = importClass('javax.tools.ToolProvider');
 const URLClassLoader = importClass('java.net.URLClassLoader');
@@ -28,6 +29,23 @@ export const shouldIncreaseTimeout =
 
 console.log('Process arch:', process.arch);
 console.log('Process platform:', process.platform);
+
+export const getUsedMemory = (Runtime: typeof RuntimeClass): number => {
+    return Number(
+        Runtime.getRuntimeSync().totalMemorySync() -
+            Runtime.getRuntimeSync().freeMemorySync()
+    );
+};
+
+export const generateRandomString = (length: number): string => {
+    const charset =
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    return result;
+};
 
 export class JarTool {
     private readonly outputStream: UnknownJavaClass;

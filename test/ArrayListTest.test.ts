@@ -1,45 +1,10 @@
-import java, { JavaClass, JavaType, isInstanceOf } from '../.';
+import java, { JavaType, isInstanceOf } from '../.';
 import { it } from 'mocha';
 import { expect } from 'chai';
 import { shouldIncreaseTimeout } from './testUtil';
+import { ArrayListClass, ListClass } from './classes';
 
 const timeout = shouldIncreaseTimeout ? 20e3 : 2e3;
-
-declare class StreamClass<T extends JavaType> extends JavaClass {
-    toListSync(): ListClass<T>;
-    toList(): Promise<ListClass<T>>;
-}
-
-declare class ListClass<T extends JavaType> extends JavaClass {
-    containsSync(element: T): boolean;
-    sizeSync(): number;
-    getSync(index: number): T;
-    lastIndexOfSync(element: T): number;
-    addSync(value: T): void;
-    removeSync(index: number): T;
-    toArraySync(): T[];
-    isEmptySync(): boolean;
-    clearSync(): void;
-
-    add(value: T): Promise<void>;
-    lastIndexOf(element: T): Promise<number>;
-    contains(element: T): Promise<boolean>;
-    isEmpty(): Promise<boolean>;
-    size(): Promise<number>;
-    get(index: number): Promise<T>;
-    remove(index: number): Promise<T>;
-    clear(): Promise<void>;
-
-    streamSync(): StreamClass<T>;
-    stream(): Promise<StreamClass<T>>;
-}
-
-declare class ArrayListClass<T extends JavaType> extends ListClass<T> {
-    static newInstanceAsync(): Promise<ArrayListClass<JavaType>>;
-
-    constructor();
-    constructor(other: ListClass<T>);
-}
 
 describe('ArrayListTest', () => {
     let list: ArrayListClass<JavaType> | null = null;

@@ -735,12 +735,7 @@ impl<'a> JavaEnvWrapper<'a> {
         };
 
         if self.is_err() {
-            Err(self.get_last_error(
-                file!(),
-                line!(),
-                true,
-                format!("CallStaticObjectMethod failed").as_str(),
-            )?)
+            Err(self.get_last_error(file!(), line!(), true, "CallStaticObjectMethod failed")?)
         } else {
             self.return_method_object(obj, method)
         }
