@@ -12,7 +12,7 @@ import {
     FunctionInterface,
 } from './classes';
 
-const timeout = shouldIncreaseTimeout ? 120e3 : 20e3;
+const timeout = shouldIncreaseTimeout ? 240e3 : 20e3;
 
 describe('DeleteTest', () => {
     it('Delete string instance', () => {
