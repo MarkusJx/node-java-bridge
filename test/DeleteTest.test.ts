@@ -62,7 +62,7 @@ describe('DeleteTest', () => {
                 apply: () => {
                     return generateRandomString(1024 * 1024 * 10);
                 },
-            },
+            }
         );
 
         System.gcSync();
