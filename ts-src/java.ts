@@ -316,6 +316,12 @@ export function appendClasspath(path: string | string[]): void {
  * it is not possible to use it anymore, although the object
  * may still exist in the javascript process.
  *
+ * **NOTE:** Use this method with caution, as there is no proper
+ * synchronization with deleting the object and other methods using
+ * this object in an asynchronous manner. This may cause the object
+ * to be deleted while another method is still using it.
+ * This may cause the program to crash in very rare cases.
+ *
  * @param obj the object to delete
  */
 export function deleteObject(obj: JavaClass): void {
