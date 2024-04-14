@@ -82,6 +82,10 @@ impl<'a> JavaEnv<'a> {
         self.0.get_object_signature(object)
     }
 
+    pub fn get_class_name(&self, object: JavaObject) -> ResultType<String> {
+        self.0.get_class_name(object)
+    }
+
     pub fn is_instance_of(&self, object: JavaObject, classname: &str) -> ResultType<bool> {
         self.0.is_instance_of(object, classname)
     }

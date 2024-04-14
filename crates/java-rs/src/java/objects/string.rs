@@ -84,7 +84,7 @@ impl<'a> Into<LocalJavaObject<'a>> for JavaString<'a> {
 }
 
 impl<'a> TryFrom<LocalJavaObject<'a>> for JavaString<'a> {
-    type Error = Box<dyn Error>;
+    type Error = Box<dyn Error + Send + Sync>;
 
     fn try_from(object: LocalJavaObject<'a>) -> ResultType<Self> {
         if object.get_signature().type_enum() != Type::String {
@@ -102,7 +102,7 @@ impl<'a> AsJavaObject<'a> for JavaString<'a> {
 }
 
 impl TryInto<String> for JavaString<'_> {
-    type Error = Box<dyn Error>;
+    type Error = Box<dyn Error + Send + Sync>;
 
     fn try_into(self) -> Result<String, Self::Error> {
         unsafe { self.0.env().get_string_utf_chars(self.0.get_raw()) }

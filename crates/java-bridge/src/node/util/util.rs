@@ -3,7 +3,7 @@ use glob::glob;
 use napi::{JsString, JsUnknown};
 use std::error::Error;
 
-pub type ResultType<T> = Result<T, Box<dyn Error>>;
+pub type ResultType<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
 #[cfg(windows)]
 mod separator {
@@ -35,11 +35,11 @@ pub(crate) fn parse_array_or_string(value: JsUnknown) -> napi::Result<Vec<String
 
 pub(crate) fn list_files(dirs: Vec<String>, ignore_unreadable: bool) -> napi::Result<Vec<String>> {
     dirs.into_iter()
-        .map(|f| glob(f.as_str()).map_napi_err())
+        .map(|f| glob(f.as_str()).map_napi_err(None))
         .collect::<napi::Result<Vec<_>>>()?
         .into_iter()
         .flat_map(|f| f)
-        .map(|f| f.map_napi_err())
+        .map(|f| f.map_napi_err(None))
         .filter_map(|f| match f {
             Ok(f) => Some(
                 f.to_str()

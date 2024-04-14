@@ -89,11 +89,13 @@ impl JsTypeEq for JavaType {
                     }
 
                     let obj = env.unwrap::<GlobalJavaObject>(&proxy.coerce_to_object()?)?;
-                    let j_env = obj.get_vm().attach_thread().map_napi_err()?;
-                    let other_class = obj.get_class(&j_env).map_napi_err()?;
+                    let j_env = obj.get_vm().attach_thread().map_napi_err(Some(*env))?;
+                    let other_class = obj.get_class(&j_env).map_napi_err(Some(*env))?;
 
-                    let self_class = self.as_class(&j_env).map_napi_err()?;
-                    self_class.is_assignable_from(&other_class).map_napi_err()?
+                    let self_class = self.as_class(&j_env).map_napi_err(Some(*env))?;
+                    self_class
+                        .is_assignable_from(&other_class)
+                        .map_napi_err(Some(*env))?
                 } else if !self.is_array()
                     && !other.is_promise()?
                     && !other.is_date()?
@@ -112,10 +114,12 @@ impl JsTypeEq for JavaType {
                     }
 
                     let class = class.unwrap();
-                    let j_env = class.vm.attach_thread().map_napi_err()?;
-                    let self_class = self.as_class(&j_env).map_napi_err()?;
+                    let j_env = class.vm.attach_thread().map_napi_err(Some(*env))?;
+                    let self_class = self.as_class(&j_env).map_napi_err(Some(*env))?;
                     let other_class = JavaClass::from_global(&class.class, &j_env);
-                    self_class.is_assignable_from(&other_class).map_napi_err()?
+                    self_class
+                        .is_assignable_from(&other_class)
+                        .map_napi_err(Some(*env))?
                 } else {
                     false
                 }

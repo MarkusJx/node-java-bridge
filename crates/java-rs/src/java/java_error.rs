@@ -1,8 +1,13 @@
+use crate::objects::object::GlobalJavaObject;
+use std::error::Error;
+use std::fmt::Debug;
+
 #[derive(Debug)]
 pub struct JavaError {
     causes: Vec<String>,
     stack_frames: Vec<String>,
     alt_text: String,
+    throwable: Option<GlobalJavaObject>,
 }
 
 impl JavaError {
@@ -11,7 +16,26 @@ impl JavaError {
             causes,
             stack_frames,
             alt_text,
+            throwable: None,
         }
+    }
+
+    pub fn new_with_throwable(
+        causes: Vec<String>,
+        stack_frames: Vec<String>,
+        alt_text: String,
+        throwable: GlobalJavaObject,
+    ) -> Self {
+        Self {
+            causes,
+            stack_frames,
+            alt_text,
+            throwable: Some(throwable),
+        }
+    }
+
+    pub fn get_throwable(&self) -> Option<GlobalJavaObject> {
+        self.throwable.clone()
     }
 }
 
@@ -42,8 +66,8 @@ impl std::fmt::Display for JavaError {
     }
 }
 
-impl std::error::Error for JavaError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl Error for JavaError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         Some(self)
     }
 }

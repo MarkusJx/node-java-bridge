@@ -246,13 +246,17 @@ impl JavaInterfaceProxy {
                                     .set_result(
                                         js_callback(&ctx1, &callback_vm).map_err(|e| e.to_string()),
                                     )
-                                    .map_napi_err()?;
+                                    .map_napi_err(Some(ctx.env))?;
                                 ctx1.env.get_undefined()
                             })?
                             .into_unknown()];
                         for value in args {
-                            let env = vm_copy.attach_thread().map_napi_err()?;
-                            res.push(value.to_napi_value(&env, &ctx.env).map_napi_err()?);
+                            let env = vm_copy.attach_thread().map_napi_err(Some(ctx.env))?;
+                            res.push(
+                                value
+                                    .to_napi_value(&env, &ctx.env)
+                                    .map_napi_err(Some(ctx.env))?,
+                            );
                         }
 
                         Ok(res)
@@ -284,7 +288,11 @@ impl JavaInterfaceProxy {
     }
 
     #[napi]
-    pub fn reset(&mut self, force: Option<bool>) -> napi::Result<()> {
+    pub fn reset(&mut self, force: Option<bool>, env: Env) -> napi::Result<()> {
+        self.reset_inner(force, Some(env))
+    }
+
+    fn reset_inner(&mut self, force: Option<bool>, env: Option<Env>) -> napi::Result<()> {
         let mut methods = self.methods.lock().unwrap();
         if self.function_caller_instance.is_dead() || self.proxy_instance.is_none() {
             return Err(NapiError::from("This instance is already destroyed").into());
@@ -293,7 +301,7 @@ impl JavaInterfaceProxy {
         let keep_as_daemon =
             self.options.keep_as_daemon.unwrap_or(false) && !force.unwrap_or(false);
         if !keep_as_daemon {
-            self.function_caller_instance.destroy()?;
+            self.function_caller_instance.destroy(env)?;
         }
 
         let mut proxies = get_proxies();
@@ -317,6 +325,6 @@ impl JavaInterfaceProxy {
 
 impl Drop for JavaInterfaceProxy {
     fn drop(&mut self) {
-        self.reset(Some(false)).ok();
+        self.reset_inner(Some(false), None).ok();
     }
 }

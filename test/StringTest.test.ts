@@ -5,8 +5,9 @@ import {
     ensureJvm,
     config,
     clearClassProxies,
+    JavaError,
 } from '../.';
-import { expect, use } from 'chai';
+import { Assertion, AssertionError, expect, use } from 'chai';
 import { inspect } from 'util';
 import { JString } from './classes';
 import chaiAsPromised from 'chai-as-promised';
@@ -143,5 +144,44 @@ describe('StringTest', () => {
             .to.match(
                 /at Context\.<anonymous> \(.+test[/\\]StringTest\.test\.ts:\d+:\d+\)/gm
             );
+
+        await expect(new JavaString('').transform(null))
+            .to.eventually.be.rejected.property('stack')
+            .to.match(
+                /at Context\.<anonymous> \(.+test[/\\]StringTest\.test\.ts:\d+:\d+\)/gm
+            );
+    });
+
+    it('get java error', () => {
+        const checkError = (e: unknown, method: string, parameter: string) => {
+            if (e instanceof AssertionError) {
+                throw e;
+            }
+
+            expect(e).property('cause').to.not.be.null;
+            const error = e as JavaError;
+            expect(error.cause.toString()).to.equal(
+                `java.lang.NullPointerException: Cannot invoke "${method}" because "${parameter}" is null`
+            );
+
+            const stack = error.cause.getStackTraceSync();
+            expect(stack).to.not.be.null;
+            expect(stack).to.be.an('array');
+            expect(stack.length).to.be.greaterThan(0);
+        };
+
+        try {
+            new JavaString(null);
+            expect.fail('Expected an error');
+        } catch (e: unknown) {
+            checkError(e, 'java.lang.StringBuffer.toString()', 'buffer');
+        }
+
+        try {
+            new JavaString('').splitSync(null);
+            expect.fail('Expected an error');
+        } catch (e: unknown) {
+            checkError(e, 'String.length()', 'regex');
+        }
     });
 });

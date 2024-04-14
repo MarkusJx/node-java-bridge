@@ -136,6 +136,24 @@ impl<'a> JavaEnvWrapper<'a> {
         Ok(JavaType::new(name, true))
     }
 
+    pub fn get_class_name(&self, object: JavaObject) -> ResultType<String> {
+        let object_class = self.get_object_class(object.clone())?;
+
+        let get_class = object_class.get_object_method("getClass", "()Ljava/lang/Class;")?;
+        let class = get_class
+            .call(object, &[])?
+            .ok_or("Object.getClass() returned null".to_string())?;
+        let java_class = self.get_java_lang_class()?;
+
+        let get_name = java_class.get_object_method("getName", "()Ljava/lang/String;")?;
+        let java_name = get_name
+            .call(JavaObject::from(class), &[])?
+            .ok_or("Class.getName() returned null".to_string())?;
+
+        let str = JavaString::try_from(java_name)?;
+        str.to_string()
+    }
+
     pub fn is_instance_of(&self, object: JavaObject, classname: &str) -> ResultType<bool> {
         let class = self.find_class(classname, true)?;
 
@@ -223,7 +241,7 @@ impl<'a> JavaEnvWrapper<'a> {
         &self,
         frames: &mut JavaObjectArray<'_>,
         num_frames: i32,
-        throwable: &LocalJavaObject,
+        throwable: JavaObject,
         throwable_to_string: &JavaObjectMethod,
         throwable_get_cause: &JavaObjectMethod,
         throwable_get_stack_trace: &JavaObjectMethod,
@@ -232,7 +250,7 @@ impl<'a> JavaEnvWrapper<'a> {
         stack_frames: &mut Vec<String>,
     ) -> ResultType<()> {
         let throwable_string = throwable_to_string
-            .call_with_errors(JavaObject::from(throwable), &[], false)?
+            .call_with_errors(throwable.clone(), &[], false)?
             .ok_or("Throwable.toString() returned null".to_string())?;
         causes.push(throwable_string.to_java_string()?.try_into()?);
 
@@ -246,16 +264,15 @@ impl<'a> JavaEnvWrapper<'a> {
             stack_frames.push(frame_string.to_java_string()?.try_into()?);
         }
 
-        let throwable =
-            throwable_get_cause.call_with_errors(JavaObject::from(throwable), &[], false)?;
+        let throwable = throwable_get_cause.call_with_errors(throwable, &[], false)?;
         let throwable = if let Some(throwable) = throwable {
-            throwable
+            JavaObject::from(throwable)
         } else {
             return Ok(());
         };
 
         let frames_obj =
-            throwable_get_stack_trace.call_with_errors(JavaObject::from(&throwable), &[], false)?;
+            throwable_get_stack_trace.call_with_errors(throwable.clone(), &[], false)?;
 
         let mut frames = if let Some(f) = frames_obj {
             JavaObjectArray::from(f)
@@ -267,7 +284,7 @@ impl<'a> JavaEnvWrapper<'a> {
         self.convert_frames(
             &mut frames,
             num_frames,
-            &throwable,
+            throwable.clone(),
             throwable_to_string,
             throwable_get_cause,
             throwable_get_stack_trace,
@@ -295,7 +312,7 @@ impl<'a> JavaEnvWrapper<'a> {
         line: u32,
         convert_errors: bool,
         alt_text: &str,
-    ) -> ResultType<Box<dyn Error>> {
+    ) -> ResultType<Box<dyn Error + Send + Sync>> {
         if !self.is_err() {
             return Err(JNIError::from("No error occurred").into());
         }
@@ -312,7 +329,7 @@ impl<'a> JavaEnvWrapper<'a> {
             return Err(JavaError::new(vec![], own_stack_frames, alt_text.to_string()).into());
         }
 
-        let throwable = self.exception_occurred()?;
+        let throwable: GlobalJavaObject = self.exception_occurred()?.try_into()?;
 
         let throwable_class = self.find_class("java/lang/Throwable", false)?;
         let throwable_get_cause = throwable_class.get_object_method_with_errors(
@@ -347,7 +364,7 @@ impl<'a> JavaEnvWrapper<'a> {
         self.convert_frames(
             &mut frames,
             num_frames,
-            &throwable,
+            JavaObject::from(&throwable),
             &throwable_to_string,
             &throwable_get_cause,
             &throwable_get_stack_trace,
@@ -356,7 +373,10 @@ impl<'a> JavaEnvWrapper<'a> {
             &mut stack_frames,
         )?;
         stack_frames.append(&mut own_stack_frames);
-        Ok(JavaError::new(causes, stack_frames, alt_text.to_string()).into())
+        Ok(
+            JavaError::new_with_throwable(causes, stack_frames, alt_text.to_string(), throwable)
+                .into(),
+        )
     }
 
     /// Delete the local reference of an java object.

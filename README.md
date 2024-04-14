@@ -5,7 +5,8 @@
 
 <!--[![SystemTest](https://github.com/MarkusJx/node-java-bridge/actions/workflows/system_test.yml/badge.svg)](https://github.com/MarkusJx/node-java-bridge/actions/workflows/system_test.yml)-->
 
-A bridge between Node.js programs and Java APIs written in Rust using [napi-rs](https://napi.rs/)
+A bridge between Node.js programs and Java APIs written in Rust
+using [napi-rs](https://napi.rs/)
 to provide a fast and memory-safe interface between the two languages.
 
 The pre-compiled binaries will be provided with the package, the only thing
@@ -14,9 +15,11 @@ for this package to use. In contrast to other `node.js <-> java` interfaces,
 the binary is not hard linked to the JDK it has been compiled with but rather
 loads the jvm native library dynamically when the program first starts up.
 
-The full documentation of this package is available [here](https://markusjx.github.io/node-java-bridge/).
+The full documentation of this package is
+available [here](https://markusjx.github.io/node-java-bridge/).
 
-**NOTE: As of version `2.1.0`, this package has been renamed from `@markusjx/java` to `java-bridge`.**
+**NOTE: As of version `2.1.0`, this package has been renamed from `@markusjx/java`
+to `java-bridge`.**
 
 ## Installation
 
@@ -24,17 +27,22 @@ The full documentation of this package is available [here](https://markusjx.gith
 npm i java-bridge
 ```
 
-_Note: In order to use this package on windows, you'll need to install the [Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/en-gb/download/details.aspx?id=48145)._
+_Note: In order to use this package on windows, you'll need to install
+the [Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/en-gb/download/details.aspx?id=48145)._
 
 ## Command line interface
 
-This module also provides a command line interface that allows you to generate typescript definitions for your java classes.
-The command line interface is called `java-ts-definition-generator` and can be installed using `npm install -g java-ts-definition-generator`.
-The full documentation can be found [here](https://github.com/MarkusJx/java-ts-definition-generator).
+This module also provides a command line interface that allows you to generate typescript
+definitions for your java classes.
+The command line interface is called `java-ts-definition-generator` and can be installed
+using `npm install -g java-ts-definition-generator`.
+The full documentation can be
+found [here](https://github.com/MarkusJx/java-ts-definition-generator).
 
 ## Build instructions
 
-_This is only required for development purposes. When installing the package using `npm i`, you can skip this._
+_This is only required for development purposes. When installing the package
+using `npm i`, you can skip this._
 
 In order to build this project, you should install
 
@@ -54,7 +62,8 @@ npm run build
 
 ## Support Matrix
 
-> _✅ = Pre-compiled binaries are available_<br> _`-` = Pre-compiled binaries are not available_
+> _✅ = Pre-compiled binaries are available_<br> _`-` = Pre-compiled binaries are not
+> available_
 
 | Operating System | i686 | x64 | arm | arm64 |
 | ---------------- | :--: | :-: | :-: | :---: |
@@ -82,7 +91,9 @@ System.out.println('Hello world!');
 
 ### Create the JVM
 
-Create a new Java VM using the [`ensureJvm`](https://markusjx.github.io/node-java-bridge/functions/ensureJvm.html) method.
+Create a new Java VM using
+the [`ensureJvm`](https://markusjx.github.io/node-java-bridge/functions/ensureJvm.html)
+method.
 Calling this after the jvm has already been created will do nothing.
 Destroying the jvm manually is not (yet) supported.
 
@@ -100,8 +111,10 @@ ensureJvm();
 
 #### Create the JVM with extra options
 
-You can pass extra options to the jvm when creating it, for example requesting a specific jvm version,
-specifying the location of the jvm native library or passing additional arguments to the jvm.
+You can pass extra options to the jvm when creating it, for example requesting a specific
+jvm version,
+specifying the location of the jvm native library or passing additional arguments to the
+jvm.
 
 ```ts
 import { ensureJvm, JavaVersion } from 'java-bridge';
@@ -113,15 +126,18 @@ ensureJvm({
 });
 ```
 
-All threads will be attached as daemon threads, allowing the jvm to exit when the main thread exits.
+All threads will be attached as daemon threads, allowing the jvm to exit when the main
+thread exits.
 This behaviour can not be changed, as it may introduce undefined behaviour.
 
-Important note on jvm options: Different arguments must be parsed as separate strings in the `opts` array.
+Important note on jvm options: Different arguments must be parsed as separate strings in
+the `opts` array.
 Otherwise, the jvm will not be able to parse the arguments correctly.
 
 #### Notes on electron
 
-When using this package in a packaged electron application, you should unpack this package and
+When using this package in a packaged electron application, you should unpack this package
+and
 the appropriate binaries for your platform into the `app.asar.unpacked` folder. When using
 electron-builder, you can do this by adding the following to your `package.json`:
 
@@ -136,7 +152,8 @@ electron-builder, you can do this by adding the following to your `package.json`
 }
 ```
 
-Additionally, you should set the `isPackagedElectron` option to `true` when creating the jvm:
+Additionally, you should set the `isPackagedElectron` option to `true` when creating the
+jvm:
 
 ```ts
 ensureJvm({
@@ -144,7 +161,8 @@ ensureJvm({
 });
 ```
 
-This option _should_ not have any effect when not using electron or not having the application packaged.
+This option _should_ not have any effect when not using electron or not having the
+application packaged.
 
 ### Inject a JAR into the class path
 
@@ -153,7 +171,8 @@ to add the JAR file to the class path. You can do that with the
 [`appendClasspath`](https://markusjx.github.io/node-java-bridge/functions/appendClasspath.html)
 or [`classpath.append`](https://markusjx.github.io/node-java-bridge/functions/classpath.append.html)
 methods. After loading a JAR, you can import classes from it like any other class
-from the JVM using [`importClass`](#synchronous-calls) or [`importClassAsync`](#asynchronous-calls).
+from the JVM using [`importClass`](#synchronous-calls)
+or [`importClassAsync`](#asynchronous-calls).
 
 ```ts
 import { appendClasspath } from 'java-bridge';
@@ -176,9 +195,11 @@ classpath.append('/path/to/jar.jar');
 
 ### Synchronous calls
 
-If you want to use Java APIs in a synchronous way, you can use the synchronous API of this module.
+If you want to use Java APIs in a synchronous way, you can use the synchronous API of this
+module.
 Any call to the Java API will be executed in the same thread as your node process so this
-may cause your program to hang until the execution is finished. But - in contrast to the asynchronous API -
+may cause your program to hang until the execution is finished. But - in contrast to the
+asynchronous API -
 these calls are a lot faster as no extra threads need to be created/attached to the JVM.
 
 All synchronous java methods are proceeded with the postfix `Sync`.
@@ -186,8 +207,11 @@ This means, all methods of a class (static and non-static) are generated twice,
 once as a synchronous call and once as an asynchronous call.
 
 If you are looking for asynchronous calls, take a look at the next section.
-In order to import a class synchronously, you can use the [`importClass`](https://markusjx.github.io/node-java-bridge/functions/importClass.html) function.
-Using this method does not affect your ability to call any method of the class asynchronously.
+In order to import a class synchronously, you can use
+the [`importClass`](https://markusjx.github.io/node-java-bridge/functions/importClass.html)
+function.
+Using this method does not affect your ability to call any method of the class
+asynchronously.
 
 ```ts
 import { importClass } from 'java-bridge';
@@ -208,16 +232,22 @@ str.toStringSync(); // 'Hello World'
 
 ### Asynchronous calls
 
-If you want to use Java APIs in an asynchronous way, you can use the asynchronous API of this module.
-Any call to the Java API will be executed in a separate thread and the execution will not block your program.
-This is in general a lot slower as the synchronous API but allows the program to run more smoothly.
+If you want to use Java APIs in an asynchronous way, you can use the asynchronous API of
+this module.
+Any call to the Java API will be executed in a separate thread and the execution will not
+block your program.
+This is in general a lot slower as the synchronous API but allows the program to run more
+smoothly.
 
-If you want to improve the performance of the asynchronous API, you can force the module to attach
-any thread as a daemon thread to the JVM. This allows the program to not constantly attach new threads
+If you want to improve the performance of the asynchronous API, you can force the module
+to attach
+any thread as a daemon thread to the JVM. This allows the program to not constantly attach
+new threads
 to the JVM as the old ones can be reused and thus improves the performance.
 
 In order to import a class asynchronously, you can use the
-[`importClassAsync`](https://markusjx.github.io/node-java-bridge/functions/importClassAsync.html) function.
+[`importClassAsync`](https://markusjx.github.io/node-java-bridge/functions/importClassAsync.html)
+function.
 
 ```ts
 import { importClassAsync } from 'java-bridge';
@@ -238,7 +268,8 @@ You can also implement a Java interface in node.js using the
 [`newProxy`](https://markusjx.github.io/node-java-bridge/functions/newProxy.html) method.
 Please note that when calling a java method that uses an interface defined by this method,
 you must call that method using the interface asynchronously as Node.js is single threaded
-and can't wait for the java method to return while calling the proxy method at the same time.
+and can't wait for the java method to return while calling the proxy method at the same
+time.
 
 ```ts
 import { newProxy } from 'java-bridge';
@@ -274,6 +305,28 @@ const guard = stdout.enableRedirect(
 );
 ```
 
+## Errors
+
+Errors thrown in the java process are returned as `JavaError` objects.
+These objects contain the error message, the full stack trace (including the java, node
+and rust process) and the java throwable that caused
+the error. The throwable is only available when the error was thrown in the java process
+and not in the node process and if the call was a synchronous call. Async calls will not
+return the throwable. The throwable can be accessed using the `cause` property of the
+`JavaError` object.
+
+```ts
+import type { JavaError } from 'java-bridge';
+
+try {
+    // Call a method that throws an error
+    someInstance.someMethodSync();
+} catch (e: unknown) {
+    const throwable = (e as JavaError).cause;
+    throwable.printStackTraceSync();
+}
+```
+
 ## Logging
 
 If you want to enable logging for this module, you need to re-compile the module
@@ -296,22 +349,30 @@ For further information on how to use the logging feature, please take a look at
 
 ## Value conversion rules
 
-1. Any basic value such as `string`, `number`, `boolean` or `BigInt` may be passed to methods accepting matching
+1. Any basic value such as `string`, `number`, `boolean` or `BigInt` may be passed to
+   methods accepting matching
    types
 2. `string` values will always be converted to `java.lang.String`
-3. `string` values with just one character may be converted to `char` or `java.lang.Char` if required
-4. Thus, in order to pass a `char` to a java method, use a `string` containing just one character
-5. `number` values will be converted to `int`, `long`, `double`, `float`, `java.lang.Integer`,
-   `java.lang.Long`, `java.lang.Double` or `java.lang.Float` depending on the type the java function to call requires
+3. `string` values with just one character may be converted to `char` or `java.lang.Char`
+   if required
+4. Thus, in order to pass a `char` to a java method, use a `string` containing just one
+   character
+5. `number` values will be converted
+   to `int`, `long`, `double`, `float`, `java.lang.Integer`,
+   `java.lang.Long`, `java.lang.Double` or `java.lang.Float` depending on the type the
+   java function to call requires
 6. `boolean` values will be converted to either `boolean` or `java.lang.Boolean`
 7. `BigInt` values will be converted to either `long` or `java.lang.Long`
-8. Arrays will be converted to java arrays. Java arrays may only contain a single value type, therefore the type of
-   the first element in the array will be chosen as the array type, empty arrays need no conversions.
+8. Arrays will be converted to java arrays. Java arrays may only contain a single value
+   type, therefore the type of
+   the first element in the array will be chosen as the array type, empty arrays need no
+   conversions.
 9. `java.lang.String` values will be converted to `string`
 10. `int`, `double`, `float`, `java.lang.Integer`, `java.lang.Double` or `java.lang.Float`
     values will be converted to `number`
 11. `long` or `java.lang.Long` values will always be converted to `BigInt`
 12. `boolean` or `java.lang.Boolean` values will be converted to `boolean`
 13. `char` or `java.lang.Character` values will be converted to `string`
-14. Java arrays will be converted to javascript arrays, applying the rules mentioned above except
+14. Java arrays will be converted to javascript arrays, applying the rules mentioned above
+    except
 15. Byte arrays will be converted to `Buffer` and vice-versa

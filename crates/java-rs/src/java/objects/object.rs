@@ -369,7 +369,7 @@ impl<'a> ToJavaValue<'a> for GlobalJavaObject {
 }
 
 impl<'a> TryFrom<LocalJavaObject<'a>> for GlobalJavaObject {
-    type Error = Box<dyn Error>;
+    type Error = Box<dyn Error + Send + Sync>;
 
     fn try_from(local: LocalJavaObject<'a>) -> Result<GlobalJavaObject, Self::Error> {
         local.env.new_global_object(
@@ -381,7 +381,7 @@ impl<'a> TryFrom<LocalJavaObject<'a>> for GlobalJavaObject {
 }
 
 impl<'a> TryFrom<JavaString<'a>> for GlobalJavaObject {
-    type Error = Box<dyn Error>;
+    type Error = Box<dyn Error + Send + Sync>;
 
     fn try_from(string: JavaString<'a>) -> Result<GlobalJavaObject, Self::Error> {
         string.0.env.new_global_object(

@@ -258,7 +258,7 @@ impl GlobalJavaClass {
 }
 
 impl TryFrom<JavaClass<'_>> for GlobalJavaClass {
-    type Error = Box<dyn Error>;
+    type Error = Box<dyn Error + Send + Sync>;
 
     fn try_from(class: JavaClass) -> ResultType<Self> {
         let global = GlobalJavaObject::try_from(class.object)?;

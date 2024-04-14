@@ -1,7 +1,7 @@
 pub mod java_call_result;
 pub mod java_env;
 mod java_env_wrapper;
-mod java_error;
+pub mod java_error;
 pub mod java_field;
 pub mod java_type;
 pub mod java_vm;

@@ -67,7 +67,7 @@ pub extern "system" fn Java_io_github_markusjx_bridge_StdoutRedirect_00024Callba
         let callback = unsafe { STDOUT_CALLBACK.lock().unwrap() };
         if let Some(callback) = callback.as_ref() {
             callback.call(
-                string.to_string().map_napi_err(),
+                string.to_string().map_napi_err(None),
                 ThreadsafeFunctionCallMode::NonBlocking,
             );
         }
@@ -75,7 +75,7 @@ pub extern "system" fn Java_io_github_markusjx_bridge_StdoutRedirect_00024Callba
         let callback = unsafe { STDERR_CALLBACK.lock().unwrap() };
         if let Some(callback) = callback.as_ref() {
             callback.call(
-                string.to_string().map_napi_err(),
+                string.to_string().map_napi_err(None),
                 ThreadsafeFunctionCallMode::NonBlocking,
             );
         }
@@ -151,7 +151,7 @@ impl StdoutRedirect {
         self.class_instance = match event.as_str() {
             "stdout" => {
                 let other_set = unsafe { STDERR_CALLBACK.lock().unwrap().is_some() };
-                let j_env = self.vm.attach_thread().map_napi_err()?;
+                let j_env = self.vm.attach_thread().map_napi_err(Some(env))?;
                 set_stdout_callbacks(
                     env,
                     &j_env,
@@ -161,11 +161,11 @@ impl StdoutRedirect {
                     other_set,
                     Some(&self.class_instance),
                 )
-                .map_napi_err()?
+                .map_napi_err(Some(env))?
             }
             "stderr" => {
                 let other_set = unsafe { STDOUT_CALLBACK.lock().unwrap().is_some() };
-                let j_env = self.vm.attach_thread().map_napi_err()?;
+                let j_env = self.vm.attach_thread().map_napi_err(Some(env))?;
                 set_stdout_callbacks(
                     env,
                     &j_env,
@@ -175,7 +175,7 @@ impl StdoutRedirect {
                     callback.is_some(),
                     Some(&self.class_instance),
                 )
-                .map_napi_err()?
+                .map_napi_err(Some(env))?
             }
             _ => {
                 return Err(napi::Error::new(
@@ -189,7 +189,11 @@ impl StdoutRedirect {
     }
 
     #[napi]
-    pub fn reset(&self) -> napi::Result<()> {
+    pub fn reset(&self, env: Env) -> napi::Result<()> {
+        self.reset_inner(Some(env))
+    }
+
+    fn reset_inner(&self, env: Option<Env>) -> napi::Result<()> {
         let mut owner = STDOUT_OWNER.lock().unwrap();
         if !owner.owns(self.id) {
             return Err(napi::Error::new(
@@ -198,8 +202,8 @@ impl StdoutRedirect {
             ));
         }
 
-        let j_env = self.vm.attach_thread().map_napi_err()?;
-        reset_stdout_callbacks(&j_env, Some(&self.class_instance)).map_napi_err()?;
+        let j_env = self.vm.attach_thread().map_napi_err(env)?;
+        reset_stdout_callbacks(&j_env, Some(&self.class_instance)).map_napi_err(env)?;
 
         owner.release();
         Ok(())
@@ -208,7 +212,7 @@ impl StdoutRedirect {
 
 impl Drop for StdoutRedirect {
     fn drop(&mut self) {
-        self.reset().ok();
+        self.reset_inner(None).ok();
     }
 }
 

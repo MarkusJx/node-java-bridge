@@ -19,7 +19,7 @@ pub fn call_context_to_java_args<'a>(
             i,
             signature
                 .convert_to_java_value(env, ctx.env, js_value)
-                .map_napi_err()?,
+                .map_napi_err(Some(*ctx.env))?,
         );
     }
 

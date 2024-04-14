@@ -48,7 +48,7 @@ impl<'a> GetRaw for JavaObject<'a> {
 }
 
 impl TryInto<GlobalJavaObject> for JavaObject<'_> {
-    type Error = Box<dyn Error>;
+    type Error = Box<dyn Error + Send + Sync>;
 
     fn try_into(self) -> ResultType<GlobalJavaObject> {
         self.into_global()

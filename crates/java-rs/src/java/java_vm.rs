@@ -41,7 +41,9 @@ impl JavaVM {
                     let path = base.join(java_locator::get_jvm_dyn_lib_file_name());
 
                     path.to_str()
-                        .ok_or(Box::<dyn Error>::from("Could not create the library path"))?
+                        .ok_or(Box::<dyn Error + Send + Sync>::from(
+                            "Could not create the library path",
+                        ))?
                         .to_string()
                 }
             };

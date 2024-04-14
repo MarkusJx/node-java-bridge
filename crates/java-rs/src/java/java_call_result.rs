@@ -64,7 +64,7 @@ impl<'a> ToJavaValue<'a> for JavaCallResult {
 }
 
 impl TryFrom<JavaObject<'_>> for JavaCallResult {
-    type Error = Box<dyn Error>;
+    type Error = Box<dyn Error + Send + Sync>;
 
     fn try_from(value: JavaObject) -> ResultType<Self> {
         Ok(Self::Object {
