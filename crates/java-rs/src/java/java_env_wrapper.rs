@@ -21,7 +21,7 @@ use crate::java::objects::object::{GlobalJavaObject, LocalJavaObject};
 use crate::java::objects::string::JavaString;
 use crate::java::objects::value::JavaBoolean;
 use crate::java::traits::GetRaw;
-use crate::java::util::util::{jni_error_to_string, ResultType};
+use crate::java::util::helpers::{jni_error_to_string, ResultType};
 use crate::java::vm_ptr::JavaVMPtr;
 use crate::objects::args::AsJavaArg;
 #[cfg(feature = "type_check")]
@@ -115,7 +115,7 @@ impl<'a> JavaEnvWrapper<'a> {
     }
 
     pub fn get_object_signature(&self, object: JavaObject) -> ResultType<JavaType> {
-        let object_class = self.get_object_class(object.clone())?;
+        let object_class = self.get_object_class(object.copy_ref())?;
 
         let get_class = object_class.get_object_method("getClass", "()Ljava/lang/Class;")?;
         let class = get_class
@@ -137,7 +137,7 @@ impl<'a> JavaEnvWrapper<'a> {
     }
 
     pub fn get_class_name(&self, object: JavaObject) -> ResultType<String> {
-        let object_class = self.get_object_class(object.clone())?;
+        let object_class = self.get_object_class(object.copy_ref())?;
 
         let get_class = object_class.get_object_method("getClass", "()Ljava/lang/Class;")?;
         let class = get_class
@@ -222,7 +222,7 @@ impl<'a> JavaEnvWrapper<'a> {
         let throwable = unsafe { self.methods.ExceptionOccurred.unwrap()(self.env) };
         self.clear_err();
 
-        if throwable == ptr::null_mut() {
+        if throwable.is_null() {
             Err(JNIError::from("Call to ExceptionOccurred failed").into())
         } else {
             Ok(LocalJavaObject::new(
@@ -237,6 +237,7 @@ impl<'a> JavaEnvWrapper<'a> {
     /// Convert the frames of the last pending exception to a rust error.
     ///
     /// See [`get_last_error`](Self::get_last_error) which uses this method.
+    #[allow(clippy::too_many_arguments, clippy::only_used_in_recursion)]
     fn convert_frames(
         &self,
         frames: &mut JavaObjectArray<'_>,
@@ -250,7 +251,7 @@ impl<'a> JavaEnvWrapper<'a> {
         stack_frames: &mut Vec<String>,
     ) -> ResultType<()> {
         let throwable_string = throwable_to_string
-            .call_with_errors(throwable.clone(), &[], false)?
+            .call_with_errors(throwable.copy_ref(), &[], false)?
             .ok_or("Throwable.toString() returned null".to_string())?;
         causes.push(throwable_string.to_java_string()?.try_into()?);
 
@@ -272,7 +273,7 @@ impl<'a> JavaEnvWrapper<'a> {
         };
 
         let frames_obj =
-            throwable_get_stack_trace.call_with_errors(throwable.clone(), &[], false)?;
+            throwable_get_stack_trace.call_with_errors(throwable.copy_ref(), &[], false)?;
 
         let mut frames = if let Some(f) = frames_obj {
             JavaObjectArray::from(f)
@@ -284,7 +285,7 @@ impl<'a> JavaEnvWrapper<'a> {
         self.convert_frames(
             &mut frames,
             num_frames,
-            throwable.clone(),
+            throwable.copy_ref(),
             throwable_to_string,
             throwable_get_cause,
             throwable_get_stack_trace,
@@ -385,7 +386,7 @@ impl<'a> JavaEnvWrapper<'a> {
     /// This is not strictly required by the jvm but should be done
     /// for jni calls to the jvm. Do not call this if the object
     /// has been converted to a global reference.
-    pub fn delete_local_ref(&self, object: sys::jobject) -> () {
+    pub fn delete_local_ref(&self, object: sys::jobject) {
         assert_non_null!(object);
         unsafe {
             self.methods.DeleteLocalRef.unwrap()(self.env, object);
@@ -447,7 +448,7 @@ impl<'a> JavaEnvWrapper<'a> {
         } else {
             Ok(JavaClass::new(
                 class,
-                &self,
+                self,
                 #[cfg(feature = "type_check")]
                 JavaType::new(class_name.to_string(), true),
             ))
@@ -646,7 +647,7 @@ impl<'a> JavaEnvWrapper<'a> {
         if !signature.matches(&args) {
             Err(format!(
                 "The arguments do not match the method signature: ({}) != {}",
-                args.into_iter()
+                args.iter()
                     .map(|a| a.get_type().to_string())
                     .collect::<Vec<String>>()
                     .join(", "),
@@ -1302,7 +1303,7 @@ impl<'a> JavaEnvWrapper<'a> {
     pub unsafe fn get_string_utf_chars(&self, string: sys::jstring) -> ResultType<String> {
         assert_non_null!(string);
         let chars = self.methods.GetStringUTFChars.unwrap()(self.env, string, ptr::null_mut());
-        if self.is_err() || chars == ptr::null_mut() {
+        if self.is_err() || chars.is_null() {
             self.clear_err();
             return Err(JNIError::from("GetStringUTFChars failed").into());
         }
@@ -1386,7 +1387,7 @@ impl<'a> JavaEnvWrapper<'a> {
             )
         };
 
-        if self.is_err() || res == ptr::null_mut() {
+        if self.is_err() || res.is_null() {
             Err(self.get_last_error(file!(), line!(), true, "NewObjectA failed")?)
         } else {
             Ok(LocalJavaObject::new(
@@ -1419,7 +1420,7 @@ impl<'a> JavaEnvWrapper<'a> {
             )
         };
 
-        if self.is_err() || id == ptr::null_mut() {
+        if self.is_err() || id.is_null() {
             Err(self.get_last_error(file!(), line!(), true, "GetMethodID failed")?)
         } else {
             Ok(JavaConstructor::new(

@@ -1,6 +1,6 @@
 use crate::node::interface_proxy::function_caller::FunctionCaller;
 use crate::node::interface_proxy::types::{MethodMap, MethodsType, ProxiesType};
-use crate::node::util::util::ResultType;
+use crate::node::util::helpers::ResultType;
 use lazy_static::lazy_static;
 use napi::Env;
 use rand::Rng;
@@ -51,7 +51,7 @@ pub(in crate::node::interface_proxy) fn find_methods_by_id(
     }
 }
 
-pub(in crate::node::interface_proxy) fn remove_proxy<'a>(
+pub(in crate::node::interface_proxy) fn remove_proxy(
     id: usize,
     keep_as_daemon: bool,
     proxies: &mut MutexGuard<ProxiesType>,
@@ -73,6 +73,7 @@ pub fn interface_proxy_exists() -> bool {
 
 /// Clears the list of daemon proxies.
 #[napi]
+#[allow(unused)]
 pub fn clear_daemon_proxies(env: Env) -> napi::Result<()> {
     let mut proxies = DAEMON_PROXIES.lock().unwrap();
     for (_, (methods, function_caller)) in proxies.iter_mut() {

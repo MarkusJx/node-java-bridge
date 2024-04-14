@@ -18,7 +18,7 @@ fn argument_matches(
 }
 
 fn arguments_match(
-    parameter_types: &Vec<JavaType>,
+    parameter_types: &[JavaType],
     ctx: &CallContext,
     allow_objects: bool,
 ) -> napi::Result<bool> {
@@ -26,8 +26,8 @@ fn arguments_match(
         return Ok(false);
     }
 
-    for i in 0..ctx.length {
-        if !argument_matches(&parameter_types[i], ctx.get(i)?, ctx.env, allow_objects)? {
+    for (i, param) in parameter_types.iter().enumerate() {
+        if !argument_matches(param, ctx.get(i)?, ctx.env, allow_objects)? {
             return Ok(false);
         }
     }

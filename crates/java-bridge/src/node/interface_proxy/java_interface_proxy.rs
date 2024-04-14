@@ -21,7 +21,7 @@ use java_rs::objects::java_object::JavaObject;
 use java_rs::objects::object::{GlobalJavaObject, LocalJavaObject};
 use java_rs::objects::string::JavaString;
 use java_rs::objects::value::JavaLong;
-use java_rs::util::util::ResultType;
+use java_rs::util::helpers::ResultType;
 use java_rs::{function, sys};
 use napi::threadsafe_function::{ThreadSafeCallContext, ThreadsafeFunctionCallMode};
 use napi::{CallContext, Env, JsFunction, JsObject, JsString, JsUnknown};
@@ -86,7 +86,7 @@ unsafe fn call_node_function(
         .ok_or(format!("No method with the name '{}' exists", name))?;
 
     let mut converted_args: Vec<JavaCallResult> = Vec::new();
-    if args != ptr::null_mut() {
+    if !args.is_null() {
         let args = JavaObjectArray::from_raw(args, &env, None);
         for i in 0..args.len()? {
             let arg = args.get(i)?;
@@ -135,8 +135,7 @@ fn js_callback(
                 .and_then(|s| s.as_str().ok())
                 .map(|stack| {
                     stack
-                        .split("\n")
-                        .into_iter()
+                        .split('\n')
                         .map(|s| s.to_string())
                         .collect::<Vec<String>>()
                 })
@@ -154,7 +153,7 @@ fn js_callback(
     } else {
         let env = vm.attach_thread()?;
         let result = ctx.get::<JsUnknown>(1)?;
-        let converted = JavaType::object().convert_to_java_object(&env, &ctx.env, result)?;
+        let converted = JavaType::object().convert_to_java_object(&env, ctx.env, result)?;
 
         Ok(Ok(if let Some(converted) = converted {
             Some(converted.into_global()?)

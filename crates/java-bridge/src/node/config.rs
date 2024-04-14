@@ -59,8 +59,8 @@ impl TryFrom<ClassConfiguration> for Config {
                 .run_event_loop_when_interface_proxy_is_active
                 .unwrap_or(config.run_event_loop_when_interface_proxy_is_active),
             custom_inspect: value.custom_inspect.unwrap_or(config.custom_inspect),
-            sync_suffix: value.sync_suffix.or(sync_suffix.map(|s| s.clone())),
-            async_suffix: value.async_suffix.or(async_suffix.map(|s| s.clone())),
+            sync_suffix: value.sync_suffix.or(sync_suffix.cloned()),
+            async_suffix: value.async_suffix.or(async_suffix.cloned()),
         })
     }
 }

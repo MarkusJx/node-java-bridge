@@ -75,7 +75,8 @@ impl JavaClassInstance {
         }
 
         constructor.define_properties(
-            (&proxy.static_fields)
+            proxy
+                .static_fields
                 .iter()
                 .map(|(name, field)| {
                     let name = name.clone();
@@ -208,8 +209,9 @@ impl JavaClassInstance {
         }
 
         this.define_properties(
-            (&proxy.fields)
-                .into_iter()
+            proxy
+                .fields
+                .iter()
                 .map(|(name, field)| -> napi::Result<Property> {
                     let name = name.clone();
                     let name_cpy = name.clone();
@@ -386,7 +388,7 @@ impl JavaClassInstance {
             let args_ref = call_results_to_args(&args);
 
             method
-                .call(&obj, args_ref.as_slice())
+                .call(obj, args_ref.as_slice())
                 .map_napi_err(Some(*ctx.env))?
         };
 
@@ -437,14 +439,14 @@ impl JavaClassInstance {
                         .get("toString")
                         .ok_or(napi::Error::from_reason("Method toString not found"))?
                         .iter()
-                        .find(|m| m.parameter_types().len() == 0)
+                        .find(|m| m.parameter_types().is_empty())
                         .ok_or(napi::Error::from_reason("Method toString not found"))?;
 
                     let obj = Self::get_object(&ctx)?;
                     let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
 
-                    let res = method.call(&obj, &[]).map_napi_err(Some(*ctx.env))?;
-                    res.to_napi_value(&env, &ctx.env)
+                    let res = method.call(obj, &[]).map_napi_err(Some(*ctx.env))?;
+                    res.to_napi_value(&env, ctx.env)
                         .map_napi_err(Some(*ctx.env))
                 },
             )?,
@@ -521,7 +523,7 @@ fn get_class_field(ctx: CallContext) -> napi::Result<JsObject> {
         signature: JavaType::new("java.lang.Class".to_string(), false),
     };
 
-    res.to_napi_value(&j_env, &ctx.env)
+    res.to_napi_value(&j_env, ctx.env)
         .map_napi_err(Some(*ctx.env))?
         .coerce_to_object()
 }

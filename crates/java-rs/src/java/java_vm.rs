@@ -1,8 +1,8 @@
 use crate::java::java_env::JavaEnv;
 use crate::java::jni_error::JNIError;
-use crate::java::util::util::{jni_error_to_string, parse_jni_version, ResultType};
+use crate::java::util::helpers::{jni_error_to_string, parse_jni_version, ResultType};
 use crate::java::vm_ptr::JavaVMPtr;
-use crate::library::library::{get_jni_create_java_vm, library_loaded, load_library};
+use crate::library::methods::{get_jni_create_java_vm, library_loaded, load_library};
 use crate::sys;
 use std::error::Error;
 use std::ffi::{c_void, CString};
@@ -27,11 +27,7 @@ struct JavaVMOption {
 
 impl JavaVM {
     /// Create a new Java Virtual Machine.
-    pub fn new(
-        version: &String,
-        library_path: Option<String>,
-        args: &Vec<String>,
-    ) -> ResultType<Self> {
+    pub fn new(version: &str, library_path: Option<String>, args: &[String]) -> ResultType<Self> {
         if !library_loaded() {
             let lib_path = match library_path {
                 Some(lib_path) => lib_path,
@@ -66,7 +62,7 @@ impl JavaVM {
         }
 
         let vm_args = sys::JavaVMInitArgs {
-            version: parse_jni_version(version.as_str())? as i32,
+            version: parse_jni_version(version)? as i32,
             options: opts.as_mut_ptr() as _,
             nOptions: opts.len() as _,
             ignoreUnrecognized: 0,
@@ -105,7 +101,7 @@ impl JavaVM {
 
     pub fn get_version(&self) -> ResultType<String> {
         let env = self.attach_thread()?;
-        Ok(env.get_version()?)
+        env.get_version()
     }
 
     fn _attach_thread<'a>(ptr: &Arc<Mutex<JavaVMPtr>>) -> ResultType<JavaEnv<'a>> {

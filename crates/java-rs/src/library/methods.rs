@@ -1,8 +1,8 @@
 #![allow(non_snake_case, non_camel_case_types, non_upper_case_globals, unused)]
 
-use crate::library::library;
 use crate::library::library_error::LibraryError;
-use crate::util::util::ResultType;
+use crate::library::methods;
+use crate::util::helpers::ResultType;
 use crate::{sys, trace};
 use std::error::Error;
 use std::sync::Mutex;

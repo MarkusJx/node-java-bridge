@@ -1,7 +1,7 @@
 use crate::java::java_type::JavaType;
 use crate::java::objects::class::JavaClass;
 use crate::java::objects::value::JavaValue;
-use crate::java::util::util::ResultType;
+use crate::java::util::helpers::ResultType;
 use crate::java_type::Type;
 use crate::sys;
 
@@ -9,6 +9,9 @@ use crate::sys;
 pub trait GetRaw {
     /// Get the raw jni pointer from a java object.
     /// The pointer returned must not be null.
+    ///
+    /// # Safety
+    /// This function works with raw pointers and is unsafe.
     unsafe fn get_raw(&self) -> sys::jobject;
 }
 

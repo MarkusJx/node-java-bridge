@@ -1,4 +1,4 @@
-use crate::node::util::util::ResultType;
+use crate::node::util::helpers::ResultType;
 use java_rs::function;
 use java_rs::java_env::JavaEnv;
 use java_rs::objects::args::AsJavaArg;
@@ -27,7 +27,7 @@ impl JsError {
     }
 
     pub fn throw(&self, env: &JavaEnv) -> ResultType<()> {
-        let utils = JavaClass::by_name("io/github/markusjx/bridge/Util", &env)?;
+        let utils = JavaClass::by_name("io/github/markusjx/bridge/Util", env)?;
         let exception_from_js_error = utils.get_static_object_method(
             "exceptionFromJsError",
             "(Ljava/lang/String;[Ljava/lang/String;)Ljava/lang/Exception;",
@@ -36,7 +36,7 @@ impl JsError {
         let mut stack = self.stack.clone();
         Self::push_stack(&mut stack, function!(), file!(), line!());
 
-        let string_class = JavaClass::by_name("java/lang/String", &env)?;
+        let string_class = JavaClass::by_name("java/lang/String", env)?;
         let mut java_stack = JavaObjectArray::new(&string_class, stack.len() as _)?;
 
         for i in 0..stack.len() {
@@ -44,14 +44,14 @@ impl JsError {
                 i as _,
                 Some(JavaObject::from(JavaString::from_string(
                     stack.get(i).unwrap().clone(),
-                    &env,
+                    env,
                 )?)),
             )?;
         }
 
         let exception = exception_from_js_error
             .call(&[
-                JavaString::from_string(self.message.clone(), &env)?.as_arg(),
+                JavaString::from_string(self.message.clone(), env)?.as_arg(),
                 java_stack.as_arg(),
             ])?
             .ok_or(

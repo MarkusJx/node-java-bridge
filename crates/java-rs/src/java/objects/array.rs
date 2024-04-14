@@ -5,7 +5,7 @@ use crate::java::objects::java_object::JavaObject;
 use crate::java::objects::object::LocalJavaObject;
 use crate::java::objects::value::JavaValue;
 use crate::java::traits::{GetRaw, ToJavaValue};
-use crate::java::util::util::ResultType;
+use crate::java::util::helpers::ResultType;
 use crate::java_type::{JavaType, Type};
 use crate::traits::GetSignature;
 use crate::{define_array, sys};
@@ -19,6 +19,10 @@ impl JavaArray<'_> {
         self.object
             .env()
             .get_array_length(unsafe { self.object.get_raw() })
+    }
+
+    pub fn is_empty(&self) -> ResultType<bool> {
+        self.len().map(|len| len == 0)
     }
 }
 
@@ -73,6 +77,11 @@ impl<'a> JavaObjectArray<'a> {
         Ok(array)
     }
 
+    /// Create a new JavaObjectArray from a raw jobjectArray.
+    ///
+    /// # Safety
+    /// This function is safe as long as the jobjectArray is a valid jobjectArray
+    /// and not already owned by another JavaObjectArray.
     pub unsafe fn from_raw(
         object: sys::jobject,
         env: &'a JavaEnv<'a>,
@@ -89,6 +98,10 @@ impl<'a> JavaObjectArray<'a> {
 
     pub fn len(&self) -> ResultType<i32> {
         self.0.len()
+    }
+
+    pub fn is_empty(&self) -> ResultType<bool> {
+        self.0.is_empty()
     }
 
     pub fn get(&'a self, i: i32) -> ResultType<Option<LocalJavaObject<'a>>> {
@@ -152,15 +165,15 @@ impl<'a> From<JavaArray<'a>> for JavaObjectArray<'a> {
     }
 }
 
-impl<'a> Into<LocalJavaObject<'a>> for JavaObjectArray<'a> {
-    fn into(self) -> LocalJavaObject<'a> {
-        self.0.object
+impl<'a> From<JavaObjectArray<'a>> for LocalJavaObject<'a> {
+    fn from(value: JavaObjectArray<'a>) -> LocalJavaObject<'a> {
+        value.0.object
     }
 }
 
-impl<'a> Into<JavaObject<'a>> for JavaObjectArray<'a> {
-    fn into(self) -> JavaObject<'a> {
-        JavaObject::from(self.0.object)
+impl<'a> From<JavaObjectArray<'a>> for JavaObject<'a> {
+    fn from(value: JavaObjectArray<'a>) -> JavaObject<'a> {
+        JavaObject::from(value.0.object)
     }
 }
 

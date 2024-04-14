@@ -1,7 +1,7 @@
 use crate::debug;
 use crate::node::class_cache::ClassCache;
 use crate::node::java_class_instance::JavaClassInstance;
-use crate::node::util::util::ResultType;
+use crate::node::util::helpers::ResultType;
 use app_state::{AppStateTrait, MutAppState};
 use java_rs::java_error::JavaError;
 use java_rs::objects::java_object::JavaObject;
@@ -47,9 +47,9 @@ impl From<Option<Box<dyn Error>>> for NapiError {
     }
 }
 
-impl Into<napi::Error> for NapiError {
-    fn into(self) -> napi::Error {
-        self.0
+impl From<NapiError> for napi::Error {
+    fn from(value: NapiError) -> napi::Error {
+        value.0
     }
 }
 
@@ -68,7 +68,7 @@ where
                 let error_box = err.into();
                 let napi_error = NapiError::from(error_box.to_string()).into_napi();
 
-                match convert_error(env, &error_box, &napi_error) {
+                match convert_error(env, error_box, &napi_error) {
                     Ok(napi_error) => Err(napi_error),
                     Err(_err) => {
                         debug!("Failed to convert error: {_err}");
@@ -82,7 +82,7 @@ where
 
 fn convert_error(
     env: Option<napi::Env>,
-    error: &Box<dyn Error + Send + Sync>,
+    error: Box<dyn Error + Send + Sync>,
     napi_error: &napi::Error,
 ) -> ResultType<napi::Error> {
     let env = env.ok_or("Missing n-api environment")?;

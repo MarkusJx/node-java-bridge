@@ -42,11 +42,7 @@ impl FunctionCaller {
     }
 
     pub fn move_to(&mut self) -> Option<FunctionCaller> {
-        if let Some(obj) = self.instance.take() {
-            Some(FunctionCaller::new(obj))
-        } else {
-            None
-        }
+        self.instance.take().map(FunctionCaller::new)
     }
 }
 

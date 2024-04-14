@@ -1,6 +1,6 @@
 use crate::java::java_env::JavaEnv;
 use crate::java::objects::class::JavaClass;
-use crate::java::util::util::{jni_type_to_java_type, ResultType};
+use crate::java::util::helpers::{jni_type_to_java_type, ResultType};
 use std::collections::hash_map::DefaultHasher;
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
@@ -36,22 +36,22 @@ pub enum Type {
 
 impl Type {
     pub fn is_object(&self) -> bool {
-        match self {
+        matches!(
+            self,
             Type::Object
-            | Type::Array
-            | Type::LangBoolean
-            | Type::LangInteger
-            | Type::LangByte
-            | Type::LangCharacter
-            | Type::LangShort
-            | Type::LangLong
-            | Type::LangFloat
-            | Type::LangDouble
-            | Type::LangObject
-            | Type::String
-            | Type::CharSequence => true,
-            _ => false,
-        }
+                | Type::Array
+                | Type::LangBoolean
+                | Type::LangInteger
+                | Type::LangByte
+                | Type::LangCharacter
+                | Type::LangShort
+                | Type::LangLong
+                | Type::LangFloat
+                | Type::LangDouble
+                | Type::LangObject
+                | Type::String
+                | Type::CharSequence
+        )
     }
 }
 
@@ -261,12 +261,12 @@ impl JavaType {
     /// assert_eq!(java_type.to_string(), expected.to_string());
     /// ```
     pub fn from_method_return_type(method_signature: &str) -> ResultType<Self> {
-        let signature = method_signature.split(")").last().ok_or(format!(
+        let signature = method_signature.split(')').last().ok_or(format!(
             "Could not get the return type of signature '{}'",
             method_signature
         ))?;
 
-        if signature.len() == 0 || signature.contains('(') || signature.contains(')') {
+        if signature.is_empty() || signature.contains('(') || signature.contains(')') {
             Err(format!(
                 "Could not get the return type of signature '{}'",
                 method_signature
@@ -360,7 +360,7 @@ impl JavaType {
             Type::Long => "J".to_string(),
             Type::Float => "F".to_string(),
             Type::Double => "D".to_string(),
-            _ => format!("L{};", self.signature.replace(".", "/")),
+            _ => format!("L{};", self.signature.replace('.', "/")),
         }
     }
 

@@ -22,6 +22,7 @@ impl JavaConfig {
     /// Do not instantiate this class.
     /// Use the {@link default.config} instance instead.
     #[napi(constructor)]
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self
     }

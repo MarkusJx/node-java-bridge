@@ -4,7 +4,7 @@ use crate::java::objects::object::{GlobalJavaObject, LocalJavaObject};
 use crate::java::objects::string::JavaString;
 use crate::java::objects::value::JavaValue;
 use crate::java::traits::{GetRaw, GetSignature, ToJavaValue};
-use crate::java::util::util::ResultType;
+use crate::java::util::helpers::ResultType;
 use crate::java_type::Type;
 use crate::sys;
 use std::error::Error;
@@ -24,10 +24,10 @@ impl<'a> JavaObject<'a> {
         }
     }
 
-    pub fn clone(&'a self) -> Self {
+    pub fn copy_ref(&'a self) -> Self {
         match self {
             Self::LocalRef(local_object) => JavaObject::LocalRef(local_object),
-            Self::Local(local_object) => JavaObject::LocalRef(&local_object),
+            Self::Local(local_object) => JavaObject::LocalRef(local_object),
             Self::Global(global_object) => JavaObject::Global(global_object.clone()),
         }
     }

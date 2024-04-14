@@ -74,14 +74,14 @@ fn object_array_set() {
 #[test]
 fn short_array() {
     let env = get_vm().attach_thread().unwrap();
-    let arr = JavaShortArray::new(&env, &vec![1, 2, 3, 4, 5]).unwrap();
+    let arr = JavaShortArray::new(&env, &[1, 2, 3, 4, 5]).unwrap();
 
     assert_eq!(arr.len().unwrap(), 5);
 
     let data = arr.get_data().unwrap();
     assert_eq!(data.len(), 5);
 
-    for i in 0..data.len() {
-        assert_eq!(data[i], i as i16 + 1);
+    for (i, item) in data.iter().enumerate() {
+        assert_eq!(*item, i as i16 + 1);
     }
 }

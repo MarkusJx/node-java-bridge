@@ -8,7 +8,7 @@ use java_rs::objects::object::GlobalJavaObject;
 use java_rs::objects::string::JavaString;
 use java_rs::objects::value::JavaBoolean;
 use java_rs::sys;
-use java_rs::util::util::ResultType;
+use java_rs::util::helpers::ResultType;
 use lazy_static::lazy_static;
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{Env, JsFunction, Status};
@@ -88,7 +88,7 @@ fn map_callback(
     func: &mut MutexGuard<Option<ThreadsafeFunction<String>>>,
 ) -> napi::Result<()> {
     if let Some(callback) = callback {
-        func.replace(env.create_threadsafe_function(&callback, 0, |ctx| {
+        func.replace(env.create_threadsafe_function(callback, 0, |ctx| {
             Ok(vec![ctx.env.create_string_from_std(ctx.value)?])
         })?);
     } else {
@@ -235,12 +235,12 @@ fn set_stdout_callbacks(
 
     let class = JavaClass::by_java_name(
         "io.github.markusjx.bridge.StdoutRedirect".to_string(),
-        &j_env,
+        j_env,
     )?;
     let constructor = class.get_constructor("(ZZ)V")?;
 
     let instance = constructor.new_instance(
-        &j_env,
+        j_env,
         &[
             JavaBoolean::new(stdout_set).as_arg(),
             JavaBoolean::new(stderr_set).as_arg(),
@@ -258,7 +258,7 @@ fn reset_stdout_callbacks(env: &JavaEnv, java_class: Option<&GlobalJavaObject>) 
 
     if let Some(java_class) = java_class {
         let class =
-            JavaClass::by_java_name("io.github.markusjx.bridge.StdoutRedirect".to_string(), &env)?;
+            JavaClass::by_java_name("io.github.markusjx.bridge.StdoutRedirect".to_string(), env)?;
         let reset = class.get_void_method("reset", "()V")?;
 
         reset.call(JavaObject::from(java_class), &[])?;

@@ -2,7 +2,7 @@ use crate::java::java_env::JavaEnv;
 use crate::java::objects::args::JavaArgs;
 use crate::java::objects::class::{GlobalJavaClass, JavaClass};
 use crate::java::objects::object::LocalJavaObject;
-use crate::java::util::util::ResultType;
+use crate::java::util::helpers::ResultType;
 #[cfg(feature = "type_check")]
 use crate::signature::Signature;
 use crate::{assert_non_null, sys};

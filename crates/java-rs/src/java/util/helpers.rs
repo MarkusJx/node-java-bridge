@@ -47,7 +47,7 @@ pub fn jni_version_to_string(version: i32) -> Result<String, Box<dyn Error + Sen
 pub type ResultType<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
 pub fn jni_type_to_java_type(to_convert: &String) -> String {
-    return if to_convert == "Z" || to_convert == "boolean" {
+    if to_convert == "Z" || to_convert == "boolean" {
         "boolean".to_string()
     } else if to_convert == "B" || to_convert == "byte" {
         "byte".to_string()
@@ -65,13 +65,13 @@ pub fn jni_type_to_java_type(to_convert: &String) -> String {
         "double".to_string()
     } else if to_convert == "V" {
         "void".to_string()
-    } else if !to_convert.is_empty() && to_convert.chars().nth(0).unwrap() == '[' {
+    } else if !to_convert.is_empty() && to_convert.starts_with('[') {
         jni_type_to_java_type(&to_convert.clone()[1..].to_string()) + "[]"
-    } else if !to_convert.is_empty() && to_convert.chars().nth(0).unwrap() == 'L' {
+    } else if !to_convert.is_empty() && to_convert.starts_with('L') {
         to_convert.clone()[1..(to_convert.len() - 1)].replace('/', ".")
     } else {
         to_convert.clone().replace('/', ".")
-    };
+    }
 }
 
 pub fn method_is_public(

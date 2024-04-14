@@ -15,7 +15,7 @@ use java_rs::objects::java_object::JavaObject;
 use java_rs::objects::object::{GlobalJavaObject, LocalJavaObject};
 use java_rs::objects::string::JavaString;
 use java_rs::traits::GetSignature;
-use java_rs::util::util::ResultType;
+use java_rs::util::helpers::ResultType;
 use napi::{
     Env, JsBigInt, JsBoolean, JsBuffer, JsFunction, JsNumber, JsObject, JsString, JsTypedArray,
     JsUnknown, ValueType,
@@ -24,7 +24,7 @@ use std::ops::Deref;
 
 fn value_may_be_byte(value: JsUnknown) -> napi::Result<bool> {
     let val = value.coerce_to_number()?.get_double().unwrap_or(-1.0);
-    Ok(val >= -128.0 && val <= 127.0 && val.round() == val)
+    Ok((-128.0..=127.0).contains(&val) && val.round() == val)
 }
 
 fn is_integer(env: &Env, value: &JsNumber) -> ResultType<bool> {
@@ -80,7 +80,7 @@ impl JsTypeEq for JavaType {
                     }
                 } else if other.is_buffer()? {
                     self.is_byte_array()
-                } else if JavaInterfaceProxy::instance_of(env.clone(), &other)? {
+                } else if JavaInterfaceProxy::instance_of(*env, &other)? {
                     let proxy: JsUnknown = other.coerce_to_object()?.get_named_property("proxy")?;
                     if proxy.get_type()? == ValueType::Null {
                         return Err(
@@ -293,7 +293,7 @@ impl NapiToJava for JavaType {
                     }
 
                     let obj = value.coerce_to_object().map_err(err_fn)?;
-                    if JavaInterfaceProxy::instance_of(node_env.clone(), &obj)? {
+                    if JavaInterfaceProxy::instance_of(*node_env, &obj)? {
                         let proxy: JsUnknown = obj.get_named_property("proxy")?;
                         if proxy.get_type()? == ValueType::Null {
                             return Err("The proxy has already been destroyed".into());

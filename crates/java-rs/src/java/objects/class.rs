@@ -12,7 +12,7 @@ use crate::java::objects::method::{
 };
 use crate::java::objects::object::{GlobalJavaObject, LocalJavaObject};
 use crate::java::traits::GetRaw;
-use crate::java::util::util::ResultType;
+use crate::java::util::helpers::ResultType;
 use crate::traits::GetSignature;
 use crate::{assert_non_null, define_get_method_method, sys};
 use std::error::Error;
@@ -120,7 +120,7 @@ impl<'a> JavaClass<'a> {
         resolve_errors: bool,
     ) -> ResultType<JavaObjectMethod<'a>> {
         let method = self.object.env().get_method_id_with_errors(
-            &self,
+            self,
             method_name,
             signature,
             resolve_errors,
@@ -137,7 +137,7 @@ impl<'a> JavaClass<'a> {
         let method = self
             .object
             .env()
-            .get_static_method_id(&self, method_name, signature)?;
+            .get_static_method_id(self, method_name, signature)?;
 
         StaticJavaObjectMethod::new(method)
     }
@@ -150,7 +150,7 @@ impl<'a> JavaClass<'a> {
         let method = self
             .object
             .env()
-            .get_static_method_id(&self, method_name, signature)?;
+            .get_static_method_id(self, method_name, signature)?;
 
         StaticJavaBooleanMethod::new(method)
     }
@@ -167,7 +167,7 @@ impl<'a> JavaClass<'a> {
     ) -> ResultType<JavaField<'a>> {
         self.object
             .env()
-            .get_field_id(&self, name, signature, is_static)
+            .get_field_id(self, name, signature, is_static)
     }
 
     pub fn from_global(object: &'a GlobalJavaClass, env: &'a JavaEnv<'a>) -> Self {

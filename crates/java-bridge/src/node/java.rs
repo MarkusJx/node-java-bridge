@@ -8,7 +8,7 @@ use crate::node::java_class_instance::{JavaClassInstance, CLASS_PROXY_PROPERTY, 
 use crate::node::java_class_proxy::JavaClassProxy;
 use crate::node::java_options::JavaOptions;
 use crate::node::stdout_redirect::StdoutRedirect;
-use crate::node::util::util::{list_files, parse_array_or_string, parse_classpath_args};
+use crate::node::util::helpers::{list_files, parse_array_or_string, parse_classpath_args};
 use app_state::{stateful, AppStateTrait, MutAppState, MutAppStateLock};
 use futures::future;
 use java_rs::java_env::JavaEnv;
@@ -49,7 +49,7 @@ impl Java {
         env: Env,
     ) -> napi::Result<Self> {
         let ver = version.unwrap_or("1.8".to_string());
-        let mut args = opts.unwrap_or(vec![]);
+        let mut args = opts.unwrap_or_default();
         let mut loaded_jars = vec![];
 
         debug!("Loading JVM version {}", ver);
@@ -214,7 +214,7 @@ impl Java {
             env,
             classname,
             methods,
-            options.unwrap_or(InterfaceProxyOptions::default()),
+            options.unwrap_or_default(),
         )
         .map_napi_err(Some(env))
     }
@@ -315,6 +315,7 @@ impl Java {
 /// @since 2.4.0
 #[stateful(init(cache))]
 #[napi]
+#[allow(unused)]
 pub fn clear_class_proxies(mut cache: MutAppStateLock<ClassCache>) {
     cache.clear();
 }

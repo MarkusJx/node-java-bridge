@@ -38,7 +38,7 @@ pub(crate) fn list_files(dirs: Vec<String>, ignore_unreadable: bool) -> napi::Re
         .map(|f| glob(f.as_str()).map_napi_err(None))
         .collect::<napi::Result<Vec<_>>>()?
         .into_iter()
-        .flat_map(|f| f)
+        .flatten()
         .map(|f| f.map_napi_err(None))
         .filter_map(|f| match f {
             Ok(f) => Some(
@@ -57,10 +57,10 @@ pub(crate) fn list_files(dirs: Vec<String>, ignore_unreadable: bool) -> napi::Re
         .collect()
 }
 
-pub fn parse_classpath_args(cp: &Vec<String>, args: &mut Vec<String>) -> String {
-    let mut cp = cp.clone();
+pub fn parse_classpath_args(cp: &[String], args: &mut Vec<String>) -> String {
+    let mut cp = cp.to_vec();
     if let Some(other) = args
-        .into_iter()
+        .iter_mut()
         .position(|e| e.starts_with("-Djava.class.path="))
     {
         let other_cp = args.remove(other).split_at(18).1.to_string();
