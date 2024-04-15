@@ -122,6 +122,10 @@ impl JavaClassProxy {
             .get(name)
             .ok_or(format!("No static field found with name '{}'", name).into())
     }
+
+    pub fn async_java_exception_objects(&self) -> bool {
+        self.config.async_java_exception_objects.unwrap_or_default()
+    }
 }
 
 unsafe impl Send for JavaClassProxy {}

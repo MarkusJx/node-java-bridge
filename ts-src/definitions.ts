@@ -312,7 +312,8 @@ export declare class UnknownJavaClass extends JavaClass {
 export declare class JavaError extends Error {
     /**
      * The throwable that caused this error.
-     * This is only available in synchronous calls.
+     * This is only available in synchronous calls or
+     * if the {@link JavaConfig.asyncJavaExceptionObjects} option is true.
      */
     public readonly cause?: JavaThrowable;
 }

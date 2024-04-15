@@ -311,8 +311,9 @@ Errors thrown in the java process are returned as `JavaError` objects.
 These objects contain the error message, the full stack trace (including the java, node
 and rust process) and the java throwable that caused
 the error. The throwable is only available when the error was thrown in the java process
-and not in the node process and if the call was a synchronous call. Async calls will not
-return the throwable. The throwable can be accessed using the `cause` property of the
+and not in the node process and if the call was a synchronous call.
+
+The throwable can be accessed using the `cause` property of the
 `JavaError` object.
 
 ```ts
@@ -321,6 +322,26 @@ import type { JavaError } from 'java-bridge';
 try {
     // Call a method that throws an error
     someInstance.someMethodSync();
+} catch (e: unknown) {
+    const throwable = (e as JavaError).cause;
+    throwable.printStackTraceSync();
+}
+```
+
+If you want to access the Java throwable from an asynchronous call, you
+need to enable
+the `asyncJavaExceptionObjects` [config option](https://markusjx.github.io/node-java-bridge/variables/config.html)
+before or while importing the class.
+
+```ts
+import { importClass } from 'java-bridge';
+
+const SomeClass = importClass('path.to.SomeClass', {
+    asyncJavaExceptionObjects: true,
+});
+
+try {
+    await SomeClass.someMethod();
 } catch (e: unknown) {
     const throwable = (e as JavaError).cause;
     throwable.printStackTraceSync();

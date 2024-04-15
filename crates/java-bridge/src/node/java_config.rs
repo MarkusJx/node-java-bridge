@@ -167,6 +167,26 @@ impl JavaConfig {
         Config::get().async_suffix.clone()
     }
 
+    /// Get whether to return Java exceptions as objects in async methods.
+    ///
+    /// @since 2.6.0
+    #[napi(getter)]
+    pub fn get_async_java_exception_objects(&self) -> Option<bool> {
+        Config::get().async_java_exception_objects
+    }
+
+    /// If true, any Java exception will be returned in the `cause`
+    /// field of the thrown `JavaError` even in async methods.
+    /// Enabling this will cause the stack trace of the
+    /// JavaScript error to be lost.
+    /// If not specified, the value from the global configuration will be used.
+    ///
+    /// @since 2.6.0
+    #[napi(setter, ts_args_type = "value: boolean | undefined | null")]
+    pub fn set_async_java_exception_objects(&self, value: Option<bool>) {
+        Config::get().async_java_exception_objects = value;
+    }
+
     /// Override the whole config.
     /// If you want to change only a single field, use the static setters instead.
     ///

@@ -7,8 +7,10 @@ import {
     getClassLoader,
     importClass,
     UnknownJavaClass,
+    JavaError,
 } from '../.';
 import { RuntimeClass } from './classes';
+import { AssertionError, expect } from 'chai';
 
 const ToolProvider = importClass('javax.tools.ToolProvider');
 const URLClassLoader = importClass('java.net.URLClassLoader');
@@ -153,3 +155,20 @@ export class ClassTool {
         fs.rmSync(this.outDir, { recursive: true, force: true });
     }
 }
+
+export const checkJavaErrorCause = (e: unknown, errorMessage: string) => {
+    if (e instanceof AssertionError) {
+        throw e;
+    }
+
+    expect(e).property('cause').to.not.be.null;
+    const error = e as JavaError;
+    expect(error.cause.toString()).to.equal(
+        `java.lang.NullPointerException: ${errorMessage}`
+    );
+
+    const stack = error.cause.getStackTraceSync();
+    expect(stack).to.not.be.null;
+    expect(stack).to.be.an('array');
+    expect(stack.length).to.be.greaterThan(0);
+};

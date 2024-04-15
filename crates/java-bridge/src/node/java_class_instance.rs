@@ -6,8 +6,8 @@ use crate::node::helpers::napi_ext::{load_napi_library, uv_run, uv_run_mode};
 use crate::node::interface_proxy::proxies::interface_proxy_exists;
 use crate::node::java::Java;
 use crate::node::java_class_proxy::JavaClassProxy;
+use crate::node::util::helpers::ResultType;
 use crate::node::util::traits::UnwrapOrEmpty;
-use futures::future;
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_type::JavaType;
 use java_rs::objects::class::GlobalJavaClass;
@@ -328,16 +328,10 @@ impl JavaClassInstance {
         let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
 
-        ctx.env.execute_tokio_future(
-            futures::future::lazy(move |_| {
-                let args_ref = call_results_to_args(&args);
-                method.call_static(args_ref.as_slice()).map_napi_err(None)
-            }),
-            move |&mut env, res| {
-                let j_env = proxy.vm.attach_thread().map_napi_err(Some(env))?;
-                res.to_napi_value(&j_env, &env).map_napi_err(Some(env))
-            },
-        )
+        Self::call_async_method(*ctx.env, proxy, move || {
+            let args_ref = call_results_to_args(&args);
+            method.call_static(args_ref.as_slice())
+        })
     }
 
     fn call_method(ctx: &CallContext, name: &String) -> napi::Result<JsUnknown> {
@@ -408,16 +402,10 @@ impl JavaClassInstance {
         let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
 
-        ctx.env.execute_tokio_future(
-            futures::future::lazy(move |_| {
-                let args_ref = call_results_to_args(&args);
-                method.call(&obj, args_ref.as_slice()).map_napi_err(None)
-            }),
-            move |&mut env, res| {
-                let j_env = proxy.vm.attach_thread().map_napi_err(Some(env))?;
-                res.to_napi_value(&j_env, &env).map_napi_err(Some(env))
-            },
-        )
+        Self::call_async_method(*ctx.env, proxy, move || {
+            let args_ref = call_results_to_args(&args);
+            method.call(&obj, args_ref.as_slice())
+        })
     }
 
     fn add_custom_inspect(env: &Env, this: &mut JsObject) -> napi::Result<()> {
@@ -451,6 +439,44 @@ impl JavaClassInstance {
                 },
             )?,
         )
+    }
+
+    fn call_async_method<F>(env: Env, proxy: Arc<JavaClassProxy>, func: F) -> napi::Result<JsObject>
+    where
+        F: (FnOnce() -> ResultType<JavaCallResult>) + Send + Sync + 'static,
+    {
+        Self::call_async_method_with_resolver(
+            env,
+            proxy.async_java_exception_objects(),
+            func,
+            move |&mut env, res| {
+                let j_env = proxy.vm.attach_thread().map_napi_err(Some(env))?;
+                res.to_napi_value(&j_env, &env).map_napi_err(Some(env))
+            },
+        )
+    }
+
+    fn call_async_method_with_resolver<F, Res, R>(
+        env: Env,
+        async_java_exception_objects: bool,
+        func: F,
+        resolver: Res,
+    ) -> napi::Result<JsObject>
+    where
+        F: (FnOnce() -> ResultType<R>) + Send + Sync + 'static,
+        Res: FnOnce(&mut Env, R) -> napi::Result<JsUnknown> + Send + Sync + 'static,
+        R: Send + Sync + 'static,
+    {
+        if async_java_exception_objects {
+            env.execute_tokio_future(futures::future::lazy(|_| Ok(func())), move |env, res| {
+                resolver(env, res.map_napi_err(Some(*env))?)
+            })
+        } else {
+            env.execute_tokio_future(
+                futures::future::lazy(move |_| func().map_napi_err(None)),
+                resolver,
+            )
+        }
     }
 }
 
@@ -495,14 +521,14 @@ fn new_instance(ctx: CallContext) -> napi::Result<JsObject> {
     let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
     let args = call_context_to_java_args(&ctx, constructor.parameter_types(), &env)?;
 
-    ctx.env.execute_tokio_future(
-        future::lazy(move |_| {
+    JavaClassInstance::call_async_method_with_resolver(
+        *ctx.env,
+        proxy.async_java_exception_objects(),
+        move || {
             let args_ref = call_results_to_args(&args);
-            constructor
-                .new_instance(args_ref.as_slice())
-                .map_napi_err(None)
-        }),
-        move |env, instance| JavaClassInstance::from_existing(proxy.clone(), env, instance),
+            constructor.new_instance(args_ref.as_slice())
+        },
+        move |env, instance| JavaClassInstance::from_existing(proxy, env, instance),
     )
 }
 

@@ -32,6 +32,14 @@ pub struct ClassConfiguration {
     /// Setting this value to the same value as syncSuffix will result in an error.
     /// If not specified, the value from the global configuration will be used.
     pub async_suffix: Option<String>,
+    /// If true, any Java exception will be returned in the `cause`
+    /// field of the thrown `JavaError` even in async methods.
+    /// Enabling this will cause the stack trace of the
+    /// JavaScript error to be lost.
+    /// If not specified, the value from the global configuration will be used.
+    ///
+    /// @since 2.6.0
+    pub async_java_exception_objects: Option<bool>,
 }
 
 impl TryFrom<ClassConfiguration> for Config {
@@ -61,6 +69,9 @@ impl TryFrom<ClassConfiguration> for Config {
             custom_inspect: value.custom_inspect.unwrap_or(config.custom_inspect),
             sync_suffix: value.sync_suffix.or(sync_suffix.cloned()),
             async_suffix: value.async_suffix.or(async_suffix.cloned()),
+            async_java_exception_objects: value
+                .async_java_exception_objects
+                .or(config.async_java_exception_objects),
         })
     }
 }
@@ -97,6 +108,15 @@ pub struct Config {
     /// @since 2.4.0
     #[default(None)]
     pub async_suffix: Option<String>,
+    /// If true, any Java exception will be returned in the `cause`
+    /// field of the thrown `JavaError` even in async methods.
+    /// Enabling this will cause the stack trace of the
+    /// JavaScript error to be lost.
+    /// Default is false.
+    ///
+    /// @since 2.6.0
+    #[default(None)]
+    pub async_java_exception_objects: Option<bool>,
 }
 
 impl Config {
