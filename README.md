@@ -332,6 +332,7 @@ If you want to access the Java throwable from an asynchronous call, you
 need to enable
 the `asyncJavaExceptionObjects` [config option](https://markusjx.github.io/node-java-bridge/variables/config.html)
 before or while importing the class.
+Enabling this will cause the stack trace of the JavaScript error to be lost.
 
 ```ts
 import { importClass } from 'java-bridge';
