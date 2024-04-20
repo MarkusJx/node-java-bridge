@@ -333,6 +333,7 @@ need to enable
 the `asyncJavaExceptionObjects` [config option](https://markusjx.github.io/node-java-bridge/variables/config.html)
 before or while importing the class.
 Enabling this will cause the stack trace of the JavaScript error to be lost.
+The Java throwable will never be available from the `importClassAsync` function.
 
 ```ts
 import { importClass } from 'java-bridge';

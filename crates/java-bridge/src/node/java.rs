@@ -107,11 +107,13 @@ impl Java {
         class_name: String,
         config: Option<ClassConfiguration>,
     ) -> napi::Result<JsFunction> {
-        let proxy = MutAppState::<ClassCache>::get_or_insert_default()
+        let proxy_result = MutAppState::<ClassCache>::get_or_insert_default()
             .get_mut()
-            .get_class_proxy(&self.root_vm, class_name, config)
-            .map_napi_err(Some(env))?;
-        JavaClassInstance::create_class_instance(&env, proxy)
+            .get_class_proxy(&self.root_vm, class_name, config);
+
+        // Map the result here in order to release the lock
+        // on the class cache before mapping the error.
+        JavaClassInstance::create_class_instance(&env, proxy_result.map_napi_err(Some(env))?)
     }
 
     /// Import a java class (async)
