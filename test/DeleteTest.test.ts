@@ -32,7 +32,9 @@ describe('DeleteTest', () => {
         System.gcSync();
         const end = getUsedMemory(Runtime);
         expect(end).to.be.lessThan(after - 10_000_000);
-    }).timeout(timeout).retries(3);
+    })
+        .timeout(timeout)
+        .retries(3);
 
     it('Delete deleted instance', () => {
         const JString = importClass<typeof StringClass>('java.lang.String');
@@ -48,7 +50,7 @@ describe('DeleteTest', () => {
         expect(() => string.toString()).to.throw();
     }).timeout(timeout);
 
-    it('Check proxy memory leak', async function() {
+    it('Check proxy memory leak', async function () {
         if (isCi && (process.arch === 'arm64' || process.arch === 'arm')) {
             this.skip();
         }
@@ -67,7 +69,7 @@ describe('DeleteTest', () => {
                 apply: () => {
                     return generateRandomString(1024 * 1024 * 10);
                 },
-            },
+            }
         );
 
         System.gcSync();
