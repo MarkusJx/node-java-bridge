@@ -8,7 +8,7 @@ use crate::node::java_class_instance::{JavaClassInstance, CLASS_PROXY_PROPERTY, 
 use crate::node::java_class_proxy::JavaClassProxy;
 use crate::node::java_options::JavaOptions;
 use crate::node::stdout_redirect::StdoutRedirect;
-use crate::node::util::util::{list_files, parse_array_or_string, parse_classpath_args};
+use crate::node::util::helpers::{list_files, parse_array_or_string, parse_classpath_args};
 use app_state::{stateful, AppStateTrait, MutAppState, MutAppStateLock};
 use futures::future;
 use java_rs::java_env::JavaEnv;
@@ -46,9 +46,10 @@ impl Java {
         java_options: Option<JavaOptions>,
         java_lib_path: String,
         native_lib_path: String,
+        env: Env,
     ) -> napi::Result<Self> {
         let ver = version.unwrap_or("1.8".to_string());
-        let mut args = opts.unwrap_or(vec![]);
+        let mut args = opts.unwrap_or_default();
         let mut loaded_jars = vec![];
 
         debug!("Loading JVM version {}", ver);
@@ -68,22 +69,26 @@ impl Java {
         }
 
         debug!("Parsed classpath args: {:?}", args);
-        let root_vm = JavaVM::new(&ver, lib_path, &args).map_napi_err()?;
+        let root_vm = JavaVM::new(&ver, lib_path, &args).map_napi_err(Some(env))?;
 
-        let env = root_vm.attach_thread().map_napi_err()?;
-        env.append_class_path(vec![java_lib_path]).map_napi_err()?;
-        let native_library_class =
-            JavaClass::by_java_name("io.github.markusjx.bridge.NativeLibrary".to_string(), &env)
-                .map_napi_err()?;
+        let java_env = root_vm.attach_thread().map_napi_err(Some(env))?;
+        java_env
+            .append_class_path(vec![java_lib_path])
+            .map_napi_err(Some(env))?;
+        let native_library_class = JavaClass::by_java_name(
+            "io.github.markusjx.bridge.NativeLibrary".to_string(),
+            &java_env,
+        )
+        .map_napi_err(Some(env))?;
 
         let load_library = native_library_class
             .get_static_void_method("loadLibrary", "(Ljava/lang/String;)V")
-            .map_napi_err()?;
+            .map_napi_err(Some(env))?;
         load_library
-            .call(&[JavaString::from_string(native_lib_path, &env)
-                .map_napi_err()?
+            .call(&[JavaString::from_string(native_lib_path, &java_env)
+                .map_napi_err(Some(env))?
                 .as_arg()])
-            .map_napi_err()?;
+            .map_napi_err(Some(env))?;
 
         Ok(Self {
             root_vm,
@@ -105,7 +110,7 @@ impl Java {
         let proxy = MutAppState::<ClassCache>::get_or_insert_default()
             .get_mut()
             .get_class_proxy(&self.root_vm, class_name, config)
-            .map_napi_err()?;
+            .map_napi_err(Some(env))?;
         JavaClassInstance::create_class_instance(&env, proxy)
     }
 
@@ -124,7 +129,7 @@ impl Java {
                 MutAppState::<ClassCache>::get_or_insert_default()
                     .get_mut()
                     .get_class_proxy(&self.root_vm, class_name, config)
-                    .map_napi_err()
+                    .map_napi_err(None)
             }),
             |&mut env, proxy| JavaClassInstance::create_class_instance(&env, proxy),
         )
@@ -140,8 +145,8 @@ impl Java {
     /// Get the actual JVM version.
     /// This may not match the wanted JVM version.
     #[napi(getter)]
-    pub fn version(&self) -> napi::Result<String> {
-        self.root_vm.get_version().map_napi_err()
+    pub fn version(&self, env: Env) -> napi::Result<String> {
+        self.root_vm.get_version().map_napi_err(Some(env))
     }
 
     /// Get the loaded jars.
@@ -156,14 +161,17 @@ impl Java {
         &mut self,
         classpath: JsUnknown,
         ignore_unreadable: Option<bool>,
+        env: Env,
     ) -> napi::Result<()> {
         let mut paths = list_files(
             parse_array_or_string(classpath)?,
             ignore_unreadable.unwrap_or(false),
         )?;
 
-        let env = self.root_vm.attach_thread().map_napi_err()?;
-        env.append_class_path(paths.clone()).map_napi_err()?;
+        let java_env = self.root_vm.attach_thread().map_napi_err(Some(env))?;
+        java_env
+            .append_class_path(paths.clone())
+            .map_napi_err(Some(env))?;
         self.loaded_jars.append(&mut paths);
 
         Ok(())
@@ -179,7 +187,7 @@ impl Java {
         #[napi(ts_arg_type = "((err: Error | null, data?: string) => void) | undefined | null")]
         stderr_callback: Option<JsFunction>,
     ) -> napi::Result<StdoutRedirect> {
-        let j_env = self.root_vm.attach_thread().map_napi_err()?;
+        let j_env = self.root_vm.attach_thread().map_napi_err(Some(env))?;
         StdoutRedirect::new(
             env,
             &j_env,
@@ -187,7 +195,7 @@ impl Java {
             stdout_callback,
             stderr_callback,
         )
-        .map_napi_err()
+        .map_napi_err(Some(env))
     }
 
     #[napi]
@@ -206,9 +214,9 @@ impl Java {
             env,
             classname,
             methods,
-            options.unwrap_or(InterfaceProxyOptions::default()),
+            options.unwrap_or_default(),
         )
-        .map_napi_err()
+        .map_napi_err(Some(env))
     }
 
     /// Check if `this` is instance of `other`
@@ -219,7 +227,7 @@ impl Java {
         this_obj: JsObject,
         #[napi(ts_arg_type = "string | object")] other: JsUnknown,
     ) -> napi::Result<bool> {
-        let env = self.root_vm.attach_thread().map_napi_err()?;
+        let env = self.root_vm.attach_thread().map_napi_err(Some(node_env))?;
         Self::_is_instance_of(env, &node_env, this_obj, other)
     }
 
@@ -228,9 +236,13 @@ impl Java {
         let proxy = MutAppState::<ClassCache>::get_or_insert_default()
             .get_mut()
             .get_class_proxy(&self.root_vm, "java.net.URLClassLoader".into(), None)
-            .map_napi_err()?;
-        let j_env = self.root_vm.attach_thread().map_napi_err()?;
-        JavaClassInstance::from_existing(proxy, &env, j_env.get_class_loader().map_napi_err()?)
+            .map_napi_err(Some(env))?;
+        let j_env = self.root_vm.attach_thread().map_napi_err(Some(env))?;
+        JavaClassInstance::from_existing(
+            proxy,
+            &env,
+            j_env.get_class_loader().map_napi_err(Some(env))?,
+        )
     }
 
     #[napi(setter)]
@@ -239,12 +251,14 @@ impl Java {
         env: Env,
         #[napi(ts_arg_type = "object")] class_loader: JsUnknown,
     ) -> napi::Result<()> {
-        let j_env = self.root_vm.attach_thread().map_napi_err()?;
+        let j_env = self.root_vm.attach_thread().map_napi_err(Some(env))?;
         let obj = class_loader.coerce_to_object()?;
         let instance =
             env.unwrap::<GlobalJavaObject>(&obj.get_named_property::<JsObject>(OBJECT_PROPERTY)?)?;
 
-        j_env.replace_class_loader(instance.clone()).map_napi_err()
+        j_env
+            .replace_class_loader(instance.clone())
+            .map_napi_err(Some(env))
     }
 
     #[napi]
@@ -266,7 +280,7 @@ impl Java {
     ) -> napi::Result<bool> {
         let other = if other.get_type()? == ValueType::String {
             env.find_global_class_by_java_name(other.coerce_to_string()?.into_utf16()?.as_str()?)
-                .map_napi_err()?
+                .map_napi_err(Some(*node_env))?
         } else if other.get_type()? == ValueType::Function || other.get_type()? == ValueType::Object
         {
             let err_fn = |_| "'other' is not a java object".into_napi_err();
@@ -290,7 +304,7 @@ impl Java {
             .map_err(err_fn)?;
 
         env.instance_of(JavaObject::from(this.clone()), other)
-            .map_napi_err()
+            .map_napi_err(Some(*node_env))
     }
 }
 
@@ -301,6 +315,7 @@ impl Java {
 /// @since 2.4.0
 #[stateful(init(cache))]
 #[napi]
+#[allow(unused)]
 pub fn clear_class_proxies(mut cache: MutAppStateLock<ClassCache>) {
     cache.clear();
 }

@@ -23,6 +23,8 @@ export declare class JString extends JavaClass {
 
     splitSync(regex: string): string[];
 
+    split(regex: string): Promise<string[]>;
+
     transform(fn: JavaInterfaceProxy<FunctionInterface<string>>): Promise<this>;
 }
 

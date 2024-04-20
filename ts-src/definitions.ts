@@ -302,3 +302,68 @@ export declare class UnknownJavaClass extends JavaClass {
      */
     static [member: string]: any;
 }
+
+/**
+ * An error thrown from the java process.
+ * This error may contain the java throwable
+ * that caused this error. The cause is only
+ * available in synchronous calls.
+ */
+export declare class JavaError extends Error {
+    /**
+     * The throwable that caused this error.
+     * This is only available in synchronous calls or
+     * if the {@link JavaConfig.asyncJavaExceptionObjects} option is true.
+     */
+    public readonly cause?: JavaThrowable;
+}
+
+/**
+ * A definition for the java throwable class.
+ * @see https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html
+ */
+export declare class JavaThrowable extends UnknownJavaClass {
+    public addSuppressedSync(suppressed: JavaThrowable): void;
+
+    public addSuppressed(suppressed: JavaThrowable): Promise<void>;
+
+    public fillInStackTraceSync(): void;
+
+    public fillInStackTrace(): Promise<void>;
+
+    public getCauseSync(): JavaThrowable;
+
+    public getCause(): Promise<JavaThrowable>;
+
+    public getMessageSync(): string;
+
+    public getMessage(): Promise<string>;
+
+    public getLocalizedMessageSync(): string;
+
+    public getLocalizedMessage(): Promise<string>;
+
+    public getStackTraceSync(): UnknownJavaClass[];
+
+    public getStackTrace(): Promise<UnknownJavaClass[]>;
+
+    public getSuppressedSync(): JavaThrowable[];
+
+    public getSuppressed(): Promise<JavaThrowable[]>;
+
+    public initCauseSync(cause: JavaThrowable): JavaThrowable;
+
+    public initCause(cause: JavaThrowable): Promise<JavaThrowable>;
+
+    public printStackTraceSync(): void;
+
+    public printStackTrace(): Promise<void>;
+
+    public printStackTraceSync(out: JavaObject): void;
+
+    public printStackTrace(out: JavaObject): Promise<void>;
+
+    public setStackTraceSync(stackTrace: UnknownJavaClass[]): void;
+
+    public setStackTrace(stackTrace: UnknownJavaClass[]): Promise<void>;
+}

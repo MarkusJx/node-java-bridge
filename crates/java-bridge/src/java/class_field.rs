@@ -9,7 +9,7 @@ use java_rs::objects::java_object::JavaObject;
 use java_rs::objects::object::{GlobalJavaObject, LocalJavaObject};
 use java_rs::objects::string::JavaString;
 use java_rs::util::conversion::{get_field_from_signature, get_field_type};
-use java_rs::util::util::{field_is_final, method_is_public, ResultType};
+use java_rs::util::helpers::{field_is_final, method_is_public, ResultType};
 use std::collections::HashMap;
 
 pub struct ClassField {
@@ -80,12 +80,12 @@ impl ClassField {
         field: LocalJavaObject,
         is_static: bool,
     ) -> ResultType<Self> {
-        let field_type = get_field_type(&env, &field)?;
+        let field_type = get_field_type(env, &field)?;
         Ok(ClassField {
             vm,
             name: name.clone(),
-            field: get_field_from_signature(&env, class_name, name, field_type, is_static)?,
-            is_final: field_is_final(&env, &field)?,
+            field: get_field_from_signature(env, class_name, name, field_type, is_static)?,
+            is_final: field_is_final(env, &field)?,
         })
     }
 

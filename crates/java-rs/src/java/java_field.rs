@@ -3,7 +3,7 @@ use crate::java::java_env::JavaEnv;
 use crate::java::java_type::{JavaType, Type};
 use crate::java::objects::class::{GlobalJavaClass, JavaClass};
 use crate::java::objects::java_object::JavaObject;
-use crate::java::util::util::ResultType;
+use crate::java::util::helpers::ResultType;
 use crate::traits::GetSignatureRef;
 use crate::{define_field, sys};
 use std::marker::PhantomData;
@@ -186,7 +186,7 @@ impl<'a> JavaObjectField<'a> {
     }
 
     pub fn get(&self, object: &JavaObject<'_>) -> ResultType<Option<JavaObject>> {
-        self.0.class.env().get_object_field(&self, object)
+        self.0.class.env().get_object_field(self, object)
     }
 
     pub fn set(&self, object: &JavaObject<'_>, value: Option<JavaObject>) -> ResultType<()> {
@@ -207,7 +207,7 @@ impl<'a> JavaObjectField<'a> {
             Ok(Self(JavaField::new(
                 field.field.load(Ordering::Relaxed),
                 field.field_type,
-                &class,
+                class,
                 field.is_static,
             )))
         }
@@ -289,7 +289,7 @@ impl<'a> StaticJavaObjectField<'a> {
             Ok(Self(JavaField::new(
                 field.field.load(Ordering::Relaxed),
                 field.field_type,
-                &class,
+                class,
                 field.is_static,
             )))
         }

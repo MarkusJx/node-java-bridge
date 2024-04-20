@@ -8,7 +8,7 @@ use napi::{CallContext, JsUnknown};
 
 pub fn call_context_to_java_args<'a>(
     ctx: &'a CallContext,
-    signatures: &'a Vec<JavaType>,
+    signatures: &'a [JavaType],
     env: &'a JavaEnv<'a>,
 ) -> napi::Result<Vec<JavaCallResult>> {
     let mut res: Vec<JavaCallResult> = vec![];
@@ -19,14 +19,14 @@ pub fn call_context_to_java_args<'a>(
             i,
             signature
                 .convert_to_java_value(env, ctx.env, js_value)
-                .map_napi_err()?,
+                .map_napi_err(Some(*ctx.env))?,
         );
     }
 
     Ok(res)
 }
 
-pub fn call_results_to_args(args: &Vec<JavaCallResult>) -> Vec<JavaArg> {
+pub fn call_results_to_args(args: &[JavaCallResult]) -> Vec<JavaArg> {
     args.iter()
         .map(|arg| arg.as_arg())
         .collect::<Vec<JavaArg>>()

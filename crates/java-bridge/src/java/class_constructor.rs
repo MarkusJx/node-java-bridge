@@ -1,4 +1,4 @@
-use crate::node::util::util::ResultType;
+use crate::node::util::helpers::ResultType;
 use java_rs::java_env::JavaEnv;
 use java_rs::java_type::JavaType;
 use java_rs::java_vm::JavaVM;
@@ -74,7 +74,7 @@ impl ClassConstructor {
         let mut parameter_types: Vec<JavaType> = vec![];
         for i in 0..num_parameters {
             let parameter = parameter_to_type(
-                &env,
+                env,
                 &parameters.get(i)?.ok_or(
                     "A value in the array returned by Constructor.getParameters() was null"
                         .to_string(),

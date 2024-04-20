@@ -6,7 +6,7 @@ use crate::java::objects::value::{
     JavaValue,
 };
 use crate::java::traits::{GetSignature, ToJavaValue};
-use crate::java::util::util::ResultType;
+use crate::java::util::helpers::ResultType;
 use crate::java_type::Type;
 use std::error::Error;
 
@@ -33,7 +33,7 @@ unsafe impl Send for JavaCallResult {}
 impl<'a> ToJavaValue<'a> for JavaCallResult {
     fn to_java_value(&'a self) -> JavaValue<'a> {
         match self {
-            JavaCallResult::Void | JavaCallResult::Null => JavaNull::new().into(),
+            JavaCallResult::Void | JavaCallResult::Null => JavaNull.into(),
             JavaCallResult::Boolean(b) => JavaBoolean::new(*b).into(),
             JavaCallResult::Byte(b) => JavaByte::new(*b).into(),
             JavaCallResult::Character(c) => JavaChar::new(*c).into(),
@@ -64,7 +64,7 @@ impl<'a> ToJavaValue<'a> for JavaCallResult {
 }
 
 impl TryFrom<JavaObject<'_>> for JavaCallResult {
-    type Error = Box<dyn Error>;
+    type Error = Box<dyn Error + Send + Sync>;
 
     fn try_from(value: JavaObject) -> ResultType<Self> {
         Ok(Self::Object {

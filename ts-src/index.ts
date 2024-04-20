@@ -13,6 +13,8 @@ export {
     Constructor,
     UnknownJavaClassType,
     JavaClassConstructorType,
+    JavaError,
+    JavaThrowable,
 } from './definitions';
 import type * as internal from '../native';
 /**
@@ -23,6 +25,7 @@ import type * as internal from '../native';
 export type { internal };
 export * from './java';
 import * as java from './java';
+
 export default java;
 export { getJavaLibPath, InterfaceProxyOptions } from '../native';
 export { getJavaVersion, getJavaVersionSync } from './util';

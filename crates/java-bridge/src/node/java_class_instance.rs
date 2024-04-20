@@ -6,8 +6,8 @@ use crate::node::helpers::napi_ext::{load_napi_library, uv_run, uv_run_mode};
 use crate::node::interface_proxy::proxies::interface_proxy_exists;
 use crate::node::java::Java;
 use crate::node::java_class_proxy::JavaClassProxy;
+use crate::node::util::helpers::ResultType;
 use crate::node::util::traits::UnwrapOrEmpty;
-use futures::future;
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_type::JavaType;
 use java_rs::objects::class::GlobalJavaClass;
@@ -75,7 +75,8 @@ impl JavaClassInstance {
         }
 
         constructor.define_properties(
-            (&proxy.static_fields)
+            proxy
+                .static_fields
                 .iter()
                 .map(|(name, field)| {
                     let name = name.clone();
@@ -89,11 +90,11 @@ impl JavaClassInstance {
 
                             let field = proxy
                                 .get_static_field_by_name(name.as_str())
-                                .map_napi_err()?;
+                                .map_napi_err(Some(env))?;
 
-                            let res = field.get_static().map_napi_err()?;
-                            let j_env = proxy.vm.attach_thread().map_napi_err()?;
-                            res.to_napi_value(&j_env, &env).map_napi_err()
+                            let res = field.get_static().map_napi_err(Some(env))?;
+                            let j_env = proxy.vm.attach_thread().map_napi_err(Some(env))?;
+                            res.to_napi_value(&j_env, &env).map_napi_err(Some(env))
                         });
 
                     if !field.is_final() {
@@ -103,16 +104,17 @@ impl JavaClassInstance {
                                     this.get_named_property(CLASS_PROXY_PROPERTY)?;
                                 let proxy: &Arc<JavaClassProxy> = env.unwrap(&proxy_obj)?;
 
-                                let field =
-                                    proxy.get_static_field_by_name(&name_cpy).map_napi_err()?;
+                                let field = proxy
+                                    .get_static_field_by_name(&name_cpy)
+                                    .map_napi_err(Some(env))?;
 
                                 let field_type = field.get_type();
-                                let j_env = proxy.vm.attach_thread().map_napi_err()?;
+                                let j_env = proxy.vm.attach_thread().map_napi_err(Some(env))?;
                                 let val = field_type
                                     .convert_to_java_value(&j_env, &env, value)
-                                    .map_napi_err()?;
+                                    .map_napi_err(Some(env))?;
 
-                                field.set_static(val).map_napi_err()?;
+                                field.set_static(val).map_napi_err(Some(env))?;
                                 Ok(())
                             });
                     }
@@ -207,8 +209,9 @@ impl JavaClassInstance {
         }
 
         this.define_properties(
-            (&proxy.fields)
-                .into_iter()
+            proxy
+                .fields
+                .iter()
                 .map(|(name, field)| -> napi::Result<Property> {
                     let name = name.clone();
                     let name_cpy = name.clone();
@@ -224,11 +227,11 @@ impl JavaClassInstance {
 
                             let field = proxy
                                 .get_field_by_name(name.clone().as_str())
-                                .map_napi_err()?;
+                                .map_napi_err(Some(env))?;
 
-                            let res = field.get(obj).map_napi_err()?;
-                            let j_env = proxy.vm.attach_thread().map_napi_err()?;
-                            res.to_napi_value(&j_env, &env).map_napi_err()
+                            let res = field.get(obj).map_napi_err(Some(env))?;
+                            let j_env = proxy.vm.attach_thread().map_napi_err(Some(env))?;
+                            res.to_napi_value(&j_env, &env).map_napi_err(Some(env))
                         });
 
                     if !field.is_final() {
@@ -240,16 +243,17 @@ impl JavaClassInstance {
                             let proxy: &Arc<JavaClassProxy> = env.unwrap(&proxy_obj)?;
                             let obj: &GlobalJavaObject = env.unwrap(&instance_obj)?;
 
-                            let field =
-                                proxy.get_field_by_name(name_cpy.as_str()).map_napi_err()?;
+                            let field = proxy
+                                .get_field_by_name(name_cpy.as_str())
+                                .map_napi_err(Some(env))?;
 
                             let field_type = field.get_type();
-                            let j_env = proxy.vm.attach_thread().map_napi_err()?;
+                            let j_env = proxy.vm.attach_thread().map_napi_err(Some(env))?;
                             let val = field_type
                                 .convert_to_java_value(&j_env, &env, value)
-                                .map_napi_err()?;
+                                .map_napi_err(Some(env))?;
 
-                            field.set(obj, val).map_napi_err()
+                            field.set(obj, val).map_napi_err(Some(env))
                         });
                     }
 
@@ -266,7 +270,7 @@ impl JavaClassInstance {
                     "instanceOf",
                     |ctx: CallContext| -> napi::Result<JsBoolean> {
                         let proxy = Self::get_class_proxy(&ctx, false)?;
-                        let env = proxy.vm.attach_thread().map_napi_err()?;
+                        let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
                         let res = Java::_is_instance_of(env, ctx.env, ctx.this()?, ctx.get(0)?)?;
 
                         ctx.env.get_boolean(res)
@@ -302,13 +306,16 @@ impl JavaClassInstance {
         let method = proxy
             .find_matching_method(ctx, name, true, false)
             .or_else(|_| proxy.find_matching_method(ctx, name, true, true))
-            .map_napi_err()?;
-        let env = proxy.vm.attach_thread().map_napi_err()?;
+            .map_napi_err(Some(*ctx.env))?;
+        let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
         let args_ref = call_results_to_args(&args);
-        let res = method.call_static(args_ref.as_slice()).map_napi_err()?;
+        let res = method
+            .call_static(args_ref.as_slice())
+            .map_napi_err(Some(*ctx.env))?;
 
-        res.to_napi_value(&env, ctx.env).map_napi_err()
+        res.to_napi_value(&env, ctx.env)
+            .map_napi_err(Some(*ctx.env))
     }
 
     fn call_static_method_async(ctx: &CallContext, name: &String) -> napi::Result<JsObject> {
@@ -316,21 +323,15 @@ impl JavaClassInstance {
         let method = proxy
             .find_matching_method(ctx, name, true, false)
             .or_else(|_| proxy.find_matching_method(ctx, name, true, true))
-            .map_napi_err()?
+            .map_napi_err(Some(*ctx.env))?
             .clone();
-        let env = proxy.vm.attach_thread().map_napi_err()?;
+        let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
 
-        ctx.env.execute_tokio_future(
-            futures::future::lazy(move |_| {
-                let args_ref = call_results_to_args(&args);
-                method.call_static(args_ref.as_slice()).map_napi_err()
-            }),
-            move |&mut env, res| {
-                let j_env = proxy.vm.attach_thread().map_napi_err()?;
-                res.to_napi_value(&j_env, &env).map_napi_err()
-            },
-        )
+        Self::call_async_method(*ctx.env, proxy, move || {
+            let args_ref = call_results_to_args(&args);
+            method.call_static(args_ref.as_slice())
+        })
     }
 
     fn call_method(ctx: &CallContext, name: &String) -> napi::Result<JsUnknown> {
@@ -338,10 +339,10 @@ impl JavaClassInstance {
         let method = proxy
             .find_matching_method(ctx, name, false, false)
             .or_else(|_| proxy.find_matching_method(ctx, name, false, true))
-            .map_napi_err()?;
+            .map_napi_err(Some(*ctx.env))?;
         let obj = Self::get_object(ctx)?;
 
-        let env = proxy.vm.attach_thread().map_napi_err()?;
+        let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
 
         let result = if proxy.config.run_event_loop_when_interface_proxy_is_active
@@ -361,7 +362,7 @@ impl JavaClassInstance {
                 let args_ref = call_results_to_args(&args);
                 cloned_method
                     .call(&cloned_obj, args_ref.as_slice())
-                    .map_napi_err()
+                    .map_napi_err(None)
             });
 
             while !handle.is_finished() {
@@ -376,14 +377,18 @@ impl JavaClassInstance {
                 .join()
                 .map_err(|_| NapiError::from("Failed to join thread").into_napi())??
         } else {
-            let env = proxy.vm.attach_thread().map_napi_err()?;
+            let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
             let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
             let args_ref = call_results_to_args(&args);
 
-            method.call(&obj, args_ref.as_slice()).map_napi_err()?
+            method
+                .call(obj, args_ref.as_slice())
+                .map_napi_err(Some(*ctx.env))?
         };
 
-        result.to_napi_value(&env, ctx.env).map_napi_err()
+        result
+            .to_napi_value(&env, ctx.env)
+            .map_napi_err(Some(*ctx.env))
     }
 
     fn call_method_async(ctx: &CallContext, name: &String) -> napi::Result<JsObject> {
@@ -391,22 +396,16 @@ impl JavaClassInstance {
         let method = proxy
             .find_matching_method(ctx, name, false, false)
             .or_else(|_| proxy.find_matching_method(ctx, name, false, true))
-            .map_napi_err()?
+            .map_napi_err(Some(*ctx.env))?
             .clone();
         let obj = Self::get_object(ctx)?.clone();
-        let env = proxy.vm.attach_thread().map_napi_err()?;
+        let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
 
-        ctx.env.execute_tokio_future(
-            futures::future::lazy(move |_| {
-                let args_ref = call_results_to_args(&args);
-                Ok(method.call(&obj, args_ref.as_slice()).map_napi_err()?)
-            }),
-            move |&mut env, res| {
-                let j_env = proxy.vm.attach_thread().map_napi_err()?;
-                res.to_napi_value(&j_env, &env).map_napi_err()
-            },
-        )
+        Self::call_async_method(*ctx.env, proxy, move || {
+            let args_ref = call_results_to_args(&args);
+            method.call(&obj, args_ref.as_slice())
+        })
     }
 
     fn add_custom_inspect(env: &Env, this: &mut JsObject) -> napi::Result<()> {
@@ -428,17 +427,56 @@ impl JavaClassInstance {
                         .get("toString")
                         .ok_or(napi::Error::from_reason("Method toString not found"))?
                         .iter()
-                        .find(|m| m.parameter_types().len() == 0)
+                        .find(|m| m.parameter_types().is_empty())
                         .ok_or(napi::Error::from_reason("Method toString not found"))?;
 
                     let obj = Self::get_object(&ctx)?;
-                    let env = proxy.vm.attach_thread().map_napi_err()?;
+                    let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
 
-                    let res = method.call(&obj, &[]).map_napi_err()?;
-                    res.to_napi_value(&env, &ctx.env).map_napi_err()
+                    let res = method.call(obj, &[]).map_napi_err(Some(*ctx.env))?;
+                    res.to_napi_value(&env, ctx.env)
+                        .map_napi_err(Some(*ctx.env))
                 },
             )?,
         )
+    }
+
+    fn call_async_method<F>(env: Env, proxy: Arc<JavaClassProxy>, func: F) -> napi::Result<JsObject>
+    where
+        F: (FnOnce() -> ResultType<JavaCallResult>) + Send + Sync + 'static,
+    {
+        Self::call_async_method_with_resolver(
+            env,
+            proxy.async_java_exception_objects(),
+            func,
+            move |&mut env, res| {
+                let j_env = proxy.vm.attach_thread().map_napi_err(Some(env))?;
+                res.to_napi_value(&j_env, &env).map_napi_err(Some(env))
+            },
+        )
+    }
+
+    fn call_async_method_with_resolver<F, Res, R>(
+        env: Env,
+        async_java_exception_objects: bool,
+        func: F,
+        resolver: Res,
+    ) -> napi::Result<JsObject>
+    where
+        F: (FnOnce() -> ResultType<R>) + Send + Sync + 'static,
+        Res: FnOnce(&mut Env, R) -> napi::Result<JsUnknown> + Send + Sync + 'static,
+        R: Send + Sync + 'static,
+    {
+        if async_java_exception_objects {
+            env.execute_tokio_future(futures::future::lazy(|_| Ok(func())), move |env, res| {
+                resolver(env, res.map_napi_err(Some(*env))?)
+            })
+        } else {
+            env.execute_tokio_future(
+                futures::future::lazy(move |_| func().map_napi_err(None)),
+                resolver,
+            )
+        }
     }
 }
 
@@ -457,14 +495,14 @@ fn constructor(ctx: CallContext) -> napi::Result<JsUnknown> {
     let constructor = proxy
         .find_matching_constructor(&ctx, false)
         .or_else(|_| proxy.find_matching_constructor(&ctx, true))
-        .map_napi_err()?;
-    let env = proxy.vm.attach_thread().map_napi_err()?;
+        .map_napi_err(Some(*ctx.env))?;
+    let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
 
     let args = call_context_to_java_args(&ctx, constructor.parameter_types(), &env)?;
     let args_ref = call_results_to_args(&args);
     let instance = constructor
         .new_instance(args_ref.as_slice())
-        .map_napi_err()?;
+        .map_napi_err(Some(*ctx.env))?;
 
     this.set_named_property(CLASS_PROXY_PROPERTY, proxy_obj)?;
 
@@ -478,17 +516,19 @@ fn new_instance(ctx: CallContext) -> napi::Result<JsObject> {
     let constructor = proxy
         .find_matching_constructor(&ctx, false)
         .or_else(|_| proxy.find_matching_constructor(&ctx, true))
-        .map_napi_err()?
+        .map_napi_err(Some(*ctx.env))?
         .clone();
-    let env = proxy.vm.attach_thread().map_napi_err()?;
+    let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
     let args = call_context_to_java_args(&ctx, constructor.parameter_types(), &env)?;
 
-    ctx.env.execute_tokio_future(
-        future::lazy(move |_| {
+    JavaClassInstance::call_async_method_with_resolver(
+        *ctx.env,
+        proxy.async_java_exception_objects(),
+        move || {
             let args_ref = call_results_to_args(&args);
-            constructor.new_instance(args_ref.as_slice()).map_napi_err()
-        }),
-        move |env, instance| JavaClassInstance::from_existing(proxy.clone(), env, instance),
+            constructor.new_instance(args_ref.as_slice())
+        },
+        move |env, instance| JavaClassInstance::from_existing(proxy, env, instance),
     )
 }
 
@@ -500,15 +540,16 @@ fn get_class_field(ctx: CallContext) -> napi::Result<JsObject> {
         .get_named_property(CLASS_PROXY_PROPERTY)?;
     let proxy: &Arc<JavaClassProxy> = ctx.env.unwrap(&proxy_obj)?;
 
-    let j_env = proxy.vm.attach_thread().map_napi_err()?;
-    let class = GlobalJavaClass::by_name(proxy.class_name.as_str(), &j_env).map_napi_err()?;
+    let j_env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
+    let class =
+        GlobalJavaClass::by_name(proxy.class_name.as_str(), &j_env).map_napi_err(Some(*ctx.env))?;
 
     let res = JavaCallResult::Object {
         object: class.into_object(),
         signature: JavaType::new("java.lang.Class".to_string(), false),
     };
 
-    res.to_napi_value(&j_env, &ctx.env)
-        .map_napi_err()?
+    res.to_napi_value(&j_env, ctx.env)
+        .map_napi_err(Some(*ctx.env))?
         .coerce_to_object()
 }

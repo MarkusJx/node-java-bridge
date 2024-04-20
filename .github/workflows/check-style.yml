@@ -27,5 +27,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-            - name: Check style
-              run: cargo fmt -- --check
+            - name: Check format
+              run: cargo fmt --all -- --check
+            - name: Clippy
+              run: cargo clippy --all-targets -- -D warnings

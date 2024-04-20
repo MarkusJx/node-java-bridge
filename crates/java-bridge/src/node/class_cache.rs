@@ -1,6 +1,6 @@
 use crate::node::config::{ClassConfiguration, Config};
 use crate::node::java_class_proxy::JavaClassProxy;
-use crate::node::util::util::ResultType;
+use crate::node::util::helpers::ResultType;
 use java_rs::java_vm::JavaVM;
 use java_rs::trace;
 use std::collections::HashMap;
@@ -34,7 +34,7 @@ impl ClassCache {
             Ok(proxy.clone())
         } else {
             if let Some(cfg) = config.as_ref() {
-                if !Config::get().eq(&cfg) {
+                if !Config::get().eq(cfg) {
                     return Ok(Arc::new(JavaClassProxy::new(
                         vm.clone(),
                         class_name.clone(),
@@ -51,6 +51,7 @@ impl ClassCache {
         }
     }
 
+    #[allow(unused)]
     pub fn clear(&mut self) {
         self.0.clear();
     }

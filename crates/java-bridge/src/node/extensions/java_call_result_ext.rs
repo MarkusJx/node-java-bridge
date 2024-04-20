@@ -1,6 +1,6 @@
 use crate::node::class_cache::ClassCache;
 use crate::node::java_class_instance::JavaClassInstance;
-use crate::node::util::util::ResultType;
+use crate::node::util::helpers::ResultType;
 use app_state::{stateful, AppStateTrait, MutAppState};
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_env::JavaEnv;
@@ -128,7 +128,7 @@ impl ToNapiValue for JavaCallResult {
         objects: bool,
         cache: MutAppState<ClassCache>,
     ) -> ResultType<JsUnknown> {
-        let obj = LocalJavaObject::from(object, &j_env);
+        let obj = LocalJavaObject::from(object, j_env);
         let res = match signature.type_enum() {
             Type::LangInteger => env.create_int32(j_env.object_to_int(&obj)?)?.into_unknown(),
             Type::LangLong => env
@@ -196,7 +196,7 @@ impl ToNapiValue for JavaCallResult {
         env: &Env,
         signature: Arc<Mutex<JavaType>>,
     ) -> ResultType<JsUnknown> {
-        let obj = LocalJavaObject::from(object, &j_env);
+        let obj = LocalJavaObject::from(object, j_env);
         let arr = JavaArray::from(obj);
 
         let mut res = env.create_array(arr.len()? as u32)?;
@@ -205,44 +205,44 @@ impl ToNapiValue for JavaCallResult {
         match sig.type_enum() {
             Type::Integer => {
                 let data = JavaIntArray::from(arr).get_data()?;
-                for i in 0..data.len() {
-                    res.set(i as u32, data[i])?;
+                for (i, item) in data.iter().enumerate() {
+                    res.set(i as u32, *item)?;
                 }
             }
             Type::Long => {
                 let data = JavaLongArray::from(arr).get_data()?;
-                for i in 0..data.len() {
-                    res.set(i as u32, data[i])?;
+                for (i, item) in data.iter().enumerate() {
+                    res.set(i as u32, *item)?;
                 }
             }
             Type::Short => {
                 let data = JavaShortArray::from(arr).get_data()?;
-                for i in 0..data.len() {
-                    res.set(i as u32, data[i])?;
+                for (i, item) in data.iter().enumerate() {
+                    res.set(i as u32, *item)?;
                 }
             }
             Type::Double => {
                 let data = JavaDoubleArray::from(arr).get_data()?;
-                for i in 0..data.len() {
-                    res.set(i as u32, data[i])?;
+                for (i, item) in data.iter().enumerate() {
+                    res.set(i as u32, *item)?;
                 }
             }
             Type::Float => {
                 let data = JavaFloatArray::from(arr).get_data()?;
-                for i in 0..data.len() {
-                    res.set(i as u32, data[i] as f64)?;
+                for (i, item) in data.iter().enumerate() {
+                    res.set(i as u32, *item as f64)?;
                 }
             }
             Type::Boolean => {
                 let data = JavaBooleanArray::from(arr).get_data()?;
-                for i in 0..data.len() {
-                    res.set(i as u32, data[i] != 0)?;
+                for (i, item) in data.iter().enumerate() {
+                    res.set(i as u32, *item != 0)?;
                 }
             }
             Type::Character => {
                 let data = JavaCharArray::from(arr).get_data()?;
-                for i in 0..data.len() {
-                    res.set(i as u32, env.create_string_utf16(&[data[i]]))?;
+                for (i, item) in data.iter().enumerate() {
+                    res.set(i as u32, env.create_string_utf16(&[*item]))?;
                 }
             }
             Type::Byte => {

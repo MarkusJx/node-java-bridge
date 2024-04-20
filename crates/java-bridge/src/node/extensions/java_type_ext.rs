@@ -15,7 +15,7 @@ use java_rs::objects::java_object::JavaObject;
 use java_rs::objects::object::{GlobalJavaObject, LocalJavaObject};
 use java_rs::objects::string::JavaString;
 use java_rs::traits::GetSignature;
-use java_rs::util::util::ResultType;
+use java_rs::util::helpers::ResultType;
 use napi::{
     Env, JsBigInt, JsBoolean, JsBuffer, JsFunction, JsNumber, JsObject, JsString, JsTypedArray,
     JsUnknown, ValueType,
@@ -24,7 +24,7 @@ use std::ops::Deref;
 
 fn value_may_be_byte(value: JsUnknown) -> napi::Result<bool> {
     let val = value.coerce_to_number()?.get_double().unwrap_or(-1.0);
-    Ok(val >= -128.0 && val <= 127.0 && val.round() == val)
+    Ok((-128.0..=127.0).contains(&val) && val.round() == val)
 }
 
 fn is_integer(env: &Env, value: &JsNumber) -> ResultType<bool> {
@@ -80,7 +80,7 @@ impl JsTypeEq for JavaType {
                     }
                 } else if other.is_buffer()? {
                     self.is_byte_array()
-                } else if JavaInterfaceProxy::instance_of(env.clone(), &other)? {
+                } else if JavaInterfaceProxy::instance_of(*env, &other)? {
                     let proxy: JsUnknown = other.coerce_to_object()?.get_named_property("proxy")?;
                     if proxy.get_type()? == ValueType::Null {
                         return Err(
@@ -89,11 +89,13 @@ impl JsTypeEq for JavaType {
                     }
 
                     let obj = env.unwrap::<GlobalJavaObject>(&proxy.coerce_to_object()?)?;
-                    let j_env = obj.get_vm().attach_thread().map_napi_err()?;
-                    let other_class = obj.get_class(&j_env).map_napi_err()?;
+                    let j_env = obj.get_vm().attach_thread().map_napi_err(Some(*env))?;
+                    let other_class = obj.get_class(&j_env).map_napi_err(Some(*env))?;
 
-                    let self_class = self.as_class(&j_env).map_napi_err()?;
-                    self_class.is_assignable_from(&other_class).map_napi_err()?
+                    let self_class = self.as_class(&j_env).map_napi_err(Some(*env))?;
+                    self_class
+                        .is_assignable_from(&other_class)
+                        .map_napi_err(Some(*env))?
                 } else if !self.is_array()
                     && !other.is_promise()?
                     && !other.is_date()?
@@ -112,10 +114,12 @@ impl JsTypeEq for JavaType {
                     }
 
                     let class = class.unwrap();
-                    let j_env = class.vm.attach_thread().map_napi_err()?;
-                    let self_class = self.as_class(&j_env).map_napi_err()?;
+                    let j_env = class.vm.attach_thread().map_napi_err(Some(*env))?;
+                    let self_class = self.as_class(&j_env).map_napi_err(Some(*env))?;
                     let other_class = JavaClass::from_global(&class.class, &j_env);
-                    self_class.is_assignable_from(&other_class).map_napi_err()?
+                    self_class
+                        .is_assignable_from(&other_class)
+                        .map_napi_err(Some(*env))?
                 } else {
                     false
                 }
@@ -289,7 +293,7 @@ impl NapiToJava for JavaType {
                     }
 
                     let obj = value.coerce_to_object().map_err(err_fn)?;
-                    if JavaInterfaceProxy::instance_of(node_env.clone(), &obj)? {
+                    if JavaInterfaceProxy::instance_of(*node_env, &obj)? {
                         let proxy: JsUnknown = obj.get_named_property("proxy")?;
                         if proxy.get_type()? == ValueType::Null {
                             return Err("The proxy has already been destroyed".into());

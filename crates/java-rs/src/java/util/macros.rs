@@ -8,7 +8,7 @@ macro_rules! define_call_methods {
             args: JavaArgs,
         ) -> ResultType<$result_type> {
             #[cfg(feature = "log")]
-            crate::trace!(
+            $crate::trace!(
                 "Calling {} method {} with {} args",
                 stringify!($result_type),
                 method.get_java_signature(),
@@ -49,7 +49,7 @@ macro_rules! define_call_methods {
             args: JavaArgs,
         ) -> ResultType<$result_type> {
             #[cfg(feature = "log")]
-            crate::trace!(
+            $crate::trace!(
                 "Calling static {} method {} with {} args",
                 stringify!($result_type),
                 method.get_java_signature(),
@@ -88,7 +88,7 @@ macro_rules! define_call_methods {
 #[macro_export]
 macro_rules! define_array_methods {
     ($create_name: ident, $get_name: ident, $jni_type: ty, $rust_type: ty, $result_type: ty, $create_method: ident, $set_method: ident, $get_method: ident, $release_elements_method: ident, $signature: expr) => {
-        pub fn $create_name(&'a self, data: &Vec<$rust_type>) -> ResultType<$result_type> {
+        pub fn $create_name(&'a self, data: &[$rust_type]) -> ResultType<$result_type> {
             let arr = unsafe { self.methods.$create_method.unwrap()(self.env, data.len() as i32) };
             if self.is_err() || arr.is_null() {
                 return Err(self.get_last_error(
@@ -131,7 +131,7 @@ macro_rules! define_array_methods {
             assert_non_null!(array, concat!(stringify!($get_name), " array is null"));
             let is_copy = std::ptr::null_mut();
             let elements = unsafe { self.methods.$get_method.unwrap()(self.env, array, is_copy) };
-            if self.is_err() || elements == std::ptr::null_mut() {
+            if self.is_err() || elements.is_null() {
                 return Err(self.get_last_error(
                     file!(),
                     line!(),
@@ -265,9 +265,9 @@ macro_rules! define_java_methods {
             }
         }
 
-        impl<'a> Into<JavaMethod<'a>> for $name<'a> {
-            fn into(self) -> JavaMethod<'a> {
-                self.0
+        impl<'a> From<$name<'a>> for JavaMethod<'a> {
+            fn from(value: $name<'a>) -> JavaMethod<'a> {
+                value.0
             }
         }
 
@@ -282,13 +282,13 @@ macro_rules! define_java_methods {
             }
 
             pub fn call(&'a self, args: JavaArgs<'_>) -> ResultType<$result_type> {
-                self.method.call(self.object.clone(), args)
+                self.method.call(self.object.copy_ref(), args)
             }
         }
 
-        impl<'a> Into<JavaMethod<'a>> for $bound_name<'a> {
-            fn into(self) -> JavaMethod<'a> {
-                self.method.0
+        impl<'a> From<$bound_name<'a>> for JavaMethod<'a> {
+            fn from(value: $bound_name<'a>) -> JavaMethod<'a> {
+                value.method.0
             }
         }
 
@@ -380,9 +380,9 @@ macro_rules! define_java_methods {
             }
         }
 
-        impl<'a> Into<JavaMethod<'a>> for $static_name<'a> {
-            fn into(self) -> JavaMethod<'a> {
-                self.0
+        impl<'a> From<$static_name<'a>> for JavaMethod<'a> {
+            fn from(value: $static_name<'a>) -> JavaMethod<'a> {
+                value.0
             }
         }
     };
@@ -394,9 +394,9 @@ macro_rules! define_array {
         pub struct $name<'a>(JavaArray<'a>);
 
         impl<'a> $name<'a> {
-            pub fn new(env: &'a JavaEnv<'a>, data: &Vec<$type>) -> ResultType<Self> {
+            pub fn new(env: &'a JavaEnv<'a>, data: &[$type]) -> ResultType<Self> {
                 #[cfg(feature = "log")]
-                crate::trace!(
+                $crate::trace!(
                     "Creating {} array of with length {}",
                     stringify!($name),
                     data.len()
@@ -407,6 +407,10 @@ macro_rules! define_array {
 
             pub fn len(&self) -> ResultType<i32> {
                 self.0.len()
+            }
+
+            pub fn is_empty(&self) -> ResultType<bool> {
+                self.0.is_empty()
             }
 
             pub fn get_data(&self) -> ResultType<Vec<$type>> {
@@ -441,9 +445,9 @@ macro_rules! define_array {
             }
         }
 
-        impl<'a> Into<JavaObject<'a>> for $name<'a> {
-            fn into(self) -> JavaObject<'a> {
-                JavaObject::from(self.0.object)
+        impl<'a> From<$name<'a>> for JavaObject<'a> {
+            fn from(value: $name<'a>) -> JavaObject<'a> {
+                JavaObject::from(value.0.object)
             }
         }
 
@@ -484,10 +488,10 @@ macro_rules! define_java_value {
             }
         }
 
-        impl<'a> Into<JavaValue<'a>> for $name {
-            fn into(self) -> JavaValue<'a> {
+        impl<'a> From<$name> for JavaValue<'a> {
+            fn from(value: $name) -> JavaValue<'a> {
                 JavaValue::new(sys::jvalue {
-                    $union_name: self.0 as _,
+                    $union_name: value.0 as _,
                 })
             }
         }
@@ -600,7 +604,7 @@ macro_rules! define_field {
                 }
             }
 
-            pub(in crate::java) unsafe fn id(&self) -> sys::jfieldID {
+            pub(in $crate::java) unsafe fn id(&self) -> sys::jfieldID {
                 self.0.id()
             }
         }
@@ -659,7 +663,7 @@ macro_rules! define_field {
                 }
             }
 
-            pub(in crate::java) unsafe fn id(&self) -> sys::jfieldID {
+            pub(in $crate::java) unsafe fn id(&self) -> sys::jfieldID {
                 self.0.id()
             }
         }
@@ -693,7 +697,7 @@ macro_rules! define_field_methods {
             object: &JavaObject,
         ) -> ResultType<$result_type> {
             #[cfg(feature = "log")]
-            crate::trace!(
+            $crate::trace!(
                 "Getting {} field on object {}",
                 stringify!($result_type),
                 object.get_signature()
@@ -722,7 +726,7 @@ macro_rules! define_field_methods {
             value: $result_type,
         ) -> ResultType<()> {
             #[cfg(feature = "log")]
-            crate::trace!(
+            $crate::trace!(
                 "Setting {} field on object {}",
                 stringify!($result_type),
                 object.get_signature()
@@ -814,7 +818,7 @@ macro_rules! assert_non_null {
     };
     ($value: expr, $message: expr) => {
         if $value.is_null() {
-            crate::error!($message);
+            $crate::error!($message);
             panic!($message);
         }
     };

@@ -5,7 +5,7 @@ use crate::node::config::Config;
 use crate::node::extensions::class_ext::ArgumentMatch;
 use java_rs::java_vm::JavaVM;
 use java_rs::objects::class::GlobalJavaClass;
-use java_rs::util::util::ResultType;
+use java_rs::util::helpers::ResultType;
 use napi::CallContext;
 use std::collections::HashMap;
 
@@ -62,8 +62,8 @@ impl JavaClassProxy {
             })
             .collect::<napi::Result<Vec<Option<&ClassMethod>>>>()?
             .iter()
-            .filter(|m| m.is_some())
-            .map(|m| m.unwrap())
+            .flatten()
+            .copied()
             .next()
             .ok_or(
                 format!(
@@ -95,8 +95,8 @@ impl JavaClassProxy {
             })
             .collect::<napi::Result<Vec<Option<&ClassConstructor>>>>()?
             .iter()
-            .filter(|c| c.is_some())
-            .map(|c| c.unwrap())
+            .flatten()
+            .copied()
             .next()
             .ok_or(
                 format!(
@@ -121,6 +121,10 @@ impl JavaClassProxy {
         self.static_fields
             .get(name)
             .ok_or(format!("No static field found with name '{}'", name).into())
+    }
+
+    pub fn async_java_exception_objects(&self) -> bool {
+        self.config.async_java_exception_objects.unwrap_or_default()
     }
 }
 

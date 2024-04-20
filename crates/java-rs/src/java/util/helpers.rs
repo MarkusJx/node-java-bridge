@@ -18,7 +18,7 @@ pub fn jni_error_to_string(error: i32) -> String {
     }
 }
 
-pub fn parse_jni_version(version: &str) -> Result<u32, Box<dyn Error>> {
+pub fn parse_jni_version(version: &str) -> Result<u32, Box<dyn Error + Send + Sync>> {
     match version {
         "1.1" => Ok(65537),
         "1.2" => Ok(65538),
@@ -31,7 +31,7 @@ pub fn parse_jni_version(version: &str) -> Result<u32, Box<dyn Error>> {
     }
 }
 
-pub fn jni_version_to_string(version: i32) -> Result<String, Box<dyn Error>> {
+pub fn jni_version_to_string(version: i32) -> Result<String, Box<dyn Error + Send + Sync>> {
     match version {
         65537 => Ok("1.1".to_string()),
         65538 => Ok("1.2".to_string()),
@@ -44,10 +44,10 @@ pub fn jni_version_to_string(version: i32) -> Result<String, Box<dyn Error>> {
     }
 }
 
-pub type ResultType<T> = Result<T, Box<dyn Error>>;
+pub type ResultType<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
 pub fn jni_type_to_java_type(to_convert: &String) -> String {
-    return if to_convert == "Z" || to_convert == "boolean" {
+    if to_convert == "Z" || to_convert == "boolean" {
         "boolean".to_string()
     } else if to_convert == "B" || to_convert == "byte" {
         "byte".to_string()
@@ -65,13 +65,13 @@ pub fn jni_type_to_java_type(to_convert: &String) -> String {
         "double".to_string()
     } else if to_convert == "V" {
         "void".to_string()
-    } else if !to_convert.is_empty() && to_convert.chars().nth(0).unwrap() == '[' {
+    } else if !to_convert.is_empty() && to_convert.starts_with('[') {
         jni_type_to_java_type(&to_convert.clone()[1..].to_string()) + "[]"
-    } else if !to_convert.is_empty() && to_convert.chars().nth(0).unwrap() == 'L' {
+    } else if !to_convert.is_empty() && to_convert.starts_with('L') {
         to_convert.clone()[1..(to_convert.len() - 1)].replace('/', ".")
     } else {
         to_convert.clone().replace('/', ".")
-    };
+    }
 }
 
 pub fn method_is_public(

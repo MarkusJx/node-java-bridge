@@ -9,6 +9,7 @@ pub mod logging {
     use napi::JsUnknown;
     use std::sync::Once;
 
+    #[allow(unused)]
     fn warn_disabled() {
         static ONCE: Once = Once::new();
         ONCE.call_once(|| {
@@ -17,6 +18,7 @@ pub mod logging {
     }
 
     #[napi]
+    #[allow(unused)]
     /// This method is not supported in this build.
     /// It will print a warning to stderr when called.
     ///
@@ -29,6 +31,7 @@ pub mod logging {
     }
 
     #[napi]
+    #[allow(unused)]
     /// This method is not supported in this build.
     /// It will print a warning to stderr when called.
     ///
@@ -38,6 +41,7 @@ pub mod logging {
     }
 
     #[napi]
+    #[allow(unused)]
     /// This method is not supported in this build.
     /// It will print a warning to stderr when called.
     ///
@@ -47,6 +51,7 @@ pub mod logging {
     }
 
     #[napi]
+    #[allow(unused)]
     /// Whether logging is supported.
     /// Logging is disabled by default.
     /// This constant currently is set to `false`

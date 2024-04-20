@@ -1,4 +1,4 @@
-use crate::node::util::util::parse_classpath_args;
+use crate::node::util::helpers::parse_classpath_args;
 
 #[test]
 fn parse_classpath_args_basic() {

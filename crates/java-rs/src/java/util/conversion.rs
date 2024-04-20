@@ -8,7 +8,7 @@ use crate::java::objects::java_object::JavaObject;
 use crate::java::objects::method::GlobalJavaMethod;
 use crate::java::objects::object::LocalJavaObject;
 use crate::java::objects::string::JavaString;
-use crate::java::util::util::ResultType;
+use crate::java::util::helpers::ResultType;
 use crate::java_type::Type;
 #[cfg(feature = "type_check")]
 use crate::signature::Signature;
@@ -43,7 +43,7 @@ pub fn get_method_name(env: &JavaEnv, method: &LocalJavaObject) -> ResultType<St
             .call(&[])?
             .ok_or("Method.getName() returned null".to_string())?,
     )?;
-    Ok(method_name.try_into()?)
+    method_name.try_into()
 }
 
 pub fn get_method_return_type(env: &JavaEnv, method: &LocalJavaObject) -> ResultType<JavaType> {
@@ -89,7 +89,7 @@ pub fn get_method_parameters(env: &JavaEnv, method: &LocalJavaObject) -> ResultT
 pub fn get_method_from_signature(
     env: &JavaEnv,
     class_name: String,
-    parameters: &Vec<JavaType>,
+    parameters: &[JavaType],
     return_type: &JavaType,
     name: &str,
     is_static: bool,
@@ -140,7 +140,7 @@ pub fn get_method_from_signature(
 pub fn get_constructor_from_signature(
     env: &JavaEnv,
     class_name: String,
-    parameters: &Vec<JavaType>,
+    parameters: &[JavaType],
 ) -> ResultType<GlobalJavaConstructor> {
     let signature = format!(
         "({})V",
@@ -160,7 +160,7 @@ pub fn get_constructor_from_signature(
         constructor,
         global_class,
         #[cfg(feature = "type_check")]
-        Signature::new(JavaType::void(), parameters.clone()),
+        Signature::new(JavaType::void(), parameters.to_vec()),
     ))
 }
 

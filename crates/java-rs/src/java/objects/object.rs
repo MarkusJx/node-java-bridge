@@ -10,7 +10,7 @@ use crate::java::objects::value::{
     JavaBoolean, JavaByte, JavaChar, JavaDouble, JavaFloat, JavaInt, JavaLong, JavaShort, JavaValue,
 };
 use crate::java::traits::{GetRaw, GetSignature, IsInstanceOf, ToJavaValue};
-use crate::java::util::util::ResultType;
+use crate::java::util::helpers::ResultType;
 use crate::java::vm_ptr::JavaVMPtr;
 use crate::java_type::Type;
 use crate::objects::java_object::AsJavaObject;
@@ -45,6 +45,13 @@ impl<'a> LocalJavaObject<'a> {
         }
     }
 
+    /// Create a new local java object from a raw pointer.
+    ///
+    /// # Safety
+    /// This function is unsafe as it creates a new local reference from a raw pointer.
+    /// The object will be deleted when the local reference is deleted.
+    /// This assumes the pointer is actually a valid object pointer and not already
+    /// owned by another local reference.
     pub unsafe fn from_raw(
         object: sys::jobject,
         env: &'a JavaEnv<'a>,
@@ -115,7 +122,7 @@ impl<'a> LocalJavaObject<'a> {
     }
 
     pub(in crate::java) fn env(&'a self) -> &'a JavaEnvWrapper<'a> {
-        &self.env
+        self.env
     }
 
     define_object_value_of_method!(
@@ -183,7 +190,7 @@ impl Debug for LocalJavaObject<'_> {
             f,
             "LocalJavaObject(object: {}, signature: {})",
             unsafe { self.get_raw() } as usize,
-            self.get_signature().to_string()
+            self.get_signature()
         )
     }
 }
@@ -303,6 +310,13 @@ impl GlobalJavaObject {
     /// to the JVM as a method return value.
     /// Creates a new local reference to the object
     /// and allows the returned value to be `null`.
+    ///
+    /// # Safety
+    /// This method converts the object to a local reference
+    /// and returns the raw pointer to the local reference.
+    /// The local reference either has to be destroyed manually
+    /// or will be destroyed when the local reference is returned
+    /// to the JVM.
     pub unsafe fn into_return_value(self, env: &JavaEnv) -> sys::jobject {
         env.create_local_ref(self.get_raw())
     }
@@ -320,7 +334,7 @@ impl Debug for GlobalJavaObject {
             f,
             "GlobalJavaObject(object: {}, signature: {})",
             unsafe { self.get_raw() } as usize,
-            self.get_signature().to_string()
+            self.get_signature()
         )
     }
 }
@@ -369,7 +383,7 @@ impl<'a> ToJavaValue<'a> for GlobalJavaObject {
 }
 
 impl<'a> TryFrom<LocalJavaObject<'a>> for GlobalJavaObject {
-    type Error = Box<dyn Error>;
+    type Error = Box<dyn Error + Send + Sync>;
 
     fn try_from(local: LocalJavaObject<'a>) -> Result<GlobalJavaObject, Self::Error> {
         local.env.new_global_object(
@@ -381,7 +395,7 @@ impl<'a> TryFrom<LocalJavaObject<'a>> for GlobalJavaObject {
 }
 
 impl<'a> TryFrom<JavaString<'a>> for GlobalJavaObject {
-    type Error = Box<dyn Error>;
+    type Error = Box<dyn Error + Send + Sync>;
 
     fn try_from(string: JavaString<'a>) -> Result<GlobalJavaObject, Self::Error> {
         string.0.env.new_global_object(

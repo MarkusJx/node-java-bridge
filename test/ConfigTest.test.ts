@@ -2,6 +2,7 @@ import { afterEach, beforeEach } from 'mocha';
 import { clearClassProxies, config, importClass, importClassAsync } from '../.';
 import { expect } from 'chai';
 import { JString } from './classes';
+import { checkJavaErrorCause } from './testUtil';
 
 const SUFFIX_ERROR = 'syncSuffix and asyncSuffix cannot be the same';
 
@@ -191,5 +192,41 @@ describe('Config test', () => {
                 syncSuffix: '',
             })
         ).to.throw(SUFFIX_ERROR);
+    });
+
+    it('get java error in async context', async () => {
+        const JavaString = importClass<typeof JString>('java.lang.String', {
+            asyncJavaExceptionObjects: true,
+        });
+
+        try {
+            await JavaString.newInstanceAsync(null);
+            expect.fail('Expected an error');
+        } catch (e) {
+            checkJavaErrorCause(
+                e,
+                'Cannot invoke "java.lang.StringBuffer.toString()" because "buffer" is null'
+            );
+        }
+
+        try {
+            await new JavaString('').split(null);
+            expect.fail('Expected an error');
+        } catch (e: unknown) {
+            checkJavaErrorCause(
+                e,
+                'Cannot invoke "String.length()" because "regex" is null'
+            );
+        }
+
+        try {
+            await JavaString.valueOf(null);
+            expect.fail('Expected an error');
+        } catch (e: unknown) {
+            checkJavaErrorCause(
+                e,
+                'Cannot read the array length because "value" is null'
+            );
+        }
     });
 });

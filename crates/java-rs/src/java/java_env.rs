@@ -5,7 +5,7 @@ use crate::java::objects::class::{GlobalJavaClass, JavaClass};
 use crate::java::objects::java_object::JavaObject;
 use crate::java::objects::object::{GlobalJavaObject, LocalJavaObject};
 use crate::java::traits::{GetRaw, IsInstanceOf};
-use crate::java::util::util::{jni_version_to_string, ResultType};
+use crate::java::util::helpers::{jni_version_to_string, ResultType};
 use crate::java::vm_ptr::JavaVMPtr;
 use crate::objects::args::AsJavaArg;
 use crate::{define_object_to_val_method, sys};
@@ -27,6 +27,10 @@ impl<'a> JavaEnv<'a> {
         Self(JavaEnvWrapper::new(jvm, env))
     }
 
+    /// Get a java env from a raw pointer.
+    ///
+    /// # Safety
+    /// This function is safe as long as the pointer points to a [`sys::JNIEnv`] or is null.
     pub unsafe fn from_raw(env: *mut sys::JNIEnv) -> Self {
         assert_ne!(env, std::ptr::null_mut());
         Self(JavaEnvWrapper::from_raw(env))
@@ -34,7 +38,7 @@ impl<'a> JavaEnv<'a> {
 
     pub fn get_version(&self) -> ResultType<String> {
         let version: i32 = unsafe { self.0.methods.GetVersion.unwrap()(self.0.env) };
-        Ok(jni_version_to_string(version)?)
+        jni_version_to_string(version)
     }
 
     pub fn find_class(&self, class_name: &str) -> ResultType<JavaClass> {
@@ -80,6 +84,10 @@ impl<'a> JavaEnv<'a> {
 
     pub fn get_object_signature(&self, object: JavaObject) -> ResultType<JavaType> {
         self.0.get_object_signature(object)
+    }
+
+    pub fn get_class_name(&self, object: JavaObject) -> ResultType<String> {
+        self.0.get_class_name(object)
     }
 
     pub fn is_instance_of(&self, object: JavaObject, classname: &str) -> ResultType<bool> {
@@ -203,7 +211,7 @@ impl<'a> JavaEnv<'a> {
         )
     }
 
-    pub(in crate::java) fn delete_global_ref(&self, object: sys::jobject) -> () {
+    pub(in crate::java) fn delete_global_ref(&self, object: sys::jobject) {
         unsafe {
             self.0.methods.DeleteGlobalRef.unwrap()(self.0.env, object);
         }

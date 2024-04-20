@@ -1,6 +1,6 @@
 use crate::java_type::JavaType;
 use crate::objects::args::JavaArgs;
-use crate::util::util::ResultType;
+use crate::util::helpers::ResultType;
 use regex::Regex;
 use std::fmt::Display;
 

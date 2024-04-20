@@ -21,7 +21,7 @@ use crate::java::objects::object::{GlobalJavaObject, LocalJavaObject};
 use crate::java::objects::string::JavaString;
 use crate::java::objects::value::JavaBoolean;
 use crate::java::traits::GetRaw;
-use crate::java::util::util::{jni_error_to_string, ResultType};
+use crate::java::util::helpers::{jni_error_to_string, ResultType};
 use crate::java::vm_ptr::JavaVMPtr;
 use crate::objects::args::AsJavaArg;
 #[cfg(feature = "type_check")]
@@ -115,7 +115,7 @@ impl<'a> JavaEnvWrapper<'a> {
     }
 
     pub fn get_object_signature(&self, object: JavaObject) -> ResultType<JavaType> {
-        let object_class = self.get_object_class(object.clone())?;
+        let object_class = self.get_object_class(object.copy_ref())?;
 
         let get_class = object_class.get_object_method("getClass", "()Ljava/lang/Class;")?;
         let class = get_class
@@ -134,6 +134,24 @@ impl<'a> JavaEnvWrapper<'a> {
         let name = unsafe { self.get_string_utf_chars(java_name.get_raw())? };
 
         Ok(JavaType::new(name, true))
+    }
+
+    pub fn get_class_name(&self, object: JavaObject) -> ResultType<String> {
+        let object_class = self.get_object_class(object.copy_ref())?;
+
+        let get_class = object_class.get_object_method("getClass", "()Ljava/lang/Class;")?;
+        let class = get_class
+            .call(object, &[])?
+            .ok_or("Object.getClass() returned null".to_string())?;
+        let java_class = self.get_java_lang_class()?;
+
+        let get_name = java_class.get_object_method("getName", "()Ljava/lang/String;")?;
+        let java_name = get_name
+            .call(JavaObject::from(class), &[])?
+            .ok_or("Class.getName() returned null".to_string())?;
+
+        let str = JavaString::try_from(java_name)?;
+        str.to_string()
     }
 
     pub fn is_instance_of(&self, object: JavaObject, classname: &str) -> ResultType<bool> {
@@ -204,7 +222,7 @@ impl<'a> JavaEnvWrapper<'a> {
         let throwable = unsafe { self.methods.ExceptionOccurred.unwrap()(self.env) };
         self.clear_err();
 
-        if throwable == ptr::null_mut() {
+        if throwable.is_null() {
             Err(JNIError::from("Call to ExceptionOccurred failed").into())
         } else {
             Ok(LocalJavaObject::new(
@@ -219,11 +237,12 @@ impl<'a> JavaEnvWrapper<'a> {
     /// Convert the frames of the last pending exception to a rust error.
     ///
     /// See [`get_last_error`](Self::get_last_error) which uses this method.
+    #[allow(clippy::too_many_arguments, clippy::only_used_in_recursion)]
     fn convert_frames(
         &self,
         frames: &mut JavaObjectArray<'_>,
         num_frames: i32,
-        throwable: &LocalJavaObject,
+        throwable: JavaObject,
         throwable_to_string: &JavaObjectMethod,
         throwable_get_cause: &JavaObjectMethod,
         throwable_get_stack_trace: &JavaObjectMethod,
@@ -232,7 +251,7 @@ impl<'a> JavaEnvWrapper<'a> {
         stack_frames: &mut Vec<String>,
     ) -> ResultType<()> {
         let throwable_string = throwable_to_string
-            .call_with_errors(JavaObject::from(throwable), &[], false)?
+            .call_with_errors(throwable.copy_ref(), &[], false)?
             .ok_or("Throwable.toString() returned null".to_string())?;
         causes.push(throwable_string.to_java_string()?.try_into()?);
 
@@ -246,16 +265,15 @@ impl<'a> JavaEnvWrapper<'a> {
             stack_frames.push(frame_string.to_java_string()?.try_into()?);
         }
 
-        let throwable =
-            throwable_get_cause.call_with_errors(JavaObject::from(throwable), &[], false)?;
+        let throwable = throwable_get_cause.call_with_errors(throwable, &[], false)?;
         let throwable = if let Some(throwable) = throwable {
-            throwable
+            JavaObject::from(throwable)
         } else {
             return Ok(());
         };
 
         let frames_obj =
-            throwable_get_stack_trace.call_with_errors(JavaObject::from(&throwable), &[], false)?;
+            throwable_get_stack_trace.call_with_errors(throwable.copy_ref(), &[], false)?;
 
         let mut frames = if let Some(f) = frames_obj {
             JavaObjectArray::from(f)
@@ -267,7 +285,7 @@ impl<'a> JavaEnvWrapper<'a> {
         self.convert_frames(
             &mut frames,
             num_frames,
-            &throwable,
+            throwable.copy_ref(),
             throwable_to_string,
             throwable_get_cause,
             throwable_get_stack_trace,
@@ -295,7 +313,7 @@ impl<'a> JavaEnvWrapper<'a> {
         line: u32,
         convert_errors: bool,
         alt_text: &str,
-    ) -> ResultType<Box<dyn Error>> {
+    ) -> ResultType<Box<dyn Error + Send + Sync>> {
         if !self.is_err() {
             return Err(JNIError::from("No error occurred").into());
         }
@@ -312,7 +330,7 @@ impl<'a> JavaEnvWrapper<'a> {
             return Err(JavaError::new(vec![], own_stack_frames, alt_text.to_string()).into());
         }
 
-        let throwable = self.exception_occurred()?;
+        let throwable: GlobalJavaObject = self.exception_occurred()?.try_into()?;
 
         let throwable_class = self.find_class("java/lang/Throwable", false)?;
         let throwable_get_cause = throwable_class.get_object_method_with_errors(
@@ -347,7 +365,7 @@ impl<'a> JavaEnvWrapper<'a> {
         self.convert_frames(
             &mut frames,
             num_frames,
-            &throwable,
+            JavaObject::from(&throwable),
             &throwable_to_string,
             &throwable_get_cause,
             &throwable_get_stack_trace,
@@ -356,7 +374,10 @@ impl<'a> JavaEnvWrapper<'a> {
             &mut stack_frames,
         )?;
         stack_frames.append(&mut own_stack_frames);
-        Ok(JavaError::new(causes, stack_frames, alt_text.to_string()).into())
+        Ok(
+            JavaError::new_with_throwable(causes, stack_frames, alt_text.to_string(), throwable)
+                .into(),
+        )
     }
 
     /// Delete the local reference of an java object.
@@ -365,7 +386,7 @@ impl<'a> JavaEnvWrapper<'a> {
     /// This is not strictly required by the jvm but should be done
     /// for jni calls to the jvm. Do not call this if the object
     /// has been converted to a global reference.
-    pub fn delete_local_ref(&self, object: sys::jobject) -> () {
+    pub fn delete_local_ref(&self, object: sys::jobject) {
         assert_non_null!(object);
         unsafe {
             self.methods.DeleteLocalRef.unwrap()(self.env, object);
@@ -427,7 +448,7 @@ impl<'a> JavaEnvWrapper<'a> {
         } else {
             Ok(JavaClass::new(
                 class,
-                &self,
+                self,
                 #[cfg(feature = "type_check")]
                 JavaType::new(class_name.to_string(), true),
             ))
@@ -626,7 +647,7 @@ impl<'a> JavaEnvWrapper<'a> {
         if !signature.matches(&args) {
             Err(format!(
                 "The arguments do not match the method signature: ({}) != {}",
-                args.into_iter()
+                args.iter()
                     .map(|a| a.get_type().to_string())
                     .collect::<Vec<String>>()
                     .join(", "),
@@ -1282,7 +1303,7 @@ impl<'a> JavaEnvWrapper<'a> {
     pub unsafe fn get_string_utf_chars(&self, string: sys::jstring) -> ResultType<String> {
         assert_non_null!(string);
         let chars = self.methods.GetStringUTFChars.unwrap()(self.env, string, ptr::null_mut());
-        if self.is_err() || chars == ptr::null_mut() {
+        if self.is_err() || chars.is_null() {
             self.clear_err();
             return Err(JNIError::from("GetStringUTFChars failed").into());
         }
@@ -1366,7 +1387,7 @@ impl<'a> JavaEnvWrapper<'a> {
             )
         };
 
-        if self.is_err() || res == ptr::null_mut() {
+        if self.is_err() || res.is_null() {
             Err(self.get_last_error(file!(), line!(), true, "NewObjectA failed")?)
         } else {
             Ok(LocalJavaObject::new(
@@ -1399,7 +1420,7 @@ impl<'a> JavaEnvWrapper<'a> {
             )
         };
 
-        if self.is_err() || id == ptr::null_mut() {
+        if self.is_err() || id.is_null() {
             Err(self.get_last_error(file!(), line!(), true, "GetMethodID failed")?)
         } else {
             Ok(JavaConstructor::new(

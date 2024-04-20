@@ -38,7 +38,7 @@ fn long_method() {
         .get_long_method("longValue", "()J")
         .unwrap()
         .bind(JavaObject::from(&int));
-    assert_eq!(long_value.call(&[]).unwrap(), 1234 as i64);
+    assert_eq!(long_value.call(&[]).unwrap(), 1234_i64);
 }
 
 #[test]
@@ -49,7 +49,7 @@ fn double_method() {
         .get_double_method("doubleValue", "()D")
         .unwrap()
         .bind(JavaObject::from(&int));
-    assert_eq!(double_value.call(&[]).unwrap(), 1234 as f64);
+    assert_eq!(double_value.call(&[]).unwrap(), 1234_f64);
 }
 
 #[test]
@@ -60,7 +60,7 @@ fn float_method() {
         .get_float_method("floatValue", "()F")
         .unwrap()
         .bind(JavaObject::from(&int));
-    assert_eq!(float_value.call(&[]).unwrap(), 1234 as f32);
+    assert_eq!(float_value.call(&[]).unwrap(), 1234_f32);
 }
 
 #[test]
@@ -71,7 +71,7 @@ fn boolean_method() {
         .get_boolean_method("equals", "(Ljava/lang/Object;)Z")
         .unwrap()
         .bind(JavaObject::from(&int));
-    assert_eq!(boolean_value.call(&[int.as_arg()]).unwrap(), true);
+    assert!(boolean_value.call(&[int.as_arg()]).unwrap());
 }
 
 #[test]
@@ -82,7 +82,7 @@ fn short_method() {
         .get_short_method("shortValue", "()S")
         .unwrap()
         .bind(JavaObject::from(&int));
-    assert_eq!(short_value.call(&[]).unwrap(), 1234 as i16);
+    assert_eq!(short_value.call(&[]).unwrap(), 1234_i16);
 }
 
 #[test]
@@ -202,7 +202,7 @@ fn static_boolean_method() {
         .unwrap();
 
     let boolean = method.call(&[Box::new(&str)]).unwrap();
-    assert_eq!(boolean, true);
+    assert!(boolean);
 }
 
 #[test]

@@ -10,6 +10,7 @@ import { expect, use } from 'chai';
 import { inspect } from 'util';
 import { JString } from './classes';
 import chaiAsPromised from 'chai-as-promised';
+import { checkJavaErrorCause } from './testUtil';
 
 use(chaiAsPromised);
 
@@ -143,5 +144,43 @@ describe('StringTest', () => {
             .to.match(
                 /at Context\.<anonymous> \(.+test[/\\]StringTest\.test\.ts:\d+:\d+\)/gm
             );
+
+        await expect(new JavaString('').transform(null))
+            .to.eventually.be.rejected.property('stack')
+            .to.match(
+                /at Context\.<anonymous> \(.+test[/\\]StringTest\.test\.ts:\d+:\d+\)/gm
+            );
+    });
+
+    it('get java error', () => {
+        try {
+            new JavaString(null);
+            expect.fail('Expected an error');
+        } catch (e: unknown) {
+            checkJavaErrorCause(
+                e,
+                'Cannot invoke "java.lang.StringBuffer.toString()" because "buffer" is null'
+            );
+        }
+
+        try {
+            new JavaString('').splitSync(null);
+            expect.fail('Expected an error');
+        } catch (e: unknown) {
+            checkJavaErrorCause(
+                e,
+                'Cannot invoke "String.length()" because "regex" is null'
+            );
+        }
+
+        try {
+            JavaString.valueOfSync(null);
+            expect.fail('Expected an error');
+        } catch (e: unknown) {
+            checkJavaErrorCause(
+                e,
+                'Cannot read the array length because "value" is null'
+            );
+        }
     });
 });

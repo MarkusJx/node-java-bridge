@@ -4,7 +4,7 @@ use crate::java::java_type::JavaType;
 use crate::java::objects::object::{GlobalJavaObject, LocalJavaObject};
 use crate::java::objects::value::JavaValue;
 use crate::java::traits::{GetRaw, GetSignature, ToJavaValue};
-use crate::java::util::util::ResultType;
+use crate::java::util::helpers::ResultType;
 use crate::java_type::Type;
 use crate::objects::java_object::{AsJavaObject, JavaObject};
 use crate::sys;
@@ -49,6 +49,11 @@ impl<'a> JavaString<'a> {
         Self(LocalJavaObject::from(object, env))
     }
 
+    /// Create a new JavaString from a raw jstring.
+    ///
+    /// # Safety
+    /// This function is safe as long as the jstring is a valid jstring
+    /// and not already owned by another JavaString.
     pub unsafe fn from_raw(env: &'a JavaEnv<'a>, string: sys::jstring) -> Self {
         Self(LocalJavaObject::new(
             string,
@@ -77,14 +82,14 @@ impl<'a> ToJavaValue<'a> for JavaString<'a> {
     }
 }
 
-impl<'a> Into<LocalJavaObject<'a>> for JavaString<'a> {
-    fn into(self) -> LocalJavaObject<'a> {
-        self.0
+impl<'a> From<JavaString<'a>> for LocalJavaObject<'a> {
+    fn from(val: JavaString<'a>) -> Self {
+        val.0
     }
 }
 
 impl<'a> TryFrom<LocalJavaObject<'a>> for JavaString<'a> {
-    type Error = Box<dyn Error>;
+    type Error = Box<dyn Error + Send + Sync>;
 
     fn try_from(object: LocalJavaObject<'a>) -> ResultType<Self> {
         if object.get_signature().type_enum() != Type::String {
@@ -102,7 +107,7 @@ impl<'a> AsJavaObject<'a> for JavaString<'a> {
 }
 
 impl TryInto<String> for JavaString<'_> {
-    type Error = Box<dyn Error>;
+    type Error = Box<dyn Error + Send + Sync>;
 
     fn try_into(self) -> Result<String, Self::Error> {
         unsafe { self.0.env().get_string_utf_chars(self.0.get_raw()) }

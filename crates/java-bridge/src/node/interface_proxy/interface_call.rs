@@ -1,7 +1,7 @@
 use crate::node::interface_proxy::types::JsCallResult;
 use futures::channel::oneshot::Sender;
 use java_rs::java_call_result::JavaCallResult;
-use java_rs::util::util::ResultType;
+use java_rs::util::helpers::ResultType;
 use std::sync::Mutex;
 
 pub struct InterfaceCall {

@@ -1,8 +1,8 @@
 #![allow(non_snake_case, non_camel_case_types, non_upper_case_globals, unused)]
 
-use crate::library::library;
 use crate::library::library_error::LibraryError;
-use crate::util::util::ResultType;
+use crate::library::methods;
+use crate::util::helpers::ResultType;
 use crate::{sys, trace};
 use std::error::Error;
 use std::sync::Mutex;
@@ -15,7 +15,7 @@ type JniCreateJavaVm = unsafe extern "system" fn(
 
 static mut LIBRARY: Mutex<Option<libloading::Library>> = Mutex::new(None);
 
-pub fn load_library(library_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn load_library(library_path: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
     trace!("Loading library: {}", library_path);
     unsafe {
         let mut library = LIBRARY.lock().unwrap();

@@ -18,7 +18,7 @@ use java_rs::objects::string::JavaString;
 use java_rs::util::conversion::{
     get_method_from_signature, get_method_name, get_method_parameters, get_method_return_type,
 };
-use java_rs::util::util::{method_is_public, ResultType};
+use java_rs::util::helpers::{method_is_public, ResultType};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
@@ -67,7 +67,7 @@ impl ClassMethod {
                 )?;
 
                 let method_name = method.name.clone();
-                res.entry(method_name).or_insert(vec![]).push(method);
+                res.entry(method_name).or_default().push(method);
             }
         }
 
@@ -75,11 +75,10 @@ impl ClassMethod {
         // default one from the java.lang.Object class.
         let to_string = res.get("toString");
         if to_string.is_none()
-            || to_string
+            || !to_string
                 .unwrap()
                 .iter()
-                .find(|m| m.parameter_types.is_empty() && m.return_type.is_string())
-                .is_none()
+                .any(|m| m.parameter_types.is_empty() && m.return_type.is_string())
         {
             let java_object = JavaClass::by_name("java/lang/Object", &env)?;
             let get_method = java_class
@@ -105,7 +104,7 @@ impl ClassMethod {
             )?;
 
             res.entry("toString".to_string())
-                .or_insert(vec![])
+                .or_default()
                 .push(to_string);
         }
 

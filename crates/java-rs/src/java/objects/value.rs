@@ -22,13 +22,8 @@ impl<'a> JavaValue<'a> {
     }
 }
 
+#[derive(Default)]
 pub struct JavaNull;
-
-impl JavaNull {
-    pub fn new() -> Self {
-        Self
-    }
-}
 
 impl<'a> ToJavaValue<'a> for JavaNull {
     fn to_java_value(&'a self) -> JavaValue<'a> {
@@ -40,8 +35,8 @@ impl<'a> ToJavaValue<'a> for JavaNull {
     }
 }
 
-impl<'a> Into<JavaValue<'a>> for JavaNull {
-    fn into(self) -> JavaValue<'a> {
+impl<'a> From<JavaNull> for JavaValue<'a> {
+    fn from(_: JavaNull) -> JavaValue<'a> {
         JavaValue::new(sys::jvalue { l: ptr::null_mut() })
     }
 }

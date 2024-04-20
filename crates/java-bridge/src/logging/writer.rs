@@ -117,7 +117,7 @@ impl<'a> NodeWriter<'a> {
                     )
                     .collect(),
                 )
-                .map_napi_err()
+                .map_napi_err(None)
             })
             .map_or(Ok(None), |v| v.map(Some))
             .map_err(|e| io::Error::new(ErrorKind::Other, e))
