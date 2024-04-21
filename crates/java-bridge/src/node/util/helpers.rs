@@ -1,7 +1,11 @@
+use crate::node::extensions::java_call_result_ext::ToNapiValue;
 use crate::node::helpers::napi_error::{MapToNapiError, StrIntoNapiError};
+use crate::node::java_class_proxy::JavaClassProxy;
 use glob::glob;
-use napi::{JsString, JsUnknown};
+use java_rs::java_call_result::JavaCallResult;
+use napi::{Env, JsObject, JsString, JsUnknown, NapiRaw};
 use std::error::Error;
+use std::sync::Arc;
 
 pub type ResultType<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
@@ -71,4 +75,43 @@ pub fn parse_classpath_args(cp: &[String], args: &mut Vec<String>) -> String {
         "-Djava.class.path={}",
         cp.join(separator::CLASSPATH_SEPARATOR)
     )
+}
+
+pub fn call_async_method<F>(env: Env, proxy: Arc<JavaClassProxy>, func: F) -> napi::Result<JsObject>
+where
+    F: (FnOnce() -> ResultType<JavaCallResult>) + Send + Sync + 'static,
+{
+    call_async_method_with_resolver(
+        env,
+        proxy.async_java_exception_objects(),
+        func,
+        move |&mut env, res| {
+            let j_env = proxy.vm.attach_thread().map_napi_err(Some(env))?;
+            res.to_napi_value(&j_env, &env).map_napi_err(Some(env))
+        },
+    )
+}
+
+pub fn call_async_method_with_resolver<F, Res, R, V>(
+    env: Env,
+    async_java_exception_objects: bool,
+    func: F,
+    resolver: Res,
+) -> napi::Result<JsObject>
+where
+    F: (FnOnce() -> ResultType<R>) + Send + Sync + 'static,
+    Res: FnOnce(&mut Env, R) -> napi::Result<V> + Send + Sync + 'static,
+    R: Send + Sync + 'static,
+    V: NapiRaw + 'static,
+{
+    if async_java_exception_objects {
+        env.execute_tokio_future(futures::future::lazy(|_| Ok(func())), move |env, res| {
+            resolver(env, res.map_napi_err(Some(*env))?)
+        })
+    } else {
+        env.execute_tokio_future(
+            futures::future::lazy(move |_| func().map_napi_err(None)),
+            resolver,
+        )
+    }
 }

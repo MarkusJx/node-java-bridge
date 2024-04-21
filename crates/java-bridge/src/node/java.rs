@@ -8,9 +8,10 @@ use crate::node::java_class_instance::{JavaClassInstance, CLASS_PROXY_PROPERTY, 
 use crate::node::java_class_proxy::JavaClassProxy;
 use crate::node::java_options::JavaOptions;
 use crate::node::stdout_redirect::StdoutRedirect;
-use crate::node::util::helpers::{list_files, parse_array_or_string, parse_classpath_args};
+use crate::node::util::helpers::{
+    call_async_method_with_resolver, list_files, parse_array_or_string, parse_classpath_args,
+};
 use app_state::{stateful, AppStateTrait, MutAppState, MutAppStateLock};
-use futures::future;
 use java_rs::java_env::JavaEnv;
 use java_rs::java_vm::JavaVM;
 use java_rs::objects::args::AsJavaArg;
@@ -102,7 +103,7 @@ impl Java {
     /// The imported class will be cached for future use.
     #[napi(ts_return_type = "object")]
     pub fn import_class(
-        &mut self,
+        &self,
         env: Env,
         class_name: String,
         config: Option<ClassConfiguration>,
@@ -118,22 +119,34 @@ impl Java {
 
     /// Import a java class (async)
     /// Will return a promise that resolves to the class instance.
+    ///
+    /// If the underlying Java throwable should be contained in the error object,
+    /// set `asyncJavaExceptionObjects` to `true`. This will cause the JavaScript
+    /// stack trace to be lost. Setting this option in the global config will
+    /// **not** affect this method, this option has to be set each time this
+    /// method is called.
+    ///
     /// @see importClass
     #[napi(ts_return_type = "Promise<object>")]
     pub fn import_class_async(
-        &'static mut self,
+        &self,
         env: Env,
         class_name: String,
         config: Option<ClassConfiguration>,
     ) -> napi::Result<JsObject> {
-        env.execute_tokio_future(
-            future::lazy(|_| {
+        let root_vm = self.root_vm.clone();
+        call_async_method_with_resolver(
+            env,
+            config
+                .as_ref()
+                .and_then(|c| c.async_java_exception_objects)
+                .unwrap_or_default(),
+            move || {
                 MutAppState::<ClassCache>::get_or_insert_default()
                     .get_mut()
-                    .get_class_proxy(&self.root_vm, class_name, config)
-                    .map_napi_err(None)
-            }),
-            |&mut env, proxy| JavaClassInstance::create_class_instance(&env, proxy),
+                    .get_class_proxy(&root_vm, class_name, config)
+            },
+            |env, res| JavaClassInstance::create_class_instance(env, res),
         )
     }
 

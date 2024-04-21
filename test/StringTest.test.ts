@@ -215,4 +215,27 @@ describe('StringTest', () => {
             .which.has.property('printStackTrace')
             .which.is.a('function');
     });
+
+    it('import non-existing class async', async () => {
+        await expect(
+            importClassAsync('java.lang.NonExistingClass', {
+                asyncJavaExceptionObjects: true,
+            })
+        )
+            .to.eventually.be.rejected.and.to.have.property('message')
+            .which.satisfies((val: string) =>
+                val.startsWith(
+                    'java.lang.ClassNotFoundException: java.lang.NonExistingClass'
+                )
+            );
+
+        await expect(
+            importClassAsync('java.lang.NonExistingClass', {
+                asyncJavaExceptionObjects: true,
+            })
+        )
+            .to.eventually.be.rejected.and.to.have.property('cause')
+            .which.has.property('printStackTrace')
+            .which.is.a('function');
+    });
 });
