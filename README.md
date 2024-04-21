@@ -46,12 +46,12 @@ using `npm i`, you can skip this._
 
 In order to build this project, you should install
 
-- Node.js
-- npm
-- rustc, the rust compiler
-- cargo
-- Java JDK 8+
-- clang
+-   Node.js
+-   npm
+-   rustc, the rust compiler
+-   cargo
+-   Java JDK 8+
+-   clang
 
 Then, to build the project, run:
 
@@ -66,15 +66,15 @@ npm run build
 > available_
 
 | Operating System | i686 | x64 | arm | arm64 |
-|------------------|:----:|:---:|:---:|:-----:|
-| Linux            |  -   |  ✅  |  -  |   ✅   |
-| Windows          |  ✅   |  ✅  |  -  |   -   |
-| macOS            |  -   |  ✅  |  -  |   ✅   |
+| ---------------- | :--: | :-: | :-: | :---: |
+| Linux            |  -   | ✅  |  -  |  ✅   |
+| Windows          |  ✅  | ✅  |  -  |   -   |
+| macOS            |  -   | ✅  |  -  |  ✅   |
 
 ### Known working linux distros
 
 | Distro |    Version    |
-|:------:|:-------------:|
+| :----: | :-----------: |
 | Ubuntu |  `>= 20.04`   |
 | Debian | `>= bullseye` |
 
@@ -143,12 +143,12 @@ electron-builder, you can do this by adding the following to your `package.json`
 
 ```json
 {
-  "build": {
-    "asarUnpack": [
-      "node_modules/java-bridge/**",
-      "node_modules/java-bridge-*/**"
-    ]
-  }
+    "build": {
+        "asarUnpack": [
+            "node_modules/java-bridge/**",
+            "node_modules/java-bridge-*/**"
+        ]
+    }
 }
 ```
 
@@ -358,10 +358,10 @@ all features enabled.
 
 Logged events include:
 
-- Class loading
-- Method calls
-- Class instance creation
-- Method and class lookup
+-   Class loading
+-   Method calls
+-   Class instance creation
+-   Method and class lookup
 
 **Note:** Logging affects the performance of the module. Thus, it is recommended
 to only enable logging when debugging.
