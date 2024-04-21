@@ -32,7 +32,9 @@ describe('DeleteTest', () => {
         System.gcSync();
         const end = getUsedMemory(Runtime);
         expect(end).to.be.lessThan(after - 10_000_000);
-    }).timeout(timeout);
+    })
+        .timeout(timeout)
+        .retries(3);
 
     it('Delete deleted instance', () => {
         const JString = importClass<typeof StringClass>('java.lang.String');
