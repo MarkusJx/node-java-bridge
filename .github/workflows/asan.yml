@@ -38,11 +38,11 @@ jobs:
                   node-version: 20
                   check-latest: true
                   cache: 'npm'
-            - name: Setup java 17
+            - name: Setup java 21
               uses: actions/setup-java@v4
               with:
                   distribution: 'temurin'
-                  java-version: '17'
+                  java-version: '21'
 
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.7.3

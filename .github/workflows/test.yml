@@ -84,11 +84,11 @@ jobs:
               with:
                   node-version: ${{matrix.node-version}}
                   architecture: ${{matrix.arch}}
-            - name: Setup java 17
+            - name: Setup java 21
               uses: actions/setup-java@v4
               with:
                   distribution: 'temurin'
-                  java-version: '17'
+                  java-version: '21'
                   architecture: ${{matrix.arch}}
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.7.3
@@ -141,11 +141,11 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: ${{matrix.node-version}}
-            - name: Setup java 17
+            - name: Setup java 21
               uses: actions/setup-java@v4
               with:
                   distribution: 'temurin'
-                  java-version: '17'
+                  java-version: '21'
             - name: Install rust toolchain
               uses: dtolnay/rust-toolchain@stable
               with:
@@ -253,7 +253,7 @@ jobs:
             - uses: actions/setup-java@v4
               with:
                   distribution: 'temurin'
-                  java-version: '17'
+                  java-version: '21'
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.7.3
             - name: Install
