@@ -46,12 +46,12 @@ using `npm i`, you can skip this._
 
 In order to build this project, you should install
 
--   Node.js
--   npm
--   rustc, the rust compiler
--   cargo
--   Java JDK 8+
--   clang
+- Node.js
+- npm
+- rustc, the rust compiler
+- cargo
+- Java JDK 8+
+- clang
 
 Then, to build the project, run:
 
@@ -358,10 +358,10 @@ all features enabled.
 
 Logged events include:
 
--   Class loading
--   Method calls
--   Class instance creation
--   Method and class lookup
+- Class loading
+- Method calls
+- Class instance creation
+- Method and class lookup
 
 **Note:** Logging affects the performance of the module. Thus, it is recommended
 to only enable logging when debugging.

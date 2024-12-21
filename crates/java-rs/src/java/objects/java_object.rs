@@ -37,7 +37,7 @@ pub trait AsJavaObject<'a> {
     fn as_java_object(&'a self) -> JavaObject<'a>;
 }
 
-impl<'a> GetRaw for JavaObject<'a> {
+impl GetRaw for JavaObject<'_> {
     unsafe fn get_raw(&self) -> sys::jobject {
         match self {
             Self::LocalRef(local_object) => local_object.get_raw(),
@@ -121,7 +121,7 @@ impl<'a> ToJavaValue<'a> for JavaObject<'a> {
     }
 }
 
-impl<'a> GetSignature for JavaObject<'a> {
+impl GetSignature for JavaObject<'_> {
     fn get_signature(&self) -> JavaType {
         match self {
             Self::LocalRef(local_object) => local_object.get_signature(),

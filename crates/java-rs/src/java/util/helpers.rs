@@ -20,13 +20,16 @@ pub fn jni_error_to_string(error: i32) -> String {
 
 pub fn parse_jni_version(version: &str) -> Result<u32, Box<dyn Error + Send + Sync>> {
     match version {
-        "1.1" => Ok(65537),
-        "1.2" => Ok(65538),
-        "1.4" => Ok(65540),
-        "1.6" => Ok(65542),
-        "1.8" => Ok(65544),
-        "9" => Ok(589824),
-        "10" => Ok(655360),
+        "1.1" => Ok(sys::JNI_VERSION_1_1),
+        "1.2" => Ok(sys::JNI_VERSION_1_2),
+        "1.4" => Ok(sys::JNI_VERSION_1_4),
+        "1.6" => Ok(sys::JNI_VERSION_1_6),
+        "1.8" => Ok(sys::JNI_VERSION_1_8),
+        "9" => Ok(sys::JNI_VERSION_9),
+        "10" => Ok(sys::JNI_VERSION_10),
+        "19" => Ok(sys::JNI_VERSION_19),
+        "20" => Ok(sys::JNI_VERSION_20),
+        "21" => Ok(sys::JNI_VERSION_21),
         _ => Err(JNIError::from(format!("Unknown JNI version: {}", version)).into()),
     }
 }

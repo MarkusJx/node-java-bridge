@@ -13,7 +13,7 @@ type JniCreateJavaVm = unsafe extern "system" fn(
     args: *mut std::os::raw::c_void,
 ) -> sys::jint;
 
-static mut LIBRARY: Mutex<Option<libloading::Library>> = Mutex::new(None);
+static LIBRARY: Mutex<Option<libloading::Library>> = Mutex::new(None);
 
 pub fn load_library(library_path: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
     trace!("Loading library: {}", library_path);

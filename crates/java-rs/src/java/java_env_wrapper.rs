@@ -1208,7 +1208,7 @@ impl<'a> JavaEnvWrapper<'a> {
         get_short_array_elements,
         *const i16,
         i16,
-        JavaShortArray,
+        JavaShortArray<'a>,
         NewShortArray,
         SetShortArrayRegion,
         GetShortArrayElements,
@@ -1220,7 +1220,7 @@ impl<'a> JavaEnvWrapper<'a> {
         get_int_array_elements,
         *const i32,
         i32,
-        JavaIntArray,
+        JavaIntArray<'a>,
         NewIntArray,
         SetIntArrayRegion,
         GetIntArrayElements,
@@ -1232,7 +1232,7 @@ impl<'a> JavaEnvWrapper<'a> {
         get_long_array_elements,
         *const i64,
         i64,
-        JavaLongArray,
+        JavaLongArray<'a>,
         NewLongArray,
         SetLongArrayRegion,
         GetLongArrayElements,
@@ -1244,7 +1244,7 @@ impl<'a> JavaEnvWrapper<'a> {
         get_float_array_elements,
         *const f32,
         f32,
-        JavaFloatArray,
+        JavaFloatArray<'a>,
         NewFloatArray,
         SetFloatArrayRegion,
         GetFloatArrayElements,
@@ -1256,7 +1256,7 @@ impl<'a> JavaEnvWrapper<'a> {
         get_double_array_elements,
         *const f64,
         f64,
-        JavaDoubleArray,
+        JavaDoubleArray<'a>,
         NewDoubleArray,
         SetDoubleArrayRegion,
         GetDoubleArrayElements,
@@ -1268,7 +1268,7 @@ impl<'a> JavaEnvWrapper<'a> {
         get_boolean_array_elements,
         *const u8,
         u8,
-        JavaBooleanArray,
+        JavaBooleanArray<'a>,
         NewBooleanArray,
         SetBooleanArrayRegion,
         GetBooleanArrayElements,
@@ -1280,7 +1280,7 @@ impl<'a> JavaEnvWrapper<'a> {
         get_byte_array_elements,
         *const i8,
         i8,
-        JavaByteArray,
+        JavaByteArray<'a>,
         NewByteArray,
         SetByteArrayRegion,
         GetByteArrayElements,
@@ -1292,7 +1292,7 @@ impl<'a> JavaEnvWrapper<'a> {
         get_char_array_elements,
         *const u16,
         u16,
-        JavaCharArray,
+        JavaCharArray<'a>,
         NewCharArray,
         SetCharArrayRegion,
         GetCharArrayElements,
@@ -1500,7 +1500,7 @@ impl<'a> JavaEnvWrapper<'a> {
     }
 }
 
-impl<'a> Drop for JavaEnvWrapper<'a> {
+impl Drop for JavaEnvWrapper<'_> {
     fn drop(&mut self) {
         if self.jvm.is_none() {
             return;

@@ -1,3 +1,4 @@
+#![allow(clippy::zero_repeat_side_effects)]
 use crate::node::extensions::java_call_result_ext::ToNapiValue;
 use crate::node::extensions::java_type_ext::NapiToJava;
 use crate::node::helpers::arg_convert::{call_context_to_java_args, call_results_to_args};

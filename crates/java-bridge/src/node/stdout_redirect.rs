@@ -14,8 +14,8 @@ use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::{Env, JsFunction, Status};
 use std::sync::{Mutex, MutexGuard};
 
-static mut STDOUT_CALLBACK: Mutex<Option<ThreadsafeFunction<String>>> = Mutex::new(None);
-static mut STDERR_CALLBACK: Mutex<Option<ThreadsafeFunction<String>>> = Mutex::new(None);
+static STDOUT_CALLBACK: Mutex<Option<ThreadsafeFunction<String>>> = Mutex::new(None);
+static STDERR_CALLBACK: Mutex<Option<ThreadsafeFunction<String>>> = Mutex::new(None);
 
 lazy_static! {
     static ref STDOUT_OWNER: Mutex<StdoutOwner> = Mutex::new(StdoutOwner::new());
@@ -64,7 +64,7 @@ pub extern "system" fn Java_io_github_markusjx_bridge_StdoutRedirect_00024Callba
     let string = unsafe { JavaString::from_raw(&env, line) };
 
     if is_stdout {
-        let callback = unsafe { STDOUT_CALLBACK.lock().unwrap() };
+        let callback = STDOUT_CALLBACK.lock().unwrap();
         if let Some(callback) = callback.as_ref() {
             callback.call(
                 string.to_string().map_napi_err(None),
@@ -72,7 +72,7 @@ pub extern "system" fn Java_io_github_markusjx_bridge_StdoutRedirect_00024Callba
             );
         }
     } else {
-        let callback = unsafe { STDERR_CALLBACK.lock().unwrap() };
+        let callback = STDERR_CALLBACK.lock().unwrap();
         if let Some(callback) = callback.as_ref() {
             callback.call(
                 string.to_string().map_napi_err(None),
@@ -150,7 +150,7 @@ impl StdoutRedirect {
 
         self.class_instance = match event.as_str() {
             "stdout" => {
-                let other_set = unsafe { STDERR_CALLBACK.lock().unwrap().is_some() };
+                let other_set = STDERR_CALLBACK.lock().unwrap().is_some();
                 let j_env = self.vm.attach_thread().map_napi_err(Some(env))?;
                 set_stdout_callbacks(
                     env,
@@ -164,7 +164,7 @@ impl StdoutRedirect {
                 .map_napi_err(Some(env))?
             }
             "stderr" => {
-                let other_set = unsafe { STDOUT_CALLBACK.lock().unwrap().is_some() };
+                let other_set = STDOUT_CALLBACK.lock().unwrap().is_some();
                 let j_env = self.vm.attach_thread().map_napi_err(Some(env))?;
                 set_stdout_callbacks(
                     env,
@@ -227,8 +227,8 @@ fn set_stdout_callbacks(
 ) -> ResultType<GlobalJavaObject> {
     reset_stdout_callbacks(j_env, java_class)?;
 
-    let mut stdout = unsafe { STDOUT_CALLBACK.lock().unwrap() };
-    let mut stderr = unsafe { STDERR_CALLBACK.lock().unwrap() };
+    let mut stdout = STDOUT_CALLBACK.lock().unwrap();
+    let mut stderr = STDERR_CALLBACK.lock().unwrap();
 
     map_callback(&env, stdout_callback, &mut stdout)?;
     map_callback(&env, stderr_callback, &mut stderr)?;
@@ -251,10 +251,8 @@ fn set_stdout_callbacks(
 }
 
 fn reset_stdout_callbacks(env: &JavaEnv, java_class: Option<&GlobalJavaObject>) -> ResultType<()> {
-    unsafe {
-        STDOUT_CALLBACK.lock().unwrap().take();
-        STDERR_CALLBACK.lock().unwrap().take();
-    }
+    STDOUT_CALLBACK.lock().unwrap().take();
+    STDERR_CALLBACK.lock().unwrap().take();
 
     if let Some(java_class) = java_class {
         let class =

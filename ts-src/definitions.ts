@@ -21,6 +21,21 @@ export enum JavaVersion {
     VER_9 = '9',
     /** Java version 10 */
     VER_10 = '10',
+    /**
+     * Java version 19
+     * @since 2.7.0
+     */
+    VER_19 = '19',
+    /**
+     * Java version 20
+     * @since 2.7.0
+     */
+    VER_20 = '20',
+    /**
+     * Java version 21
+     * @since 2.7.0
+     */
+    VER_21 = '21',
 }
 
 Object.freeze(JavaVersion);

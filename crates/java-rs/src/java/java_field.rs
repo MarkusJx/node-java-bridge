@@ -235,7 +235,7 @@ fn get_field_value(object: Option<JavaObject>, inner: &JavaField) -> ResultType<
     })
 }
 
-impl<'a> JavaFieldValues for JavaObjectField<'a> {
+impl JavaFieldValues for JavaObjectField<'_> {
     fn set(&self, obj: &JavaObject<'_>, value: JavaCallResult) -> ResultType<()> {
         match value {
             JavaCallResult::Object { object, .. } => self.set(obj, Some(JavaObject::from(object))),
@@ -306,7 +306,7 @@ impl GetSignatureRef for StaticJavaObjectField<'_> {
     }
 }
 
-impl<'a> StaticJavaFieldValues for StaticJavaObjectField<'a> {
+impl StaticJavaFieldValues for StaticJavaObjectField<'_> {
     fn set(&self, value: JavaCallResult) -> ResultType<()> {
         match value {
             JavaCallResult::Object { object, .. } => self.set(Some(JavaObject::from(object))),

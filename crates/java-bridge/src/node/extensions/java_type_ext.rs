@@ -5,7 +5,6 @@ use crate::node::java_class_instance::OBJECT_PROPERTY;
 use java_rs::java_call_result::JavaCallResult;
 use java_rs::java_env::JavaEnv;
 use java_rs::java_type::{JavaType, Type};
-use java_rs::objects::args::JavaArg;
 use java_rs::objects::array::{
     JavaBooleanArray, JavaByteArray, JavaCharArray, JavaDoubleArray, JavaFloatArray, JavaIntArray,
     JavaLongArray, JavaObjectArray, JavaShortArray,
@@ -128,10 +127,6 @@ impl JsTypeEq for JavaType {
             _ => false,
         })
     }
-}
-
-pub trait JavaToNapi {
-    fn to_napi(&self, value: &JavaArg) -> ResultType<JsUnknown>;
 }
 
 pub trait NapiToJava {
