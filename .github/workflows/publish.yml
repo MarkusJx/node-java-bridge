@@ -51,8 +51,8 @@ jobs:
             - name: Setup Java JDK
               uses: actions/setup-java@v4
               with:
-                  distribution: 'zulu'
-                  java-version: '21'
+                  distribution: 'temurin'
+                  java-version: '17'
             - name: Add rust target
               run: rustup target add ${{ matrix.target }}
             - name: Setup cross-compilation

@@ -27,9 +27,9 @@ pub fn parse_jni_version(version: &str) -> Result<u32, Box<dyn Error + Send + Sy
         "1.8" => Ok(sys::JNI_VERSION_1_8),
         "9" => Ok(sys::JNI_VERSION_9),
         "10" => Ok(sys::JNI_VERSION_10),
-        "19" => Ok(sys::JNI_VERSION_19),
-        "20" => Ok(sys::JNI_VERSION_20),
-        "21" => Ok(sys::JNI_VERSION_21),
+        "19" => Ok(1245184),
+        "20" => Ok(1310720),
+        "21" => Ok(1376256),
         _ => Err(JNIError::from(format!("Unknown JNI version: {}", version)).into()),
     }
 }
