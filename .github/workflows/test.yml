@@ -175,7 +175,7 @@ jobs:
               timeout-minutes: 180
               with:
                   image: arm64v8/node:${{matrix.node-version}}-bullseye
-                  options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace
+                  options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace --platform linux/arm64
                   run: |
                       apt-get update
                       apt-get install ca-certificates-java -y
