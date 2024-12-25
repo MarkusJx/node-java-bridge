@@ -110,6 +110,7 @@ jobs:
                   else
                     npm run build -- -- --target i686-pc-windows-msvc
                   fi
+              shell: bash
             - name: Run tests
               run: npm run testOnly
               timeout-minutes: 20
