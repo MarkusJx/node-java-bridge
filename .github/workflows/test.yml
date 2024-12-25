@@ -105,11 +105,7 @@ jobs:
               if: ${{matrix.os == 'windows-latest' && matrix.arch == 'x86'}}
               run: |
                   rustup target add i686-pc-windows-msvc
-                  if [[ '${{matrix.node-version}}' == '22.x' ]]; then
-                    npm run build -- -- -- --target i686-pc-windows-msvc
-                  else
-                    npm run build -- -- --target i686-pc-windows-msvc
-                  fi
+                  npm run build -- -- --target i686-pc-windows-msvc
               shell: bash
             - name: Run tests
               run: npm run testOnly
