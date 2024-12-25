@@ -66,7 +66,7 @@ jobs:
             - name: Install Dependencies
               run: npm ci
             - name: Build
-              run: npm run build -- -- --target ${{ matrix.target }}
+              run: npm run build -- -- -- --target ${{ matrix.target }}
             - name: Get version
               id: version
               run: echo "version=$(node -p 'require(`./package.json`).version')" >> $GITHUB_ENV
