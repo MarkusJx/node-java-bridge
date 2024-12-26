@@ -79,7 +79,7 @@ jobs:
               run: mv java.*.node npm/${{ matrix.package }}
               shell: bash
             - name: NPM Publish Binary
-              uses: JS-DevTools/npm-publish@v3.1.1
+              uses: JS-DevTools/npm-publish@e06fe3ef65499b38eb12224f2a60979f6d797330
               if: ${{ matrix.package != 'linux-x64-gnu' }}
               with:
                   access: public
