@@ -117,6 +117,9 @@ impl JavaVM {
         };
 
         if create_result == sys::JNI_EDETACHED {
+            #[cfg(feature = "log")]
+            log::debug!("Attaching java thread");
+
             create_result = unsafe {
                 jvm_ptr.methods().AttachCurrentThreadAsDaemon.unwrap()(
                     jvm_ptr.vm(),

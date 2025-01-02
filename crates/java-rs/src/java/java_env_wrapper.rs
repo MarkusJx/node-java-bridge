@@ -716,6 +716,9 @@ impl<'a> JavaEnvWrapper<'a> {
         };
 
         if self.is_err() {
+            #[cfg(feature = "log")]
+            log::debug!("Method {} threw an error", method.get_java_signature());
+
             Err(self.get_last_error(
                 file!(),
                 line!(),
@@ -756,6 +759,9 @@ impl<'a> JavaEnvWrapper<'a> {
         };
 
         if self.is_err() {
+            #[cfg(feature = "log")]
+            log::debug!("Method {} threw an error", method.get_java_signature());
+
             Err(self.get_last_error(file!(), line!(), true, "CallStaticObjectMethod failed")?)
         } else {
             self.return_method_object(obj, method)

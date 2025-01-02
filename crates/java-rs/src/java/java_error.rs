@@ -26,12 +26,17 @@ impl JavaError {
         alt_text: String,
         throwable: GlobalJavaObject,
     ) -> Self {
-        Self {
+        let res = Self {
             causes,
             stack_frames,
             alt_text,
             throwable: Some(throwable),
-        }
+        };
+
+        #[cfg(feature = "log")]
+        log::debug!("Exception thrown:\n{res}");
+
+        res
     }
 
     pub fn get_throwable(&self) -> Option<GlobalJavaObject> {
