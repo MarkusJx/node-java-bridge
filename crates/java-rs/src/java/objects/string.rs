@@ -64,7 +64,7 @@ impl<'a> JavaString<'a> {
     }
 }
 
-impl<'a> GetSignature for JavaString<'a> {
+impl GetSignature for JavaString<'_> {
     fn get_signature(&self) -> JavaType {
         self.0.get_signature()
     }

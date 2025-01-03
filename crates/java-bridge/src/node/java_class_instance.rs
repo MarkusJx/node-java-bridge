@@ -1,3 +1,4 @@
+#![allow(clippy::zero_repeat_side_effects)]
 use crate::node::extensions::java_call_result_ext::ToNapiValue;
 use crate::node::extensions::java_type_ext::NapiToJava;
 use crate::node::helpers::arg_convert::{call_context_to_java_args, call_results_to_args};
@@ -310,6 +311,10 @@ impl JavaClassInstance {
         let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
         let args_ref = call_results_to_args(&args);
+
+        #[cfg(feature = "log")]
+        log::debug!("Calling static method: {}.{}()", proxy.class_name, name);
+
         let res = method
             .call_static(args_ref.as_slice())
             .map_napi_err(Some(*ctx.env))?;
@@ -328,6 +333,9 @@ impl JavaClassInstance {
         let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
 
+        #[cfg(feature = "log")]
+        log::debug!("Calling static method: {}.{}()", proxy.class_name, name);
+
         call_async_method(*ctx.env, proxy, move || {
             let args_ref = call_results_to_args(&args);
             method.call_static(args_ref.as_slice())
@@ -344,6 +352,9 @@ impl JavaClassInstance {
 
         let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
+
+        #[cfg(feature = "log")]
+        log::debug!("Calling method: {}.{}()", proxy.class_name, name);
 
         let result = if proxy.config.run_event_loop_when_interface_proxy_is_active
             && interface_proxy_exists()
@@ -401,6 +412,9 @@ impl JavaClassInstance {
         let obj = Self::get_object(ctx)?.clone();
         let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
         let args = call_context_to_java_args(ctx, method.parameter_types(), &env)?;
+
+        #[cfg(feature = "log")]
+        log::debug!("Calling method: {}.{}()", proxy.class_name, name);
 
         call_async_method(*ctx.env, proxy, move || {
             let args_ref = call_results_to_args(&args);
@@ -462,6 +476,10 @@ fn constructor(ctx: CallContext) -> napi::Result<JsUnknown> {
 
     let args = call_context_to_java_args(&ctx, constructor.parameter_types(), &env)?;
     let args_ref = call_results_to_args(&args);
+
+    #[cfg(feature = "log")]
+    log::debug!("Creating new instance of class: {}", proxy.class_name);
+
     let instance = constructor
         .new_instance(args_ref.as_slice())
         .map_napi_err(Some(*ctx.env))?;
@@ -482,6 +500,9 @@ fn new_instance(ctx: CallContext) -> napi::Result<JsObject> {
         .clone();
     let env = proxy.vm.attach_thread().map_napi_err(Some(*ctx.env))?;
     let args = call_context_to_java_args(&ctx, constructor.parameter_types(), &env)?;
+
+    #[cfg(feature = "log")]
+    log::debug!("Creating new instance of class: {}", proxy.class_name);
 
     call_async_method_with_resolver(
         *ctx.env,

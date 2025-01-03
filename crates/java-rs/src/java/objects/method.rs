@@ -116,7 +116,7 @@ define_java_methods!(
     StaticJavaObjectMethod,
     call_object_method,
     call_static_object_method,
-    Option<LocalJavaObject<'_>>,
+    Option<LocalJavaObject<'a>>,
     [
         Type::Object,
         Type::LangBoolean,

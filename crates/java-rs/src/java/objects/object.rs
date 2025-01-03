@@ -201,13 +201,13 @@ impl GetRaw for LocalJavaObject<'_> {
     }
 }
 
-impl<'a> IsInstanceOf for LocalJavaObject<'a> {
+impl IsInstanceOf for LocalJavaObject<'_> {
     fn is_instance_of(&self, classname: &str) -> ResultType<bool> {
         self.env.is_instance_of(JavaObject::from(self), classname)
     }
 }
 
-impl<'a> GetSignature for LocalJavaObject<'a> {
+impl GetSignature for LocalJavaObject<'_> {
     #[cfg(feature = "type_check")]
     fn get_signature(&self) -> JavaType {
         self.signature.clone()
@@ -237,7 +237,7 @@ impl<'a> From<&'a LocalJavaObject<'a>> for JavaArg<'a> {
     }
 }
 
-impl<'a> Drop for LocalJavaObject<'a> {
+impl Drop for LocalJavaObject<'_> {
     fn drop(&mut self) {
         if self.free {
             self.env.delete_local_ref(self.object);

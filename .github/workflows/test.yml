@@ -45,36 +45,36 @@ jobs:
             matrix:
                 include:
                     - os: ubuntu-20.04
-                      node-version: 18.x
+                      node-version: 20.x
                       arch: x64
                       features: default
                     - os: ubuntu-latest
-                      node-version: 20.x
+                      node-version: 22.x
                       arch: x64
                       features: all
                     - os: windows-latest
-                      node-version: 18.x
-                      arch: x64
-                      features: default
-                    - os: windows-latest
                       node-version: 20.x
                       arch: x64
-                      features: all
-                    - os: windows-latest
-                      node-version: 18.x
-                      arch: x86
                       features: default
+                    - os: windows-latest
+                      node-version: 22.x
+                      arch: x64
+                      features: all
                     - os: windows-latest
                       node-version: 20.x
                       arch: x86
                       features: default
-                    - os: macos-latest
-                      node-version: 18.x
-                      arch: x64
+                    - os: windows-latest
+                      node-version: 22.x
+                      arch: x86
                       features: default
                     - os: macos-latest
                       node-version: 20.x
-                      arch: x64
+                      arch: arm64
+                      features: default
+                    - os: macos-latest
+                      node-version: 22.x
+                      arch: arm64
                       features: all
         runs-on: ${{matrix.os}}
         steps:
@@ -106,6 +106,7 @@ jobs:
               run: |
                   rustup target add i686-pc-windows-msvc
                   npm run build -- -- --target i686-pc-windows-msvc
+              shell: bash
             - name: Run tests
               run: npm run testOnly
               timeout-minutes: 20
@@ -117,14 +118,14 @@ jobs:
                   show: all
                   paths: testResults.xml
             - name: Create package
-              if: ${{matrix.node-version == '18.x'}}
+              if: ${{matrix.node-version == '20.x'}}
               shell: bash
               run: |
                   node -e 'let p=require("./package.json");p.files.push("dist/*.node");require("fs").writeFileSync("package.json",JSON.stringify(p,null,4))'
                   npm pack
             - name: Upload package
               uses: actions/upload-artifact@v4
-              if: ${{matrix.node-version == '18.x'}}
+              if: ${{matrix.node-version == '20.x'}}
               with:
                   name: java-${{matrix.arch}}-${{matrix.os}}
                   path: java-bridge-*.tgz
@@ -133,7 +134,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                node-version: [18, 20]
+                node-version: [20, 22]
         runs-on: ubuntu-20.04
         steps:
             - uses: actions/checkout@v4
@@ -175,7 +176,7 @@ jobs:
               timeout-minutes: 180
               with:
                   image: arm64v8/node:${{matrix.node-version}}-bullseye
-                  options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace
+                  options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace --platform linux/arm64
                   run: |
                       apt-get update
                       apt-get install ca-certificates-java -y
@@ -192,13 +193,13 @@ jobs:
                   show: all
                   paths: testResults.xml
             - name: Create package
-              if: ${{matrix.node-version == '18'}}
+              if: ${{matrix.node-version == '20'}}
               run: |
                   node -e 'let p=require("./package.json");p.files.push("dist/*.node");require("fs").writeFileSync("package.json",JSON.stringify(p,null,4))'
                   npm pack
             - name: Upload package
               uses: actions/upload-artifact@v4
-              if: ${{matrix.node-version == '18'}}
+              if: ${{matrix.node-version == '20'}}
               with:
                   name: java-arm64-ubuntu
                   path: java-bridge-*.tgz
@@ -207,7 +208,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                node-version: [18, 20]
+                node-version: [20, 22]
         runs-on: ubuntu-20.04
         steps:
             - uses: actions/checkout@v4
@@ -231,13 +232,13 @@ jobs:
                   show: all
                   paths: testResults.xml
             - name: Create package
-              if: ${{matrix.node-version == '18'}}
+              if: ${{matrix.node-version == '20'}}
               run: |
                   node -e 'let p=require("./package.json");p.files.push("dist/*.node");require("fs").writeFileSync("package.json",JSON.stringify(p,null,4))'
                   npm pack
             - name: Upload package
               uses: actions/upload-artifact@v4
-              if: ${{matrix.node-version == '18'}}
+              if: ${{matrix.node-version == '20'}}
               with:
                   name: java-x64-ubuntu-musl
                   path: java-bridge-*.tgz
@@ -249,7 +250,7 @@ jobs:
             - name: Setup Node.js environment
               uses: actions/setup-node@v4
               with:
-                  node-version: 16.x
+                  node-version: 22.x
             - uses: actions/setup-java@v4
               with:
                   distribution: 'temurin'

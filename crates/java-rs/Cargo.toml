@@ -7,12 +7,12 @@ edition = "2021"
 libloading = "0.8"
 lazy_static = "1.4.0"
 java-locator = "0.1.5"
-regex = { version = "1.10.3", optional = true }
-log = { version = "0.4.21", optional = true }
+regex = { version = "1.11.1", optional = true }
+log = { version = "0.4.22", optional = true }
 
 [build-dependencies]
-bindgen = "0.69.4"
-java-locator = "0.1.5"
+bindgen = "0.71.1"
+java-locator = "0.1.8"
 build-target = "0.4.0"
 
 [features]

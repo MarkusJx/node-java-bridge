@@ -9,7 +9,7 @@ pub struct JavaValue<'a> {
     _marker: PhantomData<&'a sys::jobject>,
 }
 
-impl<'a> JavaValue<'a> {
+impl JavaValue<'_> {
     pub(in crate::java) fn new(value: sys::jvalue) -> Self {
         Self {
             value,

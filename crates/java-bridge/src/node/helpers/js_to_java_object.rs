@@ -8,19 +8,8 @@ pub trait JsIntoJavaObject {
     fn into_java_object(self, env: &Env) -> napi::Result<GlobalJavaObject>;
 }
 
-pub trait JsToJavaObject {
-    fn to_java_object(&self, env: &Env) -> napi::Result<GlobalJavaObject>;
-}
-
 pub trait JsToJavaClass {
     fn to_java_class(&self, env: &Env) -> napi::Result<Arc<JavaClassProxy>>;
-}
-
-impl JsToJavaObject for JsObject {
-    fn to_java_object(&self, env: &Env) -> napi::Result<GlobalJavaObject> {
-        let obj: JsObject = self.get_named_property(OBJECT_PROPERTY)?;
-        Ok(env.unwrap::<GlobalJavaObject>(&obj)?.clone())
-    }
 }
 
 impl JsIntoJavaObject for JsUnknown {

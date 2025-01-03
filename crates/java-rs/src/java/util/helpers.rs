@@ -20,26 +20,32 @@ pub fn jni_error_to_string(error: i32) -> String {
 
 pub fn parse_jni_version(version: &str) -> Result<u32, Box<dyn Error + Send + Sync>> {
     match version {
-        "1.1" => Ok(65537),
-        "1.2" => Ok(65538),
-        "1.4" => Ok(65540),
-        "1.6" => Ok(65542),
-        "1.8" => Ok(65544),
-        "9" => Ok(589824),
-        "10" => Ok(655360),
+        "1.1" => Ok(sys::JNI_VERSION_1_1),
+        "1.2" => Ok(sys::JNI_VERSION_1_2),
+        "1.4" => Ok(sys::JNI_VERSION_1_4),
+        "1.6" => Ok(sys::JNI_VERSION_1_6),
+        "1.8" => Ok(sys::JNI_VERSION_1_8),
+        "9" => Ok(sys::JNI_VERSION_9),
+        "10" => Ok(sys::JNI_VERSION_10),
+        "19" => Ok(1245184),
+        "20" => Ok(1310720),
+        "21" => Ok(1376256),
         _ => Err(JNIError::from(format!("Unknown JNI version: {}", version)).into()),
     }
 }
 
 pub fn jni_version_to_string(version: i32) -> Result<String, Box<dyn Error + Send + Sync>> {
-    match version {
-        65537 => Ok("1.1".to_string()),
-        65538 => Ok("1.2".to_string()),
-        65540 => Ok("1.4".to_string()),
-        65542 => Ok("1.6".to_string()),
-        65544 => Ok("1.8".to_string()),
-        589824 => Ok("9".to_string()),
-        655360 => Ok("10".to_string()),
+    match version as _ {
+        sys::JNI_VERSION_1_1 => Ok("1.1".to_string()),
+        sys::JNI_VERSION_1_2 => Ok("1.2".to_string()),
+        sys::JNI_VERSION_1_4 => Ok("1.4".to_string()),
+        sys::JNI_VERSION_1_6 => Ok("1.6".to_string()),
+        sys::JNI_VERSION_1_8 => Ok("1.8".to_string()),
+        sys::JNI_VERSION_9 => Ok("9".to_string()),
+        sys::JNI_VERSION_10 => Ok("10".to_string()),
+        1245184 => Ok("19".to_string()),
+        1310720 => Ok("20".to_string()),
+        1376256 => Ok("21".to_string()),
         _ => Err(JNIError::from(format!("Unknown JNI version: {}", version)).into()),
     }
 }

@@ -69,7 +69,7 @@ impl Java {
             args.push(parsed);
         }
 
-        debug!("Parsed classpath args: {:?}", args);
+        debug!("Parsed startup args: {:?}", args);
         let root_vm = JavaVM::new(&ver, lib_path, &args).map_napi_err(Some(env))?;
 
         let java_env = root_vm.attach_thread().map_napi_err(Some(env))?;

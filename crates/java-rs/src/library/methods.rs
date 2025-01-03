@@ -3,7 +3,7 @@
 use crate::library::library_error::LibraryError;
 use crate::library::methods;
 use crate::util::helpers::ResultType;
-use crate::{sys, trace};
+use crate::{debug, sys};
 use std::error::Error;
 use std::sync::Mutex;
 
@@ -13,10 +13,10 @@ type JniCreateJavaVm = unsafe extern "system" fn(
     args: *mut std::os::raw::c_void,
 ) -> sys::jint;
 
-static mut LIBRARY: Mutex<Option<libloading::Library>> = Mutex::new(None);
+static LIBRARY: Mutex<Option<libloading::Library>> = Mutex::new(None);
 
 pub fn load_library(library_path: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
-    trace!("Loading library: {}", library_path);
+    debug!("Loading library: {}", library_path);
     unsafe {
         let mut library = LIBRARY.lock().unwrap();
         if library.is_some() {
@@ -26,7 +26,7 @@ pub fn load_library(library_path: &str) -> Result<(), Box<dyn Error + Send + Syn
         library.replace(libloading::Library::new(library_path)?);
     }
 
-    trace!("JVM library successfully loaded");
+    debug!("JVM library successfully loaded");
     Ok(())
 }
 

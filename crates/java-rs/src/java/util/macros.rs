@@ -31,6 +31,9 @@ macro_rules! define_call_methods {
             };
 
             if self.is_err() {
+                #[cfg(feature = "log")]
+                log::debug!("Method {} threw an error", method.get_java_signature());
+
                 Err(self.get_last_error(
                     file!(),
                     line!(),
@@ -72,6 +75,9 @@ macro_rules! define_call_methods {
             };
 
             if self.is_err() {
+                #[cfg(feature = "log")]
+                log::debug!("Method {} threw an error", method.get_java_signature());
+
                 Err(self.get_last_error(
                     file!(),
                     line!(),
