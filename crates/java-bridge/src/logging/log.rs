@@ -149,7 +149,8 @@ mod logging {
     /// Call {@link logging.setLogCallbacks} to enable the `node` appender again.
     pub fn reset_log_callbacks() -> napi::Result<()> {
         debug!("Resetting log callbacks");
-        Ok(NodeWriter::set_callbacks(None, None))
+        NodeWriter::set_callbacks(None, None);
+        Ok(())
     }
 
     #[napi]

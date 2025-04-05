@@ -2,6 +2,7 @@ use crate::debug;
 use crate::node::class_cache::ClassCache;
 use crate::node::config::ClassConfiguration;
 use crate::node::helpers::napi_error::{MapToNapiError, StrIntoNapiError};
+use crate::node::init::check_init_result;
 use crate::node::interface_proxy::interface_proxy_options::InterfaceProxyOptions;
 use crate::node::interface_proxy::java_interface_proxy::JavaInterfaceProxy;
 use crate::node::java_class_instance::{JavaClassInstance, CLASS_PROXY_PROPERTY, OBJECT_PROPERTY};
@@ -49,6 +50,7 @@ impl Java {
         native_lib_path: String,
         env: Env,
     ) -> napi::Result<Self> {
+        check_init_result()?;
         let ver = version.unwrap_or("1.8".to_string());
         let mut args = opts.unwrap_or_default();
         let mut loaded_jars = vec![];

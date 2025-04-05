@@ -2,6 +2,7 @@ mod class_cache;
 pub mod config;
 pub mod extensions;
 pub mod helpers;
+mod init;
 mod interface_proxy;
 mod java;
 mod java_class_instance;

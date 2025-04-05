@@ -262,6 +262,15 @@ await str.length(); // 11
 await str.toString(); // 'Hello World'
 ```
 
+### Setting the number of threads
+
+When using asynchronous functions, by default, the number of threads used by these functions
+is determined by the number of physical CPUs available.
+In order to change this behaviour, set the `JAVA_BRIDGE_THREAD_POOL_SIZE` environment variable
+to the desired amount of threads.
+
+Note: Setting this to a non-numeric value will cause an error to be thrown during startup.
+
 ### Implement a Java interface
 
 You can also implement a Java interface in node.js using the

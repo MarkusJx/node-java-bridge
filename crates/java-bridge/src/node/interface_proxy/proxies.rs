@@ -3,7 +3,7 @@ use crate::node::interface_proxy::types::{MethodMap, MethodsType, ProxiesType};
 use crate::node::util::helpers::ResultType;
 use lazy_static::lazy_static;
 use napi::Env;
-use rand::Rng;
+use rand::RngCore;
 use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
 
@@ -27,11 +27,11 @@ pub(in crate::node::interface_proxy) fn generate_proxy_id(
     proxies: &MutexGuard<ProxiesType>,
     daemon_proxies: &MutexGuard<DaemonProxiesType>,
 ) -> usize {
-    let mut rng = rand::thread_rng();
-    let mut id: usize = rng.gen();
+    let mut rng = rand::rng();
+    let mut id: usize = rng.next_u32() as usize;
 
     while proxies.contains_key(&id) || daemon_proxies.contains_key(&id) {
-        id = rng.gen();
+        id = rng.next_u32() as usize;
     }
 
     id
