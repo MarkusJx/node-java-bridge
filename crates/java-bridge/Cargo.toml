@@ -26,7 +26,7 @@ java-rs = { path = "../java-rs" }
 app-state = { git = "https://github.com/MarkusJx/app-state" }
 # TODO: remove this once the next version of napi-sys is released
 libloading = "0.8.6"
-anyhow = { version = "1.0.97", optional = true }
+anyhow = "1.0.97"
 log = { version = "0.4.27", optional = true }
 log4rs = { version = "1.3.0", features = ["json_format"], optional = true }
 serde = { version = "1.0.219", optional = true }
@@ -40,4 +40,4 @@ napi-build = "2.1.6"
 default = []
 all = ["log", "type_check"]
 type_check = ["java-rs/type_check"]
-log = ["dep:log", "dep:log4rs", "dep:serde", "dep:anyhow", "java-rs/log"]
+log = ["dep:log", "dep:log4rs", "dep:serde", "java-rs/log"]
