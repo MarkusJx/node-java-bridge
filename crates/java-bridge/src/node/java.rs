@@ -38,8 +38,11 @@ pub struct Java {
 impl Java {
     /// Create a new JVM instance.
     /// @param libPath The path to jvm.(dll|so|dylib)
-    /// @param version The JVM version to use.
-    /// @param opts The JVM options to use.
+    /// @param version The JVM version to use
+    /// @param opts The JVM options to use
+    /// @param javaOptions additional options to pass to the jvm
+    /// @param javaLibPath the path to the java library (JavaBridge.jar)
+    /// @param nativeLibPath the path to the native library (java.*.\[dll|so|dylib])
     #[napi(constructor)]
     pub fn new(
         lib_path: Option<String>,

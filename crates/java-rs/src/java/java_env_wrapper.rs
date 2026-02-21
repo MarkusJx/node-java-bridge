@@ -476,7 +476,7 @@ impl<'a> JavaEnvWrapper<'a> {
             .as_ref()
             .ok_or("The jvm was unset".to_string())?
             .lock()
-            .unwrap()
+            .map_err(|_| "Could not lock mutex".to_string())?
             .class_loader()
             .clone()
             .unwrap();
@@ -518,7 +518,7 @@ impl<'a> JavaEnvWrapper<'a> {
             .as_ref()
             .ok_or("The jvm was unset".to_string())?
             .lock()
-            .unwrap()
+            .map_err(|_| "Could not lock mutex".to_string())?
             .class_loader()
             .clone()
             .unwrap();
@@ -1471,7 +1471,7 @@ impl<'a> JavaEnvWrapper<'a> {
             .as_ref()
             .ok_or("The jvm was unset".to_string())?
             .lock()
-            .unwrap()
+            .map_err(|_| "Could not lock mutex".to_string())?
             .class_loader()
             .as_ref()
             .unwrap()
@@ -1491,7 +1491,7 @@ impl<'a> JavaEnvWrapper<'a> {
             .as_ref()
             .ok_or("The jvm was unset".to_string())?
             .lock()
-            .unwrap()
+            .map_err(|_| "Could not lock mutex".to_string())?
             .set_class_loader(loader);
 
         Ok(())
