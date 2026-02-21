@@ -91,11 +91,15 @@ export function getNativeLibPath(isPackagedElectron: boolean): string {
     }
 }
 
-export function getJavaLibPath(): string {
+export function getJavaLibPath(isPackagedElectron: boolean): string {
     const lib = path.join(__dirname, 'JavaBridge.jar');
 
     if (fs.existsSync(lib) && fs.statSync(lib).isFile()) {
-        return lib;
+        if (isPackagedElectron) {
+            return lib.replace(APP_ASAR_REGEX, APP_ASAR_UNPACKED);
+        } else {
+            return lib;
+        }
     } else {
         throw new Error('JavaBridge.jar not found');
     }

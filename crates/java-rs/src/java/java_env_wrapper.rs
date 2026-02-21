@@ -476,7 +476,7 @@ impl<'a> JavaEnvWrapper<'a> {
             .as_ref()
             .ok_or("The jvm was unset".to_string())?
             .lock()
-            .unwrap()
+            .map_err(|_| "Could not lock mutex".to_string())?
             .class_loader()
             .clone()
             .unwrap();
@@ -518,7 +518,7 @@ impl<'a> JavaEnvWrapper<'a> {
             .as_ref()
             .ok_or("The jvm was unset".to_string())?
             .lock()
-            .unwrap()
+            .map_err(|_| "Could not lock mutex".to_string())?
             .class_loader()
             .clone()
             .unwrap();
@@ -1189,10 +1189,10 @@ impl<'a> JavaEnvWrapper<'a> {
     }
 
     pub fn create_object_array(
-        &self,
+        &'_ self,
         class: &'a JavaClass<'a>,
         len: i32,
-    ) -> ResultType<JavaObjectArray> {
+    ) -> ResultType<JavaObjectArray<'_>> {
         let arr = unsafe {
             self.methods.NewObjectArray.unwrap()(self.env, len, class.class(), ptr::null_mut())
         };
@@ -1471,7 +1471,7 @@ impl<'a> JavaEnvWrapper<'a> {
             .as_ref()
             .ok_or("The jvm was unset".to_string())?
             .lock()
-            .unwrap()
+            .map_err(|_| "Could not lock mutex".to_string())?
             .class_loader()
             .as_ref()
             .unwrap()
@@ -1491,7 +1491,7 @@ impl<'a> JavaEnvWrapper<'a> {
             .as_ref()
             .ok_or("The jvm was unset".to_string())?
             .lock()
-            .unwrap()
+            .map_err(|_| "Could not lock mutex".to_string())?
             .set_class_loader(loader);
 
         Ok(())

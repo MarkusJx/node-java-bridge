@@ -185,7 +185,7 @@ impl<'a> JavaObjectField<'a> {
         Self(field)
     }
 
-    pub fn get(&self, object: &JavaObject<'_>) -> ResultType<Option<JavaObject>> {
+    pub fn get(&'_ self, object: &JavaObject<'_>) -> ResultType<Option<JavaObject<'_>>> {
         self.0.class.env().get_object_field(self, object)
     }
 
@@ -257,7 +257,7 @@ impl<'a> StaticJavaObjectField<'a> {
         Self(field)
     }
 
-    pub fn get(&self) -> ResultType<Option<JavaObject>> {
+    pub fn get(&'_ self) -> ResultType<Option<JavaObject<'_>>> {
         self.0
             .class
             .env()

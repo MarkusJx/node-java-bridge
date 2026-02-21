@@ -86,12 +86,12 @@ export interface JVMOptions extends JavaOptions {
  * in an altered classpath in your java application/library if your
  * application is using a custom classpath (e.g. Spring Boot).
  *
- * Also, it is not possible to restart the jvm after is has been started
+ * Also, it is not possible to restart the jvm after it has been started
  * once, in order to alter the startup classpath. This is due to some
  * limitations with the destructor feature of the node.js native api,
  * which may not call the destructor in time and having two jvm instances
  * in the same application is not allowed by java. Additionally, destroying
- * the jvm instance may cause *undefined behaviour*, which may or may not
+ * the jvm instance may cause *undefined behavior*, which may or may not
  * cause the application to crash. Let's not do that.
  *
  * @param options the options to use when creating the jvm
@@ -104,7 +104,7 @@ export function ensureJvm(options?: JVMOptions): boolean {
             options?.version,
             options?.opts,
             options,
-            getJavaLibPath(),
+            getJavaLibPath(options?.isPackagedElectron ?? false),
             getNativeLibPath(options?.isPackagedElectron ?? false)
         );
 

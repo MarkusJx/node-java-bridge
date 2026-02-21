@@ -41,7 +41,7 @@ impl<'a> JavaEnv<'a> {
         jni_version_to_string(version)
     }
 
-    pub fn find_class(&self, class_name: &str) -> ResultType<JavaClass> {
+    pub fn find_class(&'_ self, class_name: &str) -> ResultType<JavaClass<'_>> {
         self.0.find_class(class_name, true)
     }
 
