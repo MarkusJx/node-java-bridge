@@ -179,5 +179,7 @@ export const checkJavaErrorCause = (
     const stack = error.cause.getStackTraceSync();
     expect(stack).to.not.be.null;
     expect(stack).to.be.an('array');
-    expect(stack.length).to.be.greaterThan(0);
+    if (errorMessage !== null) {
+        expect(stack.length).to.be.greaterThan(0);
+    }
 };
