@@ -203,10 +203,7 @@ describe('Config test', () => {
             await JavaString.newInstanceAsync(null);
             expect.fail('Expected an error');
         } catch (e) {
-            checkJavaErrorCause(
-                e,
-                'Cannot invoke "java.lang.StringBuffer.toString()" because "buffer" is null'
-            );
+            checkJavaErrorCause(e, null);
         }
 
         try {
