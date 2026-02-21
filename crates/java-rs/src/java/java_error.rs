@@ -63,8 +63,8 @@ impl std::fmt::Display for JavaError {
             .collect::<Vec<_>>()
             .join("\n");
 
-        if root.is_some() {
-            write!(f, "{}{}{}", root.unwrap(), new_line, stack_frames)
+        if let Some(root) = root {
+            write!(f, "{}{}{}", root, new_line, stack_frames)
         } else {
             write!(f, "{}{}{}", self.alt_text, new_line, stack_frames)
         }

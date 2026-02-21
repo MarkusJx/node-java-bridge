@@ -33,5 +33,5 @@ pub trait IsInstanceOf {
 }
 
 pub trait GetClass {
-    fn get_class(&self) -> ResultType<JavaClass>;
+    fn get_class(&'_ self) -> ResultType<JavaClass<'_>>;
 }

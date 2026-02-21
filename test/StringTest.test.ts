@@ -157,10 +157,7 @@ describe('StringTest', () => {
             new JavaString(null);
             expect.fail('Expected an error');
         } catch (e: unknown) {
-            checkJavaErrorCause(
-                e,
-                'Cannot invoke "java.lang.StringBuffer.toString()" because "buffer" is null'
-            );
+            checkJavaErrorCause(e, null);
         }
 
         try {

@@ -26,7 +26,7 @@ pub fn call_context_to_java_args<'a>(
     Ok(res)
 }
 
-pub fn call_results_to_args(args: &[JavaCallResult]) -> Vec<JavaArg> {
+pub fn call_results_to_args(args: &'_ [JavaCallResult]) -> Vec<JavaArg<'_>> {
     args.iter()
         .map(|arg| arg.as_arg())
         .collect::<Vec<JavaArg>>()

@@ -155,7 +155,7 @@ impl<'a> JavaClass<'a> {
         StaticJavaBooleanMethod::new(method)
     }
 
-    pub fn get_constructor(&self, signature: &str) -> ResultType<JavaConstructor> {
+    pub fn get_constructor(&'_ self, signature: &str) -> ResultType<JavaConstructor<'_>> {
         self.env().get_constructor(self, signature)
     }
 
