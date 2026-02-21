@@ -14,11 +14,11 @@ jobs:
         strategy:
             matrix:
                 include:
-                    - os: ubuntu-20.04
+                    - os: ubuntu-24.04
                       target: x86_64-unknown-linux-gnu
                       package: linux-x64-gnu
                       publish: true
-                    - os: ubuntu-20.04
+                    - os: ubuntu-24.04
                       target: aarch64-unknown-linux-gnu
                       package: linux-arm64-gnu
                       publish: false
@@ -43,13 +43,13 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
             - name: Setup Node.js environment
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
                   node-version: 22.x
             - name: Setup Java JDK
-              uses: actions/setup-java@v4
+              uses: actions/setup-java@v5
               with:
                   distribution: 'temurin'
                   java-version: '17'
@@ -97,9 +97,9 @@ jobs:
                   ignore-scripts: false
 
     build-musl:
-        runs-on: ubuntu-20.04
+        runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6
             - name: Build
               uses: addnab/docker-run-action@v3
               timeout-minutes: 180
@@ -136,7 +136,7 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event.inputs.dry-run != 'true'
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
             - name: Get version
               id: version
               run: echo "version=$(node -p 'require(`./package.json`).version')" >> $GITHUB_ENV

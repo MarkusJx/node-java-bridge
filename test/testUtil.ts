@@ -156,19 +156,30 @@ export class ClassTool {
     }
 }
 
-export const checkJavaErrorCause = (e: unknown, errorMessage: string) => {
+export const checkJavaErrorCause = (
+    e: unknown,
+    errorMessage: string | null
+) => {
     if (e instanceof AssertionError) {
         throw e;
     }
 
     expect(e).property('cause').to.not.be.null;
     const error = e as JavaError;
-    expect(error.cause.toString()).to.equal(
-        `java.lang.NullPointerException: ${errorMessage}`
-    );
+    if (errorMessage !== null) {
+        expect(error.cause.toString()).to.equal(
+            `java.lang.NullPointerException: ${errorMessage}`
+        );
+    } else {
+        expect(error.cause.toString()).to.match(
+            /java\.lang\.NullPointerException.*/gm
+        );
+    }
 
     const stack = error.cause.getStackTraceSync();
     expect(stack).to.not.be.null;
     expect(stack).to.be.an('array');
-    expect(stack.length).to.be.greaterThan(0);
+    if (errorMessage !== null) {
+        expect(stack.length).to.be.greaterThan(0);
+    }
 };

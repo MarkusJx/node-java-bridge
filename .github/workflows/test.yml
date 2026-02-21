@@ -18,7 +18,7 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.7.3
             - name: Build
@@ -31,7 +31,7 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.7.3
             - name: Build
@@ -44,7 +44,7 @@ jobs:
         strategy:
             matrix:
                 include:
-                    - os: ubuntu-20.04
+                    - os: ubuntu-22.04
                       node-version: 20.x
                       arch: x64
                       features: default
@@ -78,14 +78,14 @@ jobs:
                       features: all
         runs-on: ${{matrix.os}}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6
             - name: Setup Node.js ${{matrix.node-version}} environment
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
                   node-version: ${{matrix.node-version}}
                   architecture: ${{matrix.arch}}
             - name: Setup java 17
-              uses: actions/setup-java@v4
+              uses: actions/setup-java@v5
               with:
                   distribution: 'temurin'
                   java-version: '17'
@@ -124,7 +124,7 @@ jobs:
                   node -e 'let p=require("./package.json");p.files.push("dist/*.node");require("fs").writeFileSync("package.json",JSON.stringify(p,null,4))'
                   npm pack
             - name: Upload package
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v6
               if: ${{matrix.node-version == '20.x'}}
               with:
                   name: java-${{matrix.arch}}-${{matrix.os}}
@@ -135,15 +135,15 @@ jobs:
             fail-fast: false
             matrix:
                 node-version: [20, 22]
-        runs-on: ubuntu-20.04
+        runs-on: ubuntu-24.04
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6
             - name: Setup Node.js ${{matrix.node-version}} environment
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
                   node-version: ${{matrix.node-version}}
             - name: Setup java 17
-              uses: actions/setup-java@v4
+              uses: actions/setup-java@v5
               with:
                   distribution: 'temurin'
                   java-version: '17'
@@ -175,12 +175,12 @@ jobs:
               uses: addnab/docker-run-action@v3
               timeout-minutes: 180
               with:
-                  image: arm64v8/node:${{matrix.node-version}}-bullseye
+                  image: arm64v8/node:${{matrix.node-version}}-trixie
                   options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace --platform linux/arm64
                   run: |
                       apt-get update
                       apt-get install ca-certificates-java -y
-                      apt-get install openjdk-17-jre-headless -y
+                      apt-get install openjdk-21-jre-headless -y
                       apt-get remove -y openjdk-11*
                       npm config set cache /tmp --global
                       export CI=true
@@ -198,7 +198,7 @@ jobs:
                   node -e 'let p=require("./package.json");p.files.push("dist/*.node");require("fs").writeFileSync("package.json",JSON.stringify(p,null,4))'
                   npm pack
             - name: Upload package
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v6
               if: ${{matrix.node-version == '20'}}
               with:
                   name: java-arm64-ubuntu
@@ -209,9 +209,9 @@ jobs:
             fail-fast: false
             matrix:
                 node-version: [20, 22]
-        runs-on: ubuntu-20.04
+        runs-on: ubuntu-24.04
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.7.3
             - name: Run tests
@@ -237,7 +237,7 @@ jobs:
                   node -e 'let p=require("./package.json");p.files.push("dist/*.node");require("fs").writeFileSync("package.json",JSON.stringify(p,null,4))'
                   npm pack
             - name: Upload package
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v6
               if: ${{matrix.node-version == '20'}}
               with:
                   name: java-x64-ubuntu-musl
@@ -246,12 +246,12 @@ jobs:
     benchmark:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6
             - name: Setup Node.js environment
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
                   node-version: 22.x
-            - uses: actions/setup-java@v4
+            - uses: actions/setup-java@v5
               with:
                   distribution: 'temurin'
                   java-version: '17'

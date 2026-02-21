@@ -59,10 +59,15 @@ pub(in crate::node::interface_proxy) fn remove_proxy(
     function_caller: Option<FunctionCaller>,
 ) {
     let removed = proxies.remove(&id);
+    if !keep_as_daemon {
+        return;
+    }
 
-    if keep_as_daemon && function_caller.is_some() && function_caller.as_ref().unwrap().is_alive() {
-        if let Some(methods) = removed {
-            daemon_proxies.insert(id, (methods, function_caller.unwrap()));
+    if let Some(caller) = function_caller {
+        if caller.is_alive() {
+            if let Some(methods) = removed {
+                daemon_proxies.insert(id, (methods, caller));
+            }
         }
     }
 }
