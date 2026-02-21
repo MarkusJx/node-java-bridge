@@ -180,7 +180,7 @@ jobs:
                   run: |
                       apt-get update
                       apt-get install ca-certificates-java -y
-                      apt-get install openjdk-17-jre-headless -y
+                      apt-get install openjdk-21-jre-headless -y
                       apt-get remove -y openjdk-11*
                       npm config set cache /tmp --global
                       export CI=true
