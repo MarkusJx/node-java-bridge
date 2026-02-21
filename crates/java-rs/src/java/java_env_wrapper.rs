@@ -1189,10 +1189,10 @@ impl<'a> JavaEnvWrapper<'a> {
     }
 
     pub fn create_object_array(
-        &self,
+        &'_ self,
         class: &'a JavaClass<'a>,
         len: i32,
-    ) -> ResultType<JavaObjectArray> {
+    ) -> ResultType<JavaObjectArray<'_>> {
         let arr = unsafe {
             self.methods.NewObjectArray.unwrap()(self.env, len, class.class(), ptr::null_mut())
         };

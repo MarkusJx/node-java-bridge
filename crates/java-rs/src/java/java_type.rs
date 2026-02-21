@@ -261,7 +261,7 @@ impl JavaType {
     /// assert_eq!(java_type.to_string(), expected.to_string());
     /// ```
     pub fn from_method_return_type(method_signature: &str) -> ResultType<Self> {
-        let signature = method_signature.split(')').last().ok_or(format!(
+        let signature = method_signature.split(')').next_back().ok_or(format!(
             "Could not get the return type of signature '{}'",
             method_signature
         ))?;
