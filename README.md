@@ -128,7 +128,7 @@ ensureJvm({
 
 All threads will be attached as daemon threads, allowing the jvm to exit when the main
 thread exits.
-This behaviour can not be changed, as it may introduce undefined behaviour.
+This behavior can not be changed, as it may introduce undefined behaviour.
 
 Important note on jvm options: Different arguments must be parsed as separate strings in
 the `opts` array.
@@ -266,7 +266,7 @@ await str.toString(); // 'Hello World'
 
 When using asynchronous functions, by default, the number of threads used by these functions
 is determined by the number of physical CPUs available.
-In order to change this behaviour, set the `JAVA_BRIDGE_THREAD_POOL_SIZE` environment variable
+In order to change this behavior, set the `JAVA_BRIDGE_THREAD_POOL_SIZE` environment variable
 to the desired amount of threads.
 
 Note: Setting this to a non-numeric value will cause an error to be thrown during startup.

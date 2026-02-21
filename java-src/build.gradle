@@ -7,8 +7,8 @@ group 'io.github.markusjx'
 version '2.1.1'
 
 apply plugin: 'java'
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+sourceCompatibility = 9
+targetCompatibility = 9
 
 repositories {
     mavenCentral()
