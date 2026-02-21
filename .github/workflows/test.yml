@@ -175,7 +175,7 @@ jobs:
               uses: addnab/docker-run-action@v3
               timeout-minutes: 180
               with:
-                  image: arm64v8/node:${{matrix.node-version}}-bullseye
+                  image: arm64v8/node:${{matrix.node-version}}-trixie
                   options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace --platform linux/arm64
                   run: |
                       apt-get update
