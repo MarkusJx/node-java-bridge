@@ -1,0 +1,15 @@
+ARG NODE_VERSION="22"
+ARG DEBIAN_VERSION="trixie"
+
+FROM node:${NODE_VERSION}-${DEBIAN_VERSION}
+
+ARG JAVA_VERSION
+
+RUN apt-get update &&\
+    apt-get upgrade -y &&\
+    apt-get remove -y openjdk-* &&\
+    apt-get autoremove -y &&\
+    apt-get install ca-certificates-java -y &&\
+    apt-get install openjdk-${JAVA_VERSION}-jre-headless -y &&\
+    npm config set cache /tmp --global
+ENV CI=true

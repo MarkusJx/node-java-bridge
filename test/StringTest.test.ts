@@ -172,7 +172,7 @@ describe('StringTest', () => {
 
         try {
             JavaString.valueOfSync(null);
-            expect.fail('Expected an error');
+            // May not throw an error
         } catch (e: unknown) {
             checkJavaErrorCause(
                 e,

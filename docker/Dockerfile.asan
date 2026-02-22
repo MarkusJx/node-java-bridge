@@ -1,9 +1,13 @@
-FROM ghcr.io/markusjx/prebuilt-debug-jdk:{{JDK_VERSION}} as jdk
-FROM ghcr.io/markusjx/prebuilt-debug-nodejs:{{NODE_VERSION}} as node
-FROM debian:{{DEBIAN_VERSION}}-slim
+ARG JDK_VERSION="21"
+ARG NODE_VERSION="22"
+ARG DEBIAN_VERSION="trixie"
+
+FROM ghcr.io/markusjx/prebuilt-debug-jdk:${JDK_VERSION} AS jdk
+FROM ghcr.io/markusjx/prebuilt-debug-nodejs:${NODE_VERSION} AS node
+FROM debian:${DEBIAN_VERSION}-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
- libclang-dev clang libatomic1 llvm && apt-get install -y curl && \
+ libclang-dev clang libatomic1 llvm curl ca-certificates &&\
  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y && \
  PATH="$PATH:/root/.cargo/bin" \
  rustup toolchain install nightly --allow-downgrade --profile default --component clippy && \

@@ -21,9 +21,7 @@ fn main() {
         .clang_arg(format!("-I{}", java_home.join(os_dir).as_path().to_str().unwrap()).as_str())
         .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()));
 
-    if build_target::target_os().unwrap() == Os::Linux
-        && build_target::target_arch().unwrap() == Arch::AARCH64
-    {
+    if build_target::target_os() == Os::Linux && build_target::target_arch() == Arch::AArch64 {
         bindings = bindings.size_t_is_usize(false);
     }
 

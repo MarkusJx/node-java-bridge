@@ -7,6 +7,10 @@ on:
     pull_request:
     workflow_dispatch:
 
+env:
+    JAVA_VERSION: 21
+    NODE_VERSION: 24
+
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_id || github.event.pull_request.number || github.ref }}
     cancel-in-progress: true
@@ -35,14 +39,14 @@ jobs:
             - name: Setup node
               uses: actions/setup-node@v6
               with:
-                  node-version: 20
+                  node-version: ${{env.NODE_VERSION}}
                   check-latest: true
                   cache: 'npm'
-            - name: Setup java 17
+            - name: Setup java
               uses: actions/setup-java@v5
               with:
                   distribution: 'temurin'
-                  java-version: '17'
+                  java-version: ${{env.JAVA_VERSION}}
 
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.7.3

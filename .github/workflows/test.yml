@@ -8,6 +8,8 @@ on:
 
 env:
     CARGO_TERM_COLOR: always
+    DEBIAN_VERSION: trixie
+    JAVA_VERSION: 21
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_id || github.event.pull_request.number || github.ref }}
@@ -86,9 +88,17 @@ jobs:
                   architecture: ${{matrix.arch}}
             - name: Setup java 17
               uses: actions/setup-java@v5
+              if: ${{matrix.os == 'windows-latest'}}
               with:
                   distribution: 'temurin'
                   java-version: '17'
+                  architecture: ${{matrix.arch}}
+            - name: Setup java
+              uses: actions/setup-java@v5
+              if: ${{matrix.os != 'windows-latest'}}
+              with:
+                  distribution: 'temurin'
+                  java-version: ${{env.JAVA_VERSION}}
                   architecture: ${{matrix.arch}}
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.7.3
@@ -146,7 +156,7 @@ jobs:
               uses: actions/setup-java@v5
               with:
                   distribution: 'temurin'
-                  java-version: '17'
+                  java-version: ${{env.JAVA_VERSION}}
             - name: Install rust toolchain
               uses: dtolnay/rust-toolchain@stable
               with:
@@ -171,19 +181,26 @@ jobs:
               run: npm install
             - name: Init qemu
               run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+            - name: Docker login
+              run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            - name: Build test container
+              run: |
+                  if docker manifest inspect ghcr.io/markusjx/node-java-bridge/test-arm:${{matrix.node-version}}-$JAVA_VERSION-$DEBIAN_VERSION;
+                  then
+                    echo "Docker container already exists"
+                  else
+                    docker build --push --platform linux/arm64 --build-arg NODE_VERSION=${{matrix.node-version}} \
+                      --build-arg DEBIAN_VERSION=$DEBIAN_VERSION \
+                      --build-arg JAVA_VERSION=$JAVA_VERSION -f docker/Dockerfile.arm \
+                      -t ghcr.io/markusjx/node-java-bridge/test-arm:${{matrix.node-version}}-$JAVA_VERSION-$DEBIAN_VERSION .
+                  fi
             - name: Run tests
               uses: addnab/docker-run-action@v3
               timeout-minutes: 180
               with:
-                  image: arm64v8/node:${{matrix.node-version}}-trixie
+                  image: ghcr.io/markusjx/node-java-bridge/test-arm:${{matrix.node-version}}-${{env.JAVA_VERSION}}-${{env.DEBIAN_VERSION}}
                   options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace --platform linux/arm64
                   run: |
-                      apt-get update
-                      apt-get install ca-certificates-java -y
-                      apt-get install openjdk-21-jre-headless -y
-                      apt-get remove -y openjdk-11*
-                      npm config set cache /tmp --global
-                      export CI=true
                       npm install
                       npm run testOnly
             - name: Create test summary
@@ -209,20 +226,30 @@ jobs:
             fail-fast: false
             matrix:
                 node-version: [20, 22]
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v6
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.7.3
+            - name: Docker login
+              run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            - name: Build test container
+              run: |
+                  if docker manifest inspect ghcr.io/markusjx/node-java-bridge/test-alpine:${{matrix.node-version}}-$JAVA_VERSION;
+                  then
+                    echo "Docker container already exists"
+                  else
+                    docker build --push --build-arg NODE_VERSION=${{matrix.node-version}} \
+                      --build-arg JAVA_VERSION=$JAVA_VERSION -f docker/Dockerfile.alpine \
+                      -t ghcr.io/markusjx/node-java-bridge/test-alpine:${{matrix.node-version}}-$JAVA_VERSION .
+                  fi
             - name: Run tests
               uses: addnab/docker-run-action@v3
               timeout-minutes: 180
               with:
-                  image: ghcr.io/markusjx/node-java-bridge/java-bridge-node-alpine-build:node-${{matrix.node-version}}-jdk-17
+                  image: ghcr.io/markusjx/node-java-bridge/test-alpine:${{matrix.node-version}}-${{env.JAVA_VERSION}}
                   options: -v ${{ github.workspace }}:/github/workspace -w /github/workspace
                   run: |
-                      npm config set cache /tmp --global
-                      export CI=true
                       npm ci
                       npm test
             - name: Create test summary
@@ -254,7 +281,7 @@ jobs:
             - uses: actions/setup-java@v5
               with:
                   distribution: 'temurin'
-                  java-version: '17'
+                  java-version: ${{env.JAVA_VERSION}}
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.7.3
             - name: Install
