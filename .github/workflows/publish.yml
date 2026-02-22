@@ -43,6 +43,9 @@ jobs:
                       publish: false
 
         runs-on: ${{ matrix.os }}
+        permissions:
+          contents: read
+          id-token: write
 
         steps:
             - name: Checkout
@@ -82,7 +85,7 @@ jobs:
               run: mv java.*.node npm/${{ matrix.package }}
               shell: bash
             - name: NPM Publish Binary
-              uses: JS-DevTools/npm-publish@4
+              uses: JS-DevTools/npm-publish@v4
               if: ${{ matrix.package != 'linux-x64-gnu' }}
               with:
                   access: public
@@ -91,7 +94,7 @@ jobs:
                   dry-run: ${{ github.event.inputs.dry-run == 'true' }}
                   ignore-scripts: false
             - name: NPM Publish
-              uses: JS-DevTools/npm-publish@v4
+              uses: JS-DevTools/npm-publish@v4.1.5
               if: ${{ matrix.package == 'linux-x64-gnu' }}
               with:
                   access: public
@@ -101,6 +104,9 @@ jobs:
 
     build-musl:
         runs-on: ubuntu-latest
+        permissions:
+          contents: read
+          id-token: write
         steps:
             - uses: actions/checkout@v6
             - name: Build
