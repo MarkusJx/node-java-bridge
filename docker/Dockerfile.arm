@@ -1,8 +1,9 @@
 ARG NODE_VERSION="22"
 ARG DEBIAN_VERSION="trixie"
-ARG JAVA_VERSION
 
 FROM node:${NODE_VERSION}-${DEBIAN_VERSION}
+
+ARG JAVA_VERSION
 
 RUN apt-get update &&\
     apt-get upgrade -y &&\
