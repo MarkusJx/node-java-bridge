@@ -54,6 +54,7 @@ jobs:
               uses: actions/setup-node@v6
               with:
                   node-version: ${{env.NODE_VERSION}}.x
+                  registry-url: 'https://registry.npmjs.org'
             - name: Setup Java JDK
               uses: actions/setup-java@v5
               with:
@@ -107,6 +108,11 @@ jobs:
             id-token: write
         steps:
             - uses: actions/checkout@v6
+            - name: Setup Node.js environment
+              uses: actions/setup-node@v6
+              with:
+                node-version: ${{env.NODE_VERSION}}.x
+                registry-url: 'https://registry.npmjs.org'
             - name: Build
               uses: addnab/docker-run-action@v3
               timeout-minutes: 180
