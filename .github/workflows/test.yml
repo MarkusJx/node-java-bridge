@@ -182,7 +182,7 @@ jobs:
             - name: Init qemu
               run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
             - name: Docker login
-              run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
+              run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             - name: Build test container
               run: |
                   if docker manifest inspect ghcr.io/markusjx/node-java-bridge/test-arm:${{matrix.node-version}}-$JAVA_VERSION-$DEBIAN_VERSION;
@@ -232,7 +232,7 @@ jobs:
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.7.3
             - name: Docker login
-              run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
+              run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             - name: Build test container
               run: |
                   if docker manifest inspect ghcr.io/markusjx/node-java-bridge/test-alpine:${{matrix.node-version}}-$JAVA_VERSION;
