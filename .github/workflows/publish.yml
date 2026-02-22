@@ -12,6 +12,10 @@ env:
     JAVA_VERSION: 21
     NODE_VERSION: 22
 
+permissions:
+    id-token: write
+    contents: read
+
 jobs:
     build:
         strategy:
@@ -43,9 +47,6 @@ jobs:
                       publish: false
 
         runs-on: ${{ matrix.os }}
-        permissions:
-            contents: read
-            id-token: write
 
         steps:
             - name: Checkout
@@ -103,9 +104,6 @@ jobs:
 
     build-musl:
         runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            id-token: write
         steps:
             - uses: actions/checkout@v6
             - name: Setup Node.js environment
