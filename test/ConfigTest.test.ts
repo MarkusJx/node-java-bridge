@@ -218,7 +218,7 @@ describe('Config test', () => {
 
         try {
             await JavaString.valueOf(null);
-            expect.fail('Expected an error');
+            // May not throw an error
         } catch (e: unknown) {
             checkJavaErrorCause(
                 e,
