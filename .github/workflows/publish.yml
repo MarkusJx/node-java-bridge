@@ -92,11 +92,9 @@ jobs:
               if: ${{ matrix.package != 'linux-x64-gnu' }}
               working-directory: npm/${{ matrix.package }}
               run: npm publish --access public ${{env.DRY_RUN}}
-              continue-on-error: true
             - name: NPM Publish
               if: ${{ matrix.package == 'linux-x64-gnu' }}
               run: npm publish --access public ${{env.DRY_RUN}}
-              continue-on-error: true
 
     build-musl:
         runs-on: ubuntu-latest
@@ -129,7 +127,6 @@ jobs:
             - name: NPM Publish Binary
               working-directory: npm/linux-x64-musl
               run: npm publish --access public ${{env.DRY_RUN}}
-              continue-on-error: true
 
     draft-release:
         needs: [build, build-musl]
