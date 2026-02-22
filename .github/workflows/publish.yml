@@ -10,7 +10,7 @@ on:
                 default: 'false'
 env:
     JAVA_VERSION: 21
-    NODE_VERSION: 22
+    NODE_VERSION: 24
     CARGO_TERM_COLOR: always
     DRY_RUN: ${{ (github.event.inputs.dry-run == 'true' && '--dry-run') || '' }}
 
