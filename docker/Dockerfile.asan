@@ -1,10 +1,10 @@
-ARG JDK_VERSION
-ARG NODE_VERSION
-ARG DEBIAN_VERSION
+ARG JDK_VERSION="21"
+ARG NODE_VERSION="22"
+ARG DEBIAN_VERSION="trixie"
 
-FROM ghcr.io/markusjx/prebuilt-debug-jdk:{{JDK_VERSION}} as jdk
-FROM ghcr.io/markusjx/prebuilt-debug-nodejs:{{NODE_VERSION}} as node
-FROM debian:{{DEBIAN_VERSION}}-slim
+FROM ghcr.io/markusjx/prebuilt-debug-jdk:${JDK_VERSION} as jdk
+FROM ghcr.io/markusjx/prebuilt-debug-nodejs:${NODE_VERSION} as node
+FROM debian:${DEBIAN_VERSION}-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
  libclang-dev clang libatomic1 llvm && apt-get install -y curl && \

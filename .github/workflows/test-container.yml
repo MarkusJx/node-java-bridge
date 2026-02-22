@@ -14,32 +14,19 @@ on:
 
 env:
     REGISTRY: ghcr.io
-    IMAGE_NAME: java-bridge-asan-testcontainer
+    IMAGE_NAME: ghcr.io/markusjx/node-java-bridge/java-bridge-asan-testcontainer:latest
 
 jobs:
     build:
         runs-on: ubuntu-latest
 
         steps:
-            - uses: actions/checkout@v4
-            - name: Create dockerfile
-              uses: edgardleal/mustache-template-action@v1.0.4
-              env:
-                  DEBIAN_VERSION: ${{github.event.inputs.debian-version}}
-                  JDK_VERSION: ${{github.event.inputs.jdk-version}}
-                  NODE_VERSION: ${{github.event.inputs.node-version}}
-              with:
-                  input: ./docker/Dockerfile.asan
-                  output: Dockerfile
-
-            - name: Build image
-              run: docker build . --file Dockerfile --tag $IMAGE_NAME
-
-            - name: Log into registry
+            - uses: actions/checkout@v6
+            - name: Docker login
               run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
-            - name: Push latest image
+            - name: Build image
               run: |
-                  IMAGE_ID=$REGISTRY/${{ github.repository }}
-                  IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')/$IMAGE_NAME
-                  docker tag $IMAGE_NAME $IMAGE_ID:latest
-                  docker push $IMAGE_ID:latest
+                docker build --push -f docker/Dockerfile.asan -t $IMAGE_NAME\
+                  --build-arg JDK_VERSION=${{github.event.inputs.jdk-version}} \
+                  --build-arg NODE_VERSION=${{github.event.inputs.node-version}} \
+                  --build-arg DEBIAN_VERSION=${{github.event.inputs.debian-version}} .
