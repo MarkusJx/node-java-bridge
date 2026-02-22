@@ -7,7 +7,7 @@ FROM ghcr.io/markusjx/prebuilt-debug-nodejs:${NODE_VERSION} AS node
 FROM debian:${DEBIAN_VERSION}-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
- libclang-dev clang libatomic1 llvm && apt-get install -y curl && \
+ libclang-dev clang libatomic1 llvm curl ca-certificates &&\
  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y && \
  PATH="$PATH:/root/.cargo/bin" \
  rustup toolchain install nightly --allow-downgrade --profile default --component clippy && \
