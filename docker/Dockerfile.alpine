@@ -1,0 +1,19 @@
+ARG NODE_VERSION="22"
+ARG JAVA_VERSION
+
+FROM node:${NODE_VERSION}-alpine
+
+RUN apk update && apk add curl build-base clang16-libclang wget &&\
+ wget -O /etc/apk/keys/adoptium.rsa.pub\
+ https://packages.adoptium.net/artifactory/api/security/keypair/public/repositories/apk &&\
+ echo 'https://packages.adoptium.net/artifactory/apk/alpine/main' >> /etc/apk/repositories &&\
+ apk add temurin-${JAVA_VERSION}-jdk &&\
+ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y &&\
+ npm config set cache /tmp --global
+
+ENV PATH="$PATH:/root/.cargo/bin"
+ENV JAVA_HOME="/usr/lib/jvm/java-${JAVA_VERSION}-temurin"
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/lib/jvm/java-${JAVA_VERSION}-temurin/lib/server"
+ENV CI=true
+
+ENTRYPOINT [ "/bin/sh" ]
