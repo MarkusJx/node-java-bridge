@@ -107,12 +107,12 @@
         "webpack-node-externals": "^3.0.0"
     },
     "optionalDependencies": {
-        "java-bridge-darwin-arm64": "2.1.5",
-        "java-bridge-darwin-x64": "2.1.5",
-        "java-bridge-linux-arm64-gnu": "2.1.5",
-        "java-bridge-linux-x64-gnu": "2.1.5",
-        "java-bridge-linux-x64-musl": "2.1.5",
-        "java-bridge-win32-ia32-msvc": "2.1.5",
-        "java-bridge-win32-x64-msvc": "2.1.5"
+        "java-bridge-darwin-arm64": "2.8.0",
+        "java-bridge-darwin-x64": "2.8.0",
+        "java-bridge-linux-arm64-gnu": "2.8.0",
+        "java-bridge-linux-x64-gnu": "2.8.0",
+        "java-bridge-linux-x64-musl": "2.8.0",
+        "java-bridge-win32-ia32-msvc": "2.8.0",
+        "java-bridge-win32-x64-msvc": "2.8.0"
     }
 }
