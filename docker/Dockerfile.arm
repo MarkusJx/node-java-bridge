@@ -1,0 +1,12 @@
+ARG NODE_VERSION
+ARG DEBIAN_VERSION
+ARG JDK_VERSION
+
+FROM node:${NODE_VERSION}-${DEBIAN_VERSION}
+
+RUN apt-get update &&\
+    apt-get remove -y openjdk-* &&\
+    apt-get install ca-certificates-java -y &&\
+    apt-get install openjdk-21-jre-headless -y &&\
+    npm config set cache /tmp --global
+ENV CI=true

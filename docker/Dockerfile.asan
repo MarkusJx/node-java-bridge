@@ -1,3 +1,7 @@
+ARG JDK_VERSION
+ARG NODE_VERSION
+ARG DEBIAN_VERSION
+
 FROM ghcr.io/markusjx/prebuilt-debug-jdk:{{JDK_VERSION}} as jdk
 FROM ghcr.io/markusjx/prebuilt-debug-nodejs:{{NODE_VERSION}} as node
 FROM debian:{{DEBIAN_VERSION}}-slim
