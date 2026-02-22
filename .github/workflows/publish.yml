@@ -11,6 +11,8 @@ on:
 env:
     JAVA_VERSION: 21
     NODE_VERSION: 22
+    CARGO_TERM_COLOR: always
+    DRY_RUN: ${{ (github.event.inputs.dry-run == 'true' && '--dry-run') || '' }}
 
 permissions:
     id-token: write
@@ -87,12 +89,12 @@ jobs:
               run: mv java.*.node npm/${{ matrix.package }}
               shell: bash
             - name: NPM Publish Binary
-              if: ${{ matrix.package != 'linux-x64-gnu' && github.event.inputs.dry-run != 'true' }}
+              if: ${{ matrix.package != 'linux-x64-gnu' }}
               working-directory: npm/${{ matrix.package }}
-              run: npm publish --access public
+              run: npm publish --access public ${{env.DRY_RUN}}
             - name: NPM Publish
-              if: ${{ matrix.package == 'linux-x64-gnu' && github.event.inputs.dry-run != 'true' }}
-              run: npm publish --access public
+              if: ${{ matrix.package == 'linux-x64-gnu' }}
+              run: npm publish --access public ${{env.DRY_RUN}}
 
     build-musl:
         runs-on: ubuntu-latest
@@ -124,8 +126,7 @@ jobs:
               shell: bash
             - name: NPM Publish Binary
               working-directory: npm/linux-x64-musl
-              if: ${{ github.event.inputs.dry-run != 'true' }}
-              run: npm publish --access public
+              run: npm publish --access public ${{env.DRY_RUN}}
 
     draft-release:
         needs: [build, build-musl]
