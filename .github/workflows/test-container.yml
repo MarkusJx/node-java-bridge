@@ -26,7 +26,7 @@ jobs:
               run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login $REGISTRY -u ${{ github.actor }} --password-stdin
             - name: Build image
               run: |
-                docker build --push -f docker/Dockerfile.asan -t $IMAGE_NAME\
-                  --build-arg JDK_VERSION=${{github.event.inputs.jdk-version}} \
-                  --build-arg NODE_VERSION=${{github.event.inputs.node-version}} \
-                  --build-arg DEBIAN_VERSION=${{github.event.inputs.debian-version}} .
+                  docker build --push -f docker/Dockerfile.asan -t $IMAGE_NAME\
+                    --build-arg JDK_VERSION=${{github.event.inputs.jdk-version}} \
+                    --build-arg NODE_VERSION=${{github.event.inputs.node-version}} \
+                    --build-arg DEBIAN_VERSION=${{github.event.inputs.debian-version}} .
