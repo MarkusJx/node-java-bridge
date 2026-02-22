@@ -111,8 +111,8 @@ jobs:
             - name: Setup Node.js environment
               uses: actions/setup-node@v6
               with:
-                node-version: ${{env.NODE_VERSION}}.x
-                registry-url: 'https://registry.npmjs.org'
+                  node-version: ${{env.NODE_VERSION}}.x
+                  registry-url: 'https://registry.npmjs.org'
             - name: Build
               uses: addnab/docker-run-action@v3
               timeout-minutes: 180
