@@ -10,7 +10,13 @@ on:
                 default: 'false'
 env:
     JAVA_VERSION: 21
-    NODE_VERSION: 22
+    NODE_VERSION: 24
+    CARGO_TERM_COLOR: always
+    DRY_RUN: ${{ (github.event.inputs.dry-run == 'true' && '--dry-run') || '' }}
+
+permissions:
+    id-token: write
+    contents: read
 
 jobs:
     build:
@@ -43,9 +49,6 @@ jobs:
                       publish: false
 
         runs-on: ${{ matrix.os }}
-        permissions:
-            contents: read
-            id-token: write
 
         steps:
             - name: Checkout
@@ -54,6 +57,7 @@ jobs:
               uses: actions/setup-node@v6
               with:
                   node-version: ${{env.NODE_VERSION}}.x
+                  registry-url: 'https://registry.npmjs.org'
             - name: Setup Java JDK
               uses: actions/setup-java@v5
               with:
@@ -85,28 +89,22 @@ jobs:
               run: mv java.*.node npm/${{ matrix.package }}
               shell: bash
             - name: NPM Publish Binary
-              uses: JS-DevTools/npm-publish@v4
               if: ${{ matrix.package != 'linux-x64-gnu' }}
-              with:
-                  access: public
-                  package: npm/${{ matrix.package }}/package.json
-                  dry-run: ${{ github.event.inputs.dry-run == 'true' }}
-                  ignore-scripts: false
+              working-directory: npm/${{ matrix.package }}
+              run: npm publish --access public ${{env.DRY_RUN}}
             - name: NPM Publish
-              uses: JS-DevTools/npm-publish@v4.1.5
               if: ${{ matrix.package == 'linux-x64-gnu' }}
-              with:
-                  access: public
-                  dry-run: ${{ github.event.inputs.dry-run == 'true' }}
-                  ignore-scripts: false
+              run: npm publish --access public ${{env.DRY_RUN}}
 
     build-musl:
         runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            id-token: write
         steps:
             - uses: actions/checkout@v6
+            - name: Setup Node.js environment
+              uses: actions/setup-node@v6
+              with:
+                  node-version: ${{env.NODE_VERSION}}.x
+                  registry-url: 'https://registry.npmjs.org'
             - name: Build
               uses: addnab/docker-run-action@v3
               timeout-minutes: 180
@@ -127,12 +125,8 @@ jobs:
               run: mv java.*.node npm/linux-x64-musl
               shell: bash
             - name: NPM Publish Binary
-              uses: JS-DevTools/npm-publish@v4
-              with:
-                  access: public
-                  package: npm/linux-x64-musl/package.json
-                  dry-run: ${{ github.event.inputs.dry-run == 'true' }}
-                  ignore-scripts: false
+              working-directory: npm/linux-x64-musl
+              run: npm publish --access public ${{env.DRY_RUN}}
 
     draft-release:
         needs: [build, build-musl]
