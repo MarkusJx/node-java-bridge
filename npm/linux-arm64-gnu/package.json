@@ -17,5 +17,12 @@
     },
     "libc": [
         "glibc"
-    ]
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/MarkusJx/node-java-bridge.git"
+    },
+    "bugs": {
+        "url": "https://github.com/MarkusJx/node-java-bridge/issues"
+    }
 }
