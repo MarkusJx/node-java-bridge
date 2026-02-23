@@ -145,7 +145,7 @@ jobs:
             fail-fast: false
             matrix:
                 node-version: [20, 22, 24]
-        runs-on: ubuntu-24.04
+        runs-on: macos-latest
         steps:
             - uses: actions/checkout@v6
             - name: Setup Node.js ${{matrix.node-version}} environment
@@ -164,15 +164,15 @@ jobs:
                   targets: aarch64-unknown-linux-gnu
             - name: Rust Cache
               uses: Swatinem/rust-cache@v2.7.3
-            - name: Install cross compile toolchain
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install gcc-multilib -y
-                  sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu -y
-            - name: Set linker
-              run: |
-                  mkdir .cargo
-                  printf '[target.aarch64-unknown-linux-gnu]\nlinker = "aarch64-linux-gnu-gcc"\n' >> .cargo/config
+            #- name: Install cross compile toolchain
+            #  run: |
+            #      sudo apt-get update
+            #      sudo apt-get install gcc-multilib -y
+            #      sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu -y
+            #- name: Set linker
+            #  run: |
+            #      mkdir .cargo
+            #      printf '[target.aarch64-unknown-linux-gnu]\nlinker = "aarch64-linux-gnu-gcc"\n' >> .cargo/config
             - name: Install
               run: npm ci
             - name: Build
