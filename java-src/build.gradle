@@ -1,14 +1,14 @@
 plugins {
     id 'java'
-    id "com.github.johnrengelman.shadow" version "7.1.2"
 }
 
 group 'io.github.markusjx'
-version '2.1.1'
+version '2.8.2'
 
-apply plugin: 'java'
-sourceCompatibility = 9
-targetCompatibility = 9
+java {
+    sourceCompatibility = 11
+    targetCompatibility = 11
+}
 
 repositories {
     mavenCentral()
@@ -21,10 +21,4 @@ dependencies {
 
 test {
     useJUnitPlatform()
-}
-
-shadowJar {
-    archiveBaseName.set(project.name)
-    archiveClassifier.set('')
-    archiveVersion.set(version)
 }
