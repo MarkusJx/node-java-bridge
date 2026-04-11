@@ -1,6 +1,6 @@
 {
     "name": "java-bridge",
-    "version": "2.8.1",
+    "version": "2.8.2",
     "main": "dist/index.prod.min.js",
     "types": "dist/index.d.ts",
     "description": "A bridge between Node.js and Java APIs",
@@ -52,8 +52,8 @@
         "build:napi:debug": "napi build --cargo-name java --platform --js native.js --dts native.d.ts",
         "build:ts": "webpack build",
         "build:java": "run-script-os",
-        "build:java:darwin:linux": "cd java-src && chmod +x gradlew && ./gradlew shadowJar",
-        "build:java:win32": "cd java-src && .\\gradlew.bat shadowJar",
+        "build:java:darwin:linux": "cd java-src && chmod +x gradlew && ./gradlew jar",
+        "build:java:win32": "cd java-src && .\\gradlew.bat jar",
         "prepublishOnly": "napi prepublish -t npm",
         "test": "npm run testOnly",
         "testOnly": "npm run mocha",
